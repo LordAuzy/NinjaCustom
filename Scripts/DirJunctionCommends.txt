@@ -1,0 +1,7 @@
+Commands to create junction directories in the ninjatrader.custom project. Purpose is to have all my source files
+in my git repo directory and have the directory tree that ninjatrader.custom.dll builds from have directory junctions
+to these files.
+
+mklink /J "C:\Users\kc_da\Documents\NinjaTrader 8\bin\Custom\DAustin" "C:\Code\Git\NinjaCustom\DAustin"
+mklink /J "C:\Users\kc_da\Documents\NinjaTrader 8\bin\Custom\Strategies\DAustin" "C:\Code\Git\NinjaCustom\Strategies\DAustin"
+mklink /J "C:\Users\kc_da\Documents\NinjaTrader 8\bin\Custom\Indicators\DAustin" "C:\Code\Git\NinjaCustom\Indicators\DAustin"
