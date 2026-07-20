@@ -20,6 +20,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB
         public int ATRPeriod { get; set; }
         public int FastEMAPeriod { get; set; }
         public int SlowEMAPeriod { get; set; }
+        public int VWAPStdDevBandCount { get; set; }
         // --- VWAP Chop Filter ---
         public double MinVWAPDistanceATR { get; set; }
         public double MinVWAPSlopeATR { get; set; }
@@ -134,6 +135,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB
 
             // Entry Parameters
             // --- Indicators ---
+            Entry.VWAPStdDevBandCount = 0;
             Entry.ATRPeriod = 14;
             Entry.FastEMAPeriod = 9;
             Entry.SlowEMAPeriod = 14;
@@ -232,6 +234,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB
             strat.BE_Expanding_R = BreakEven.Expanding_R;
             strat.BE_Contracting_R = BreakEven.Contracting_R;
 
+            strat.EntryVWAPStdDevBandCount = Entry.VWAPStdDevBandCount;
             strat.EntryATRPeriod = Entry.ATRPeriod;
             strat.EntryFastEMAPeriod = Entry.FastEMAPeriod;
             strat.EntrySlowEMAPeriod = Entry.SlowEMAPeriod;
@@ -325,6 +328,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB
             BreakEven.Expanding_R = strat.BE_Expanding_R;
             BreakEven.Contracting_R = strat.BE_Contracting_R;
 
+            Entry.VWAPStdDevBandCount = strat.EntryVWAPStdDevBandCount;
             Entry.ATRPeriod = strat.EntryATRPeriod;
             Entry.FastEMAPeriod = strat.EntryFastEMAPeriod;
             Entry.SlowEMAPeriod = strat.EntrySlowEMAPeriod;

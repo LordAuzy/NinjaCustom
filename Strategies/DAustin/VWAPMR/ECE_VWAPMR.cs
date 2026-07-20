@@ -6,15 +6,11 @@ using NinjaTrader.Cbi;
 using NinjaTrader.CQG.ProtoBuf;
 using NinjaTrader.Custom.Strategies.DAustin.Common;
 using NinjaTrader.Custom.DAustin.Interfaces;
-using NinjaTrader.Custom.Strategies.DAustin.DataCollectors;
-using NinjaTrader.Custom.Strategies.DAustin.Indicators;
-using NinjaTrader.Custom.Strategies.DAustin.OptimizationParameters;
 using NinjaTrader.Gui.PropertiesTest;
 using NinjaTrader.Gui.Tools;
 using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.MarketAnalyzerColumns;
-using NinjaTrader.NinjaScript.Strategies;
 using NinjaTrader.NinjaScript.SuperDomColumns;
 using NTRes.NinjaTrader.Gui.Tools.Account;
 using Rules1;
@@ -41,7 +37,7 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrackBar;
 using NinjaTrader.Custom.DAustin.Common;
 using NinjaTrader.Custom.DAustin.Common.Orders;
 
-namespace NinjaTrader.NinjaScript.Strategies.DAustin.EntryConditionsEvaluators
+namespace NinjaTrader.Custom.Strategies.DAustin.VWAPMR
 {
     [StrategyComponentId("ECE-VWAPMR")]
     public class ECE_VWAPMR : EntryConditionsEvaluatorBase

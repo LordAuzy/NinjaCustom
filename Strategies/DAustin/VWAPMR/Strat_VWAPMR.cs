@@ -3,9 +3,9 @@ using NinjaTrader.Cbi;
 using NinjaTrader.Core.FloatingPoint;
 using NinjaTrader.Custom.DAustin.Common;
 using NinjaTrader.Custom.DAustin.Interfaces;
-using NinjaTrader.Custom.Strategies.DAustin.Indicators;
-using NinjaTrader.Custom.Strategies.DAustin.OptimizationParameters;
 using NinjaTrader.Custom.Strategies.DAustin.TradeManagers;
+using NinjaTrader.Custom.Strategies.DAustin.VWAPMR;
+using NinjaTrader.Custom.Strategies.DAustin.VWAPPB;
 using NinjaTrader.Data;
 using NinjaTrader.Gui;
 using NinjaTrader.Gui.AccountData;
@@ -15,7 +15,6 @@ using NinjaTrader.Gui.Tools;
 using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.NinjaScript.Indicators;
-using NinjaTrader.NinjaScript.Strategies.DAustin.EntryConditionsEvaluators;
 using NinjaTrader.NinjaScript.Strategies.DAustin.Mom_9_21_Cross;
 using NLog;
 using NLog.Config;
@@ -45,19 +44,63 @@ namespace NinjaTrader.NinjaScript.Strategies
     #endregion
     public class Strat_VWAPMR : StratBase
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        private static Logger _logger = LogManager.GetCurrentClassLogger();
+        private Logger _loggerTP = null;
+        private bool _fullyInitialized = false;
+        private Logger LoggerTP
+        {
+            get
+            {
+                if (_loggerTP == null || _fullyInitialized == false)
+                {
+                    (_loggerTP, _fullyInitialized) = CreateLoggerWithBaseProps(_logger);
+                }
+                return _loggerTP;
+            }
+        }
+
+        [Browsable(false)]
+        public override String StrategyVersion { get { return "1.0.0"; } }
 
         #region GeneralParameters[NinjaScriptProperty]
         [NinjaScriptProperty]
         [Range(.25, 4.0)]
-        [Display(Name = "EquityRiskPct", GroupName = StratPropertyGroups.GeneralParameters, Order = 1)]
-        public double EquityRiskPct { get; set; }
-        [NinjaScriptProperty] 
-        [Display(   Name = "SLTrailingMode", 
-                    Description = "How to move stop loss after initial placement", 
-                    Order = 2, 
+        [Display(Name = "EquityRiskPct",
+                    Description = "Percentage of account to risk per trade",
+                    Order = 1,
                     GroupName = StratPropertyGroups.GeneralParameters)]
-        public StopLossTrailingMode SLTrailingMode { get; set; }
+        public double GEN_EquityRiskPct { get; set; }
+        [NinjaScriptProperty]
+        [Display(Name = "SLTrailingMode",
+                    Description = "How to move stop loss after initial placement",
+                    Order = 2,
+                    GroupName = StratPropertyGroups.GeneralParameters)]
+        public StopLossTrailingMode GEN_SLTrailingMode { get; set; }
+        [Display(Name = "TimeZone",
+                    Description = "Choose the time zone for time calculations",
+                    Order = 1,
+                    GroupName = StratPropertyGroups.GeneralParameters)]
+        public TimeWindowTimeZone GEN_TimeWindowTimeZone { get; set; }
+        [NinjaScriptProperty]
+        [Display(Name = "AnchorTime",
+                    Description = "Choose the anchor time the offsets a calculated from",
+                    Order = 4,
+                    GroupName = StratPropertyGroups.GeneralParameters)]
+        public string GEN_TWAnchorTime { get; set; }
+        [NinjaScriptProperty]
+        [Range(0, int.MaxValue)]
+        [Display(Name = "MaxTradesPerSession",
+                    Description = "Maximum number of trades per session",
+                    Order = 5,
+                    GroupName = StratPropertyGroups.GeneralParameters)]
+        public int GEN_MaxTradesPerSession { get; set; }
+        [NinjaScriptProperty]
+        [Range(0, int.MaxValue)]
+        [Display(Name = "LoggingMode",
+                    Description = "Choose the logging mode for the strategy",
+                    Order = 6,
+                    GroupName = StratPropertyGroups.GeneralParameters)]
+        public LoggingMode GEN_LoggingMode { get; set; }
         #endregion
 
         #region TradingTimeWindow[NinjaScriptProperty]
@@ -257,11 +300,17 @@ namespace NinjaTrader.NinjaScript.Strategies
         #region overrides
         protected override void OnStateChange()
         {
+            if (State == State.DataLoaded)
+            {   // this part needs to be executed before the base OnStateChange DataLoaded.
+                OptimizationParameters_VWAPMR OptParamsVWAPMR = GetOptimizationParameters("OP-" + stratIdentifier) as OptimizationParameters_VWAPMR;
+                OptParamsVWAPMR.UpdateFromStrat();
+                OptimizationParameters = OptParamsVWAPMR;
+            }
             // nlog gets configured in base class so
             // we shouldn't log anything until after this call.
             base.OnStateChange();
 
-            logger.Trace($"State = {State}");
+            LoggerTP.Trace($"State = {State}");
 
             if (State == State.SetDefaults)
             {
@@ -293,17 +342,19 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (State == State.Configure)
             {
-
+                //update our optimization parameters from the strategy properties
+                NinjaTrader.Custom.Strategies.DAustin.VWAPMR.OptimizationParameters_VWAPMR OptParamsVWAPMR = GetOptimizationParameters("OP-" + stratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPMR.OptimizationParameters_VWAPMR;
+                OptParamsVWAPMR.UpdateFromStrat();
             }
             else if (State == State.DataLoaded)
             {
-                OptimizationParameters_VWAPMR OptParamsVWAPMR = GetOptimizationParameters("OP-" + stratIdentifier) as OptimizationParameters_VWAPMR;
-                OptParamsVWAPMR.UpdateFromStrat();
-
-                Indicators_VWAPMR indicators = GetIndicators("IDC-" + stratIdentifier) as Indicators_VWAPMR;
-                indicators.OptParams = OptParamsVWAPMR;
+                // initialize indicators
+                NinjaTrader.Custom.Strategies.DAustin.VWAPMR.OptimizationParameters_VWAPMR OptParamsVWAPMR = GetOptimizationParameters("OP-" + stratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPMR.OptimizationParameters_VWAPMR;
+                NinjaTrader.Custom.Strategies.DAustin.VWAPMR.Indicators_VWAPMR indicators = GetIndicators("IDC-" + stratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPMR.Indicators_VWAPMR;
+                indicators.OptParams = OptParamsVWAPMR  ;
                 indicators.Initialize();
 
+                // now we can initialize the entry conditions evaluator and trade context
                 IEntryConditionsEvaluator ece = GetEntryConditionsEvaluator("ECE-" + stratIdentifier);
                 ece.OrderIdPrefix = "DA" + stratIdentifier;
                 ece.Reset();
@@ -389,7 +440,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             sb.AppendFormat("  LongEntryTriggeredCount:{0}", ece.DataCollector.LongEntryTriggered).AppendLine();
             sb.AppendFormat("  CurrentPriceAboveVWAPCount:{0}", ece.DataCollector.CurrentPriceAboveVWAPCount).AppendLine();
             sb.AppendFormat("  ShortEntryTriggeredCount:{0}", ece.DataCollector.ShortEntryTriggered).AppendLine();
-            logger.Info(sb.ToString());
+            LoggerTP.Info(sb.ToString());
         }
         #endregion
     }

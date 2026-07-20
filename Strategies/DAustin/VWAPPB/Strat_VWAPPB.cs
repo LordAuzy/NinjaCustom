@@ -354,10 +354,18 @@ namespace NinjaTrader.NinjaScript.Strategies
         #region EntryParameters[NinjaScriptProperty]
         //Entry parameters
         [NinjaScriptProperty]
+        [Range(0, 3)]
+        [Display(   Name = "VWAPStdDevBandCount",
+                    Description = "Plot VWAP Std Deviation Bands",
+                    Order = 1,
+                    GroupName = StratPropertyGroups.Entry)]
+        public int EntryVWAPStdDevBandCount { get; set; } = 0;
+
+        [NinjaScriptProperty]
         [Range(1, int.MaxValue)]
         [Display(   Name = "ATR Period",
                     Description = "ATR Period - Indicators",
-                    Order = 1,
+                    Order = 2,
                     GroupName = StratPropertyGroups.Entry)]
         public int EntryATRPeriod { get; set; } = 14;
 
@@ -365,7 +373,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Range(1, int.MaxValue)]
         [Display(   Name = "Fast EMA Period",
                     Description = "Fast EMA Period - Indicators",
-                    Order = 2,
+                    Order = 3,
                     GroupName = StratPropertyGroups.Entry)]
         public int EntryFastEMAPeriod { get; set; } = 9;
 
@@ -373,7 +381,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Range(1, int.MaxValue)]
         [Display(   Name = "Slow EMA Period",
                     Description = "Slow EMA Period - Indicators",
-                    Order = 3,
+                    Order = 4,
                     GroupName = StratPropertyGroups.Entry)]
         public int EntrySlowEMAPeriod { get; set; } = 21;
 
@@ -381,7 +389,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Range(0.01, double.MaxValue)]
         [Display(   Name = "MinVWAPDistanceATR",
                     Description = "ChopFilter - MinVWAPDistanceATR",
-                    Order = 4,
+                    Order = 5,
                     GroupName = StratPropertyGroups.Entry)]
         public double EntryMinVWAPDistanceATR { get; set; } = 0.5;
 
@@ -389,7 +397,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Range(0.01, double.MaxValue)]
         [Display(   Name = "MinVWAPSlopeATR",
                     Description = "ChopFilter - MinVWAPSlopeATR",
-                    Order = 5,
+                    Order = 6,
                     GroupName = StratPropertyGroups.Entry)]
         public double EntryMinVWAPSlopeATR { get; set; } = 1.5;
 
@@ -397,7 +405,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Range(0.01, double.MaxValue)]
         [Display(   Name = "MinEMASpreadATR",
                     Description = "ChopFilter - MinEMASpreadATR",
-                    Order = 6,
+                    Order = 7,
                     GroupName = StratPropertyGroups.Entry)]
         public double EntryMinEMASpreadATR { get; set; } = 1.5;
 
@@ -405,7 +413,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Range(0.01, double.MaxValue)]
         [Display(   Name = "MaxPullbackATR",
                     Description = "Pullback - MaxPullbackATR",
-                    Order = 7,
+                    Order = 8,
                     GroupName = StratPropertyGroups.Entry)]
         public double EntryMaxPullbackATR { get; set; } = 1.5;
 
@@ -413,7 +421,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Range(1, int.MaxValue)]
         [Display(   Name = "PullbackLookbackBars",
                     Description = "Pullback - PullbackLookbackBars",
-                    Order = 8,
+                    Order = 9,
                     GroupName = StratPropertyGroups.Entry)]
         public int EntryPullbackLookbackBars { get; set; } = 5;
 
@@ -421,7 +429,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Range(0.01, double.MaxValue)]
         [Display(   Name = "MaxEntryDistanceATR",
                     Description = "Entry Control - MaxEntryDistanceATR",
-                    Order = 9,
+                    Order = 10,
                     GroupName = StratPropertyGroups.Entry)]
         public double EntryMaxEntryDistanceATR { get; set; } = 1.5;
 
@@ -429,7 +437,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Range(1, int.MaxValue)]
         [Display(   Name = "VWAPConfirmationBars",
                     Description = "Entry Control - VWAPConfirmationBars",
-                    Order = 10,
+                    Order = 11,
                     GroupName = StratPropertyGroups.Entry)]
         public int EntryVWAPConfirmationBars { get; set; } = 5;
 
@@ -437,14 +445,14 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Range(.001, double.MaxValue)]
         [Display(   Name = "InitialStopATRBuffer",
                     Description = "Entry Control - InitialStopATRBuffer",
-                    Order = 11,
+                    Order = 12,
                     GroupName = StratPropertyGroups.Entry)]
         public double EntryInitialStopATRBuffer { get; set; } = 1.0;
 
         [NinjaScriptProperty]
         [Display(   Name = "OrderType",
                     Description = "Order behavior - OrderType",
-                    Order = 12,
+                    Order = 13,
                     GroupName = StratPropertyGroups.Entry)]
         public EntryOrderType EntryOrderType { get; set; } = EntryOrderType.Market;
 
@@ -452,7 +460,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Range(0, int.MaxValue)]
         [Display(   Name = "EntryExpiryBars",
                     Description = "Order behavior - EntryExpiryBars",
-                    Order = 13,
+                    Order = 14,
                     GroupName = StratPropertyGroups.Entry)]
         public int EntryExpiryBars { get; set; } = 3;
         #endregion
@@ -587,6 +595,7 @@ When it happens: The strategy is disabled by you, the workspace is closed, or th
                 OptParamsVWAPPB.UpdateFromStrat();
                 OptimizationParameters = OptParamsVWAPPB;
             }
+
             // nlog gets configured in base class so
             // we shouldn't log anything until after this call.
             base.OnStateChange();
@@ -626,14 +635,15 @@ When it happens: The strategy is disabled by you, the workspace is closed, or th
                 //update our optimization parameters from the strategy properties
                 NinjaTrader.Custom.Strategies.DAustin.VWAPPB.OptimizationParameters_VWAPPB OptParamsVWAPPB = GetOptimizationParameters("OP-" + stratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPPB.OptimizationParameters_VWAPPB;
                 OptParamsVWAPPB.UpdateFromStrat();
-            }
-            else if (State == State.DataLoaded)
-            {
                 // initialize indicators
-                NinjaTrader.Custom.Strategies.DAustin.VWAPPB.OptimizationParameters_VWAPPB OptParamsVWAPPB = GetOptimizationParameters("OP-" + stratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPPB.OptimizationParameters_VWAPPB;
                 NinjaTrader.Custom.Strategies.DAustin.VWAPPB.Indicators_VWAPPB indicators = GetIndicators("IDC-" + stratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPPB.Indicators_VWAPPB;
                 indicators.OptParams = OptParamsVWAPPB;
                 indicators.Initialize();
+            }
+            else if (State == State.DataLoaded)
+            {
+                NinjaTrader.Custom.Strategies.DAustin.VWAPPB.OptimizationParameters_VWAPPB OptParamsVWAPPB = GetOptimizationParameters("OP-" + stratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPPB.OptimizationParameters_VWAPPB;
+                NinjaTrader.Custom.Strategies.DAustin.VWAPPB.Indicators_VWAPPB indicators = GetIndicators("IDC-" + stratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPPB.Indicators_VWAPPB;
 
                 // now we can initialize the entry conditions evaluator and trade context
                 IEntryConditionsEvaluator ece = GetEntryConditionsEvaluator("ECE-" + stratIdentifier);

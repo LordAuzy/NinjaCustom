@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace NinjaTrader.Custom.Strategies.DAustin.DataCollectors
+namespace NinjaTrader.Custom.Strategies.DAustin.VWAPMR
 {
     public class ECE_VWAPMR_DataCollector
     {

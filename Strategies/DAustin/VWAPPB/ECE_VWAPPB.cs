@@ -93,8 +93,6 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB
             Indicators_VWAPPB Indicators = IndicatorsVWAPPB;
             EMA fastEMA = Indicators.Entry.FastEMA;
             EMA slowEMA = Indicators.Entry.SlowEMA;
-//            DAVWAP vwap = Indicators.NYSessionAnchoredVWAP;
-//            double VWAPValue = Indicators.NYSessionAnchoredVWAP.Value;
             DAVWAPIndicator VWAP = Indicators.Entry.AnchoredVWAP;
             double VWAPValue = VWAP[0];
             double atrValue = Indicators.Entry.ATR[0];

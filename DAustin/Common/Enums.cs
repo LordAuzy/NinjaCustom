@@ -184,4 +184,10 @@ namespace NinjaTrader.Custom.DAustin.Common
         November,
         December
     }
+
+    public enum VwapBandMode
+    {
+        Cumulative,
+        Rolling
+    }
 }

@@ -1,6 +1,5 @@
 ﻿using NinjaTrader.Custom.DAustin.Common;
 using NinjaTrader.Custom.Strategies.DAustin.Common;
-using NinjaTrader.Custom.Strategies.DAustin.OptimizationParameters;
 using NinjaTrader.NinjaScript.Indicators;
 using System;
 using System.Collections.Generic;
@@ -10,7 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using static NinjaTrader.Custom.DAustin.Common.OptimizationParametersBase;
 
-namespace NinjaTrader.Custom.Strategies.DAustin.Indicators
+namespace NinjaTrader.Custom.Strategies.DAustin.VWAPMR
 {
     [StrategyComponentId("IDC-VWAPMR")]
     public class Indicators_VWAPMR : IndicatorsBase

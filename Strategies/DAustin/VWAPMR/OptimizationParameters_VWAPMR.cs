@@ -12,7 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 
-namespace NinjaTrader.Custom.Strategies.DAustin.OptimizationParameters
+namespace NinjaTrader.Custom.Strategies.DAustin.VWAPMR
 {
     public class VWAPMR_EntryParameters
     {
@@ -49,6 +49,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OptimizationParameters
         public int ADXThreshold { get; set; }
         //
 
+        public GeneralParameters General { get; set; } = new GeneralParameters();
         public TimeParameters Time { get; set; } = new TimeParameters();
         public VWAPMR_EntryParameters Entry { get; set; } = new VWAPMR_EntryParameters();
         #endregion
@@ -66,8 +67,12 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OptimizationParameters
             base.SetDefaultValues();
 
             // General Parameters
-            EquityRiskPct = 2.0;
-            SLTrailingMode = StopLossTrailingMode.VWAPMeanReversion;
+            General.EquityRiskPercent = 2.0;
+            General.SLTrailingMode = StopLossTrailingMode.Fixed;
+            General.TimeWindowTimeZone = TimeWindowTimeZone.Eastern;
+            General.TWAnchorTime = "9:30am";
+            General.MaxTradesPerSession = 4;
+            General.LoggingMode = LoggingMode.Production;
 
             // Time parameters
             Time.TimeZone = TimeWindowTimeZone.Eastern;
@@ -111,8 +116,12 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OptimizationParameters
 
             Strat_VWAPMR strat = Strategy as Strat_VWAPMR;
 
-            strat.EquityRiskPct = EquityRiskPct;
-            strat.SLTrailingMode = SLTrailingMode;
+            strat.GEN_EquityRiskPct = General.EquityRiskPercent;
+            strat.GEN_SLTrailingMode = General.SLTrailingMode;
+            strat.GEN_TimeWindowTimeZone = General.TimeWindowTimeZone;
+            strat.GEN_TWAnchorTime = General.TWAnchorTime;
+            strat.GEN_MaxTradesPerSession = General.MaxTradesPerSession;
+            strat.GEN_LoggingMode = General.LoggingMode;
 
             strat.TI_TimeZone = Time.TimeZone;
             strat.TI_FlattenTOD = Time.FlattenTOD;
@@ -149,8 +158,12 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OptimizationParameters
 
             Strat_VWAPMR strat = Strategy as Strat_VWAPMR;
 
-            EquityRiskPct = strat.EquityRiskPct;
-            SLTrailingMode = strat.SLTrailingMode;
+            General.EquityRiskPercent = strat.GEN_EquityRiskPct;
+            General.SLTrailingMode = strat.GEN_SLTrailingMode;
+            General.TimeWindowTimeZone = strat.GEN_TimeWindowTimeZone;
+            General.TWAnchorTime = strat.GEN_TWAnchorTime;
+            General.MaxTradesPerSession = strat.GEN_MaxTradesPerSession;
+            General.LoggingMode = strat.GEN_LoggingMode;
 
             Time.TimeZone = strat.TI_TimeZone;
             Time.FlattenTOD = strat.TI_FlattenTOD;
@@ -183,6 +196,8 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OptimizationParameters
         }
 
         public override TimeParameters GetTimeParameters() { return Time; }
+        public override GeneralParameters GetGeneralParameters() { return General; }
+
 
         public override void ToStringBuilder(StringBuilder sb)
         {

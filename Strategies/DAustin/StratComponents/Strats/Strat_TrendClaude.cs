@@ -2,8 +2,6 @@
 using NinjaTrader.Cbi;
 using NinjaTrader.Core.FloatingPoint;
 using NinjaTrader.Custom.DAustin.Interfaces;
-using NinjaTrader.Custom.Strategies.DAustin.Indicators;
-using NinjaTrader.Custom.Strategies.DAustin.OptimizationParameters;
 using NinjaTrader.Custom.Strategies.DAustin.TradeManagers;
 using NinjaTrader.Data;
 using NinjaTrader.Gui;
@@ -14,7 +12,6 @@ using NinjaTrader.Gui.Tools;
 using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.NinjaScript.Indicators;
-using NinjaTrader.NinjaScript.Strategies.DAustin.EntryConditionsEvaluators;
 using NinjaTrader.NinjaScript.Strategies.DAustin.Mom_9_21_Cross;
 using NLog;
 using NLog.Config;
@@ -32,6 +29,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Xml.Serialization;
 using NinjaTrader.Custom.DAustin.Common;
+using NinjaTrader.Custom.Strategies.DAustin.VWAPMR;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 

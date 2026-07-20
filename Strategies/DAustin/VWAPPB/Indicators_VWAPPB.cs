@@ -52,6 +52,9 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB
             Entry.FastEMA = Strategy.EMA(OptParamsVWAPPB.Entry.FastEMAPeriod);
             Entry.SlowEMA = Strategy.EMA(OptParamsVWAPPB.Entry.SlowEMAPeriod);
             Entry.AnchoredVWAP = Strategy.DAVWAPIndicator("9:30am", "Eastern Standard Time");
+            Entry.AnchoredVWAP.StdDevBandCount = OptParamsVWAPPB.Entry.VWAPStdDevBandCount;
+            Entry.AnchoredVWAP.BandMode = VwapBandMode.Cumulative;
+            Entry.AnchoredVWAP.Initialize();
 
             ChandelierGuard.ATR = Strategy.ATR(OptParamsVWAPPB.ChandelierGuardStop.ATRPeriod);
 
