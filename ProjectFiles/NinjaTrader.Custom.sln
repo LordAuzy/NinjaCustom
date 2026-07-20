@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.4.11612.150
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NinjaTrader.Custom", "NinjaTrader.Custom.csproj", "{2385C683-C0AD-23B2-FCBB-822ACCF1C17F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2385C683-C0AD-23B2-FCBB-822ACCF1C17F}.Debug|x64.ActiveCfg = Debug|x64
+		{2385C683-C0AD-23B2-FCBB-822ACCF1C17F}.Debug|x64.Build.0 = Debug|x64
+		{2385C683-C0AD-23B2-FCBB-822ACCF1C17F}.Release|x64.ActiveCfg = Release|x64
+		{2385C683-C0AD-23B2-FCBB-822ACCF1C17F}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C7878BA2-56C2-4425-9E00-755C53FE933A}
+	EndGlobalSection
+EndGlobal
