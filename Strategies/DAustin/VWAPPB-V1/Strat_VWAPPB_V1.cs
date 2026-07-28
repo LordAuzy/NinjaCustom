@@ -762,12 +762,14 @@ namespace NinjaTrader.NinjaScript.Strategies
             sb.AppendFormat("  ValidPullbackLongCount:{0}", ece.DataCollector.ValidPullbackLongCount).AppendLine();
             sb.AppendFormat("  BullishTriggerCount:{0}", ece.DataCollector.BullishTriggerCount).AppendLine();
             sb.AppendFormat("  LongEntryTriggeredCount:{0}", ece.DataCollector.LongEntryTriggeredCount).AppendLine();
+            sb.AppendFormat("  LongEntryTooFarFromVWap:{0}", ece.DataCollector.LongEntryTooFarFromVWap).AppendLine();
             sb.AppendFormat("  BelowVWAPCount:{0}", ece.DataCollector.BelowVWAPCount).AppendLine();
             sb.AppendFormat("  DownTrendCount:{0}", ece.DataCollector.DownTrendCount).AppendLine();
             sb.AppendFormat("  DownTrendChopZoneCount:{0}", ece.DataCollector.DownTrendChopZoneCount).AppendLine();
             sb.AppendFormat("  ValidPullShortCount:{0}", ece.DataCollector.ValidPullShortCount).AppendLine();
             sb.AppendFormat("  BearishTriggerCount:{0}", ece.DataCollector.BearishTriggerCount).AppendLine();
             sb.AppendFormat("  ShortEntryTriggeredCount:{0}", ece.DataCollector.ShortEntryTriggeredCount).AppendLine();
+            sb.AppendFormat("  ShortEntryTooFarFromVWap:{0}", ece.DataCollector.ShortEntryTooFarFromVWap).AppendLine();
             LoggerTP.Info(sb.ToString());
         }
         #endregion

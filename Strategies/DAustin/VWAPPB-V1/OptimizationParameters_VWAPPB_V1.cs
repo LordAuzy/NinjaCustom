@@ -143,10 +143,10 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
             Entry.MinEMASpreadATR = 0.3;
             // --- Pullback ---
             Entry.MaxPullbackATR = 1.5;
-            Entry.PullbackLookbackBars = 5;
+            Entry.PullbackLookbackBars = 2;
             // --- Entry Control ---
             Entry.MaxEntryDistanceATR = 0.3;
-            Entry.VWAPConfirmationBars = 3;
+            Entry.VWAPConfirmationBars = 5;
             Entry.InitialStopATRBuffer = 0.3;
             // --- Order Behavior ---
             Entry.OrderType = EntryOrderType.StopMarket;

@@ -166,6 +166,10 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
                 Math.Abs(vwapSlope) < (EntryOptParams.MinVWAPSlopeATR * atrValue) ||
                 emaSpread < (EntryOptParams.MinEMASpreadATR * atrValue);
 
+            double vwapSlopeThreshold = EntryOptParams.MinVWAPSlopeATR * atrValue;
+            bool vwapTrendingUp = vwapSlope > vwapSlopeThreshold;
+            bool vwapTrendingDown = vwapSlope < -vwapSlopeThreshold;
+
             bool aboveVWAP = true;
             bool belowVWAP = true;
             for (int i = 0; i < confirmBars; i++)
@@ -181,7 +185,8 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
                 // =========================
                 DataCollector.AboveVWAPCount++;
 
-                bool upTrend = aboveVWAP && fastEMA[0] > slowEMA[0];
+                bool emaTrendingUp = fastEMA[0] > fastEMA[1];
+                bool upTrend = aboveVWAP && fastEMA[0] > slowEMA[0] && emaTrendingUp && vwapTrendingUp;
                 if (upTrend)
                 {
                     DataCollector.UpTrendCount++;
@@ -198,8 +203,8 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
                     double pullbackDistance = recentPullbackLow - VWAPValue;
 
                     bool validPullback =
-                        pullbackDistance >= (-0.1 * atrValue) &&
-                        pullbackDistance <= (EntryOptParams.MaxPullbackATR * atrValue);
+                        recentPullbackLow >= VWAPValue - (EntryOptParams.MaxPullbackATR * atrValue) &&
+                        recentPullbackLow <= VWAPValue + (EntryOptParams.MinVWAPDistanceATR * atrValue);
 
                     bool bullishTrigger = Strategy.Close[0] > Strategy.Open[0];
 
@@ -231,6 +236,13 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
                             if (currentPrice >= entryPrice)
                                 return null;
 
+                            // 🚫 Skip if entry is too far from VWAP
+                            if ((entryPrice - VWAPValue) > (EntryOptParams.MaxEntryDistanceATR * atrValue))
+                            {
+                                DataCollector.LongEntryTooFarFromVWap++;
+                                return null;
+                            }
+
                             // Ensure valid stop placement
                             double ask = Strategy.GetCurrentAsk();
                             if (entryPrice <= ask)
@@ -250,6 +262,10 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
                         }
                         else if (EntryOptParams.OrderType == EntryOrderType.Market)
                         {
+                            // 🚫 Skip if entry is too far from VWAP
+                            if ((currentPrice - VWAPValue) > (EntryOptParams.MaxEntryDistanceATR * atrValue))
+                                return null;
+
                             // Optional: disable if you want pure stop-entry testing
                             orderTicket = new OrderTicket(Strategy, OrderIdPrefix);
                             orderTicket.Type = DAOrderType.Long;
@@ -265,7 +281,8 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
                 // =========================
                 DataCollector.BelowVWAPCount++;
 
-                bool downTrend = belowVWAP && fastEMA[0] < slowEMA[0];
+                bool emaTrendingDown = fastEMA[0] < fastEMA[1];
+                bool downTrend = belowVWAP && fastEMA[0] < slowEMA[0] && emaTrendingDown && vwapTrendingDown;
                 if (downTrend)
                 {
                     DataCollector.DownTrendCount++;
@@ -282,8 +299,8 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
                     double pullbackDistance = VWAPValue - recentPullbackHigh;
 
                     bool validPullback =
-                        pullbackDistance >= (-0.1 * atrValue) &&
-                        pullbackDistance <= (EntryOptParams.MaxPullbackATR * atrValue);
+                        recentPullbackHigh <= VWAPValue + (EntryOptParams.MaxPullbackATR * atrValue) &&
+                        recentPullbackHigh >= VWAPValue - (EntryOptParams.MinVWAPDistanceATR * atrValue);
 
                     bool bearishTrigger = Strategy.Close[0] < Strategy.Open[0];
 
@@ -313,6 +330,13 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
                             if (currentPrice <= entryPrice)
                                 return null;
 
+                            // 🚫 Skip if entry is too far from VWAP
+                            if ((VWAPValue - entryPrice) > (EntryOptParams.MaxEntryDistanceATR * atrValue))
+                            {
+                                DataCollector.ShortEntryTooFarFromVWap++;
+                                return null;
+                            }
+
                             // Ensure valid stop placement
                             double bid = Strategy.GetCurrentBid();
                             if (entryPrice >= bid)
@@ -332,6 +356,10 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
                         }
                         else if (EntryOptParams.OrderType == EntryOrderType.Market)
                         {
+                            // 🚫 Skip if entry is too far from VWAP
+                            if ((VWAPValue - currentPrice) > (EntryOptParams.MaxEntryDistanceATR * atrValue))
+                                return null;
+
                             orderTicket = new OrderTicket(Strategy, OrderIdPrefix);
                             orderTicket.Type = DAOrderType.Short;
                             orderTicket.Risk = FlexibleValue.FromPoints(initialStop - currentPrice, Strategy);

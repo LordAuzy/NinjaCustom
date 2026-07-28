@@ -22,6 +22,8 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
         public int LongChopCount { get; set; } = 0;
         public int ShortDepartureCount { get; set; } = 0;
         public int ShortChopCount { get; set; } = 0;
+        public int ShortEntryTooFarFromVWap { get; set; } = 0;
+        public int LongEntryTooFarFromVWap { get; set; } = 0;
 
         // EvaluateChatGPTNoChop counters
         public int AboveVWAPCount { get; set; } = 0;

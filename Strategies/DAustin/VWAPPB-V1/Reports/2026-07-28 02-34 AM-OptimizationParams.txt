@@ -1,0 +1,88 @@
+Backtest date range from 1/1/24 to 7/20/26
+======OptimizationParameters=Start=====
+Percent of account to risk per trade=2
+StopLoss trailing mode=Fixed
+Default Time Zone=Eastern
+Default Anchor Time=9:30am
+==Time Parameters===
+  TimeZone=Eastern
+  FlattenTOD=3:55pm
+  MaxMinutesInTrade=0
+  TWAnchorTime=9:30am
+  TWOffset1=6
+  TWDuration1=124
+  TWOffset2=0
+  TWDuration2=0
+==Schedule Bias Filter 1===
+  Offset=30
+  Duration=60
+  DayOfWeek=Monday
+  TradingStance=None
+==Schedule Bias Filter 2===
+  Offset=0
+  Duration=30
+  DayOfWeek=Thursday
+  TradingStance=LongOnly
+==Schedule Bias Filter 3===
+  Offset=110
+  Duration=240
+  DayOfWeek=Friday
+  TradingStance=LongOnly
+==Schedule Sizing Filter 1===
+  Offset=7
+  Duration=15
+  DayOfWeek=Monday
+  Multiplier=2
+==Schedule Sizing Filter 2===
+  Offset=30
+  Duration=70
+  DayOfWeek=Tuesday
+  Multiplier=2
+==BreakEven Parameters===
+  R=1
+  UseATR=True
+  Expanding_R=0.2
+  Contracting_R=0.6
+==Entry Parameters===
+  --- Indicators ---
+  ATRPeriod=14
+  FastEMAPeriod=9
+  SlowEMAPeriod=14
+  --- VWAP Chop Filter ---
+  MinVWAPDistanceATR=0.3
+  MinVWAPSlopeATR=0.02
+  MinEMASpreadATR=0.3
+  --- Pullback ---
+  MaxPullbackATR=1.5
+  PullbackLookbackBars=2
+  --- Entry Control ---
+  MaxEntryDistanceATR=3
+  VWAPConfirmationBars=5
+  InitialStopATRBuffer=0.3
+  --- Order Behavior ---
+  OrderType=StopMarket
+  OrderExpiryBars=3
+==ChandelierGuardStop Parameters===
+  ATRPeriod=14
+  InitialATRBuffer=0.4
+  BE_Expanding_R=0.8
+  BE_Contracting_R=1.1
+  ChandelierATRMult=2.2
+  TightATRMult=1.6
+  TightenTriggerR=2
+======OptimizationParameters=End=======
+==Entry Trigger Data==
+  AboveVWAPCount:21682
+  UpTrendCount:13681
+  UpTrendChopZoneCount:7011
+  ValidPullbackLongCount:1462
+  BullishTriggerCount:4123
+  LongEntryTriggeredCount:958
+  LongEntryTooFarFromVWap:17
+  BelowVWAPCount:16030
+  DownTrendCount:9868
+  DownTrendChopZoneCount:4773
+  ValidPullShortCount:1519
+  BearishTriggerCount:3151
+  ShortEntryTriggeredCount:1010
+  ShortEntryTooFarFromVWap:26
