@@ -1,0 +1,14 @@
+I've reviewed ECE_VWAPPB_V1.cs:48 against the backtest counts and logic structure. The primary reason the strategy struggles in non-trending (chop) markets is that it was partially ignoring your optimization parameters by using hardcoded lookback values, which prevented your chop filters from being able to fully identify horizontal/choppy market conditions during backtesting.
+What Was Wrong:
+1.	Hardcoded VWAP Confirmation: Strategy.Close[0] > VWAPValue && Strategy.Close[1] > VWAP[1] ... It was purely hardcoded to exactly 3 bars, completely ignoring VWAPConfirmationBars. During choppy markets, price crosses VWAP very frequently. If we can increase the confirmation bars parameter in optimizations, it rigorously weeds out chop zone crossovers.
+2.	Hardcoded Pullback Lookbacks: The logic defining that a "pullback" had reached a certain depth used Strategy.MIN(Strategy.Low, 3)[0]. Meaning, it only looked 3 bars back. However, you had a PullbackLookbackBars parameter set to 5 that wasn't being used. It also set the Initial Stop purely using a hardcoded 5 bar lookback.
+3.	Static VWAP Slope Assessment: The parameter MinVWAPSlopeATR checks if the VWAP is pointing up or down. But the evaluation code checked VWAP[0] - VWAP[3]. Since VWAP curves gently compared to Price, 3 bars was too short a window for measuring a reliable slope filter, making the Chop Zone calculations essentially arbitrary.
+The Fix:
+I've updated ECE_VWAPPB_V1.cs:48 to tie all these hardcoded features directly to your EntryOptParams:
+•	vwapSlope now calculates effectively across VWAPConfirmationBars intervals, making it a truer, measurable slope rather than noise.
+•	aboveVWAP and belowVWAP now loop precisely using VWAPConfirmationBars.
+•	recentPullbackLow, recentPullbackHigh, and the SwingLow/SwingHigh targets now actively query PullbackLookbackBars.
+Result For Non-Trending Markets:
+Now that the strategy leverages dynamic variables for slope tracking and confirmation bars, you can re-run your Grid Optimizer focusing heavily on:
+1.	VWAPConfirmationBars: Increasing this value (e.g. from 3 to 5 or even 8) fundamentally keeps you out of non-trending areas where price slices through the VWAP back and forth constantly.
+2.	MinVWAPSlopeATR & MinEMASpreadATR: These values will finally trigger more accurately now that we've tied vwapSlope to look further back. By incrementally raising these parameters in your next backtest optimization, the system will naturally stay cash flat in the horizontal distribution periods.

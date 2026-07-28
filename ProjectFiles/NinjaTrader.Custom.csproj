@@ -407,6 +407,11 @@
     <Compile Include="Strategies\DAustin\StratComponents\DataCollectors\ECE_TrendCL_DataCollector.cs" />
     <Compile Include="Strategies\DAustin\StratComponents\DataCollectors\ECE_TREND_DataCollector.cs" />
     <Compile Include="Strategies\DAustin\VWAPMR\ECE_VWAPMR_DataCollector.cs" />
+    <Compile Include="Strategies\DAustin\VWAPPB-V1\ECE_VWAPPB_V1.cs" />
+    <Compile Include="Strategies\DAustin\VWAPPB-V1\ECE_VWAPPB_V1_DataCollector.cs" />
+    <Compile Include="Strategies\DAustin\VWAPPB-V1\Indicators_VWAPPB_V1.cs" />
+    <Compile Include="Strategies\DAustin\VWAPPB-V1\OptimizationParameters_VWAPPB_V1.cs" />
+    <Compile Include="Strategies\DAustin\VWAPPB-V1\Strat_VWAPPB_V1.cs" />
     <Compile Include="Strategies\DAustin\VWAPPB\ECE_VWAPPB_DataCollector.cs" />
     <Compile Include="Strategies\DAustin\StratComponents\EntryConditionsEvaluators\ECE_MeanReversion.cs" />
     <Compile Include="Strategies\DAustin\StratComponents\EntryConditionsEvaluators\ECE_ORB.cs" />
