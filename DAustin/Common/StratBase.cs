@@ -398,6 +398,11 @@ namespace NinjaTrader.Custom.DAustin.Common
                 TraceLogMinLevel = "Off";
             }
 
+            if (loggingMode == LoggingMode.None)
+            {
+                return (LogManager.CreateNullLogger(), _fullyInitialized);
+            }
+
             var log = baseLogger
                         .WithProperty("StrategyName", Name)
                         .WithProperty("InstrumentName", safeInstrumentName)

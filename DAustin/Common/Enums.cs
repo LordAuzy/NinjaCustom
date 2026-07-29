@@ -19,6 +19,7 @@ namespace NinjaTrader.Custom.DAustin.Common
 
     public enum LoggingMode
     {
+        None,
         Production,
         Debug,
         Trace

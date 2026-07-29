@@ -114,7 +114,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                     GroupName = StratPropertyGroups.GeneralParameters)]
         public int GEN_MaxTradesPerSession { get; set; }
         [NinjaScriptProperty]
-        [Range(0, int.MaxValue)]
         [Display(   Name = "LoggingMode",
                     Description = "Choose the logging mode for the strategy",
                     Order = 6,
