@@ -146,7 +146,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
             Entry.PullbackLookbackBars = 2;
             // --- Entry Control ---
             Entry.MaxEntryDistanceATR = 0.3;
-            Entry.VWAPConfirmationBars = 5;
+            Entry.VWAPConfirmationBars = 2;
             Entry.InitialStopATRBuffer = 0.3;
             // --- Order Behavior ---
             Entry.OrderType = EntryOrderType.StopMarket;

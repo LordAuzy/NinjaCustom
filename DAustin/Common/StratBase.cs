@@ -398,8 +398,9 @@ namespace NinjaTrader.Custom.DAustin.Common
                 TraceLogMinLevel = "Off";
             }
 
-            if (loggingMode == LoggingMode.None)
+            if (loggingMode == LoggingMode.None || accountName == "Backtest")
             {
+                // if we are in a backtest logging puts too much drag on the system
                 return (LogManager.CreateNullLogger(), _fullyInitialized);
             }
 
