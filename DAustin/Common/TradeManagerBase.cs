@@ -239,6 +239,20 @@ namespace NinjaTrader.Custom.DAustin.Common
                     // Update for all trades in position
                     tc.HighestHighSinceEntry = Math.Max(tc.HighestHighSinceEntry, Strategy.High[0]);
                     tc.LowestLowSinceEntry = Math.Min(tc.LowestLowSinceEntry, Strategy.Low[0]);
+
+                    // add telemetry bar data
+                    TelemetryBarBase tbb = Strategy.CreateTelemetryBar() as TelemetryBarBase;
+                    tbb.TradeId = tc.OrderTicket.SignalName;
+                    tbb.OrderType = tc.OrderTicket.Type;
+                    tbb.EntryPrice = tc.OrderTicket.Price;
+                    tbb.Quantity = tc.OrderTicket.Contracts;
+                    tbb.InitialRisk = Math.Abs(tc.OrderTicket.Risk.Points);
+                    tbb.CurrentStop = tc.StopOrder != null ? tc.StopOrder.StopPrice : 0;
+                    tbb.HighestHighSinceEntry = tc.HighestHighSinceEntry;
+                    tbb.LowestLowSinceEntry = tc.LowestLowSinceEntry;
+                    tbb.BarsSinceEntry = tc.TradeBars.Count + 1;
+                    tbb.CollectData();
+                    tc.TradeBars.Add(tbb);
                 }
             }
 
@@ -1521,6 +1535,9 @@ namespace NinjaTrader.Custom.DAustin.Common
                         WriteTradeToLog(tc.RoundTripData);
                         // Reset active context tracking object
                         tc.RoundTripData = null;
+
+                        WriteTradeTelemetryToLog(tc.TradeBars);
+                        tc.TradeBars.Clear(); 
                     }
                     else
                     {
@@ -1663,6 +1680,13 @@ namespace NinjaTrader.Custom.DAustin.Common
             CompletedTradeReportGenerator rptGen = new CompletedTradeReportGenerator(Strategy);            
             // Write trade data
             rptGen.LogCompletedTrade(tradeData);
+        }
+
+        private void WriteTradeTelemetryToLog(List<ITelemetryBar> completedTradeBars)
+        {
+            CompletedTradeBarsReportGenerator rptGen = new CompletedTradeBarsReportGenerator(Strategy);
+            // Write trade data
+            rptGen.LogCompletedTradeBars(completedTradeBars);
         }
 
         public void OnOrderTrace(

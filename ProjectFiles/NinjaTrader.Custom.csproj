@@ -77,8 +77,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DAustin\Common\Orders\TradeEvent.cs" />
+    <Compile Include="DAustin\Common\Reporting\CompletedTradeBarsReportGenerator.cs" />
     <Compile Include="DAustin\Common\Reporting\TradeEventTableFormatter.cs" />
     <Compile Include="DAustin\Common\Reporting\TradeSummaryData.cs" />
+    <Compile Include="DAustin\Common\TelemetryBarBase.cs" />
+    <Compile Include="DAustin\Interfaces\ITelemetryBar.cs" />
     <Compile Include="Indicators\DAustin\DAVWAPIndicator.cs" />
     <Compile Include="Resource.Designer.cs">
       <DesignTime>True</DesignTime>
@@ -412,6 +415,7 @@
     <Compile Include="Strategies\DAustin\VWAPPB-V1\Indicators_VWAPPB_V1.cs" />
     <Compile Include="Strategies\DAustin\VWAPPB-V1\OptimizationParameters_VWAPPB_V1.cs" />
     <Compile Include="Strategies\DAustin\VWAPPB-V1\Strat_VWAPPB_V1.cs" />
+    <Compile Include="Strategies\DAustin\VWAPPB-V1\TelemetryBar_VWAPPB_V1.cs" />
     <Compile Include="Strategies\DAustin\VWAPPB\ECE_VWAPPB_DataCollector.cs" />
     <Compile Include="Strategies\DAustin\StratComponents\EntryConditionsEvaluators\ECE_MeanReversion.cs" />
     <Compile Include="Strategies\DAustin\StratComponents\EntryConditionsEvaluators\ECE_ORB.cs" />

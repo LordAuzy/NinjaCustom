@@ -230,6 +230,11 @@ namespace NinjaTrader.Custom.DAustin.Common
             return dataTime;
         }
 
+        public virtual ITelemetryBar CreateTelemetryBar() 
+        { 
+            return new TelemetryBarBase();
+        }
+
         protected virtual void OnBacktestComplete()
         {
             // This method can be overridden in child strats to perform any necessary
@@ -398,7 +403,8 @@ namespace NinjaTrader.Custom.DAustin.Common
                 TraceLogMinLevel = "Off";
             }
 
-            if (loggingMode == LoggingMode.None || accountName == "Backtest")
+//            if (loggingMode == LoggingMode.None || accountName == "Backtest")
+            if (loggingMode == LoggingMode.None )
             {
                 // if we are in a backtest logging puts too much drag on the system
                 return (LogManager.CreateNullLogger(), _fullyInitialized);
@@ -434,6 +440,7 @@ namespace NinjaTrader.Custom.DAustin.Common
         {
             // this is global and will be the same for all strats
             GlobalDiagnosticsContext.Set("TradeCSVSchemaVersion", CompletedTradeReportGenerator.TradeCSVSchemaVersion);
+            GlobalDiagnosticsContext.Set("TradeBarsCSVSchemaVersion", CompletedTradeBarsReportGenerator.TradeCSVSchemaVersion);
         }
         #endregion
     }

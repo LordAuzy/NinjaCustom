@@ -742,6 +742,12 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
+        public override ITelemetryBar CreateTelemetryBar()
+        {
+            Indicators_VWAPPB_V1 indicators = GetIndicators("IDC-" + stratIdentifier) as Indicators_VWAPPB_V1;
+            return new TelemetryBar_VWAPPB_V1(this, indicators);
+        }
+
         protected override void OnBacktestComplete()
         {   //do whatever you need to do at the end of a backtest here. Logging final results, etc.
             ECE_VWAPPB_V1 ece = GetEntryConditionsEvaluator("ECE-" + stratIdentifier) as ECE_VWAPPB_V1;

@@ -18,6 +18,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
         public int ATRPeriod { get; set; }
         public int FastEMAPeriod { get; set; }
         public int SlowEMAPeriod { get; set; }
+        public int DMPeriod { get; set; } = 14;
         public int VWAPStdDevBandCount { get; set; }
         // --- VWAP Chop Filter ---
         public double MinVWAPDistanceATR { get; set; }
@@ -75,7 +76,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
             General.TimeWindowTimeZone = TimeWindowTimeZone.Eastern;
             General.TWAnchorTime = "9:30am";
             General.MaxTradesPerSession = 4;
-            General.LoggingMode = LoggingMode.Production;
+            General.LoggingMode = LoggingMode.None;
 
             // Time parameters
             Time.TimeZone = TimeWindowTimeZone.Eastern;

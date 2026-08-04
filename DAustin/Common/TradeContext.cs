@@ -90,6 +90,8 @@ namespace NinjaTrader.Custom.DAustin.Common
             set { roundTripTradeData = value; }
         }
 
+        public List<ITelemetryBar> TradeBars { get; set; } = new List<ITelemetryBar>();
+
         // Tracks how many R-multiples of profit have been locked in via step trailing.
         // 0 = at break-even, 1 = 1R locked, 2 = 2R locked, etc.
         // Stop only ever moves forward — never back.
