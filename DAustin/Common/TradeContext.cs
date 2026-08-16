@@ -69,6 +69,8 @@ namespace NinjaTrader.Custom.DAustin.Common
         public double LowestLowSinceEntry { get; set; } = 0;
         public bool StopMovedToBreakEven { get; set; } = false;
         public int TradesTakenThisSession { get; set; } = 0;
+        public int WinningTradesTakenThisSession { get; set; } = 0;
+        public int LosingTradesTakenThisSession { get; set; } = 0;
 
         public TradeState? PendingNextState { get; set; } = null;
         public double PendingStopPrice { get; set; } = 0;
@@ -324,6 +326,8 @@ namespace NinjaTrader.Custom.DAustin.Common
         public virtual void SessionReset()
         {
             TradesTakenThisSession = 0;
+            WinningTradesTakenThisSession = 0;
+            LosingTradesTakenThisSession = 0;
             EntryConditionsEvaluator?.SessionReset();
         }
 

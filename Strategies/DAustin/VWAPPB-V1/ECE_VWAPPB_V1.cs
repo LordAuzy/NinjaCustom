@@ -133,8 +133,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
                 return null;
             }
 
-            //TradingStance ts = biasFilter.GetCurrentTradingStance(Strategy.Time[0]);
-            TradingStance ts = TradingStance.All; // for testing, we will allow all trades regardless of bias filter
+            TradingStance ts = biasFilter.GetCurrentTradingStance(Strategy.Time[0]);
 
             if (ts == TradingStance.None)
             {   // no trades allowed per bias filter
@@ -342,8 +341,8 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
 
             if (orderTicket != null)
             {
-                // double riskMultiplier = Indicators.SizingFilter.GetCurrentSizingMultiplier(Strategy.Time[0]);
-                double riskMultiplier = 1;
+                double riskMultiplier = Indicators.SizingFilter.GetCurrentSizingMultiplier(Strategy.Time[0]);
+                //double riskMultiplier = 1;
                 double riskPct = OptParamsVWAPPB.General.EquityRiskPercent;
 
                 orderTicket.AllowedRiskPercentOfAccount = riskPct * riskMultiplier;

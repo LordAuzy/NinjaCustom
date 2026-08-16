@@ -6,6 +6,7 @@ using NinjaTrader.Custom.DAustin.Common;
 using NinjaTrader.Custom.DAustin.Interfaces;
 using NinjaTrader.Custom.Strategies.DAustin.TradeManagers;
 using NinjaTrader.Custom.Strategies.DAustin.VWAPPB;
+using NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1;
 using NinjaTrader.Data;
 using NinjaTrader.Gui;
 using NinjaTrader.Gui.AccountData;
@@ -731,6 +732,12 @@ When it happens: The strategy is disabled by you, the workspace is closed, or th
             {
                 LogManager.Flush();
             }
+        }
+
+        public override ITelemetryBar CreateTelemetryBar()
+        {
+            Indicators_VWAPPB indicators = GetIndicators("IDC-" + stratIdentifier) as Indicators_VWAPPB;
+            return new TelemetryBar_VWAPPB(this, indicators);
         }
 
         protected override void OnBacktestComplete()

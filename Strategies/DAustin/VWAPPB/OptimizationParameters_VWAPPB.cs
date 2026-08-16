@@ -20,6 +20,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB
         public int ATRPeriod { get; set; }
         public int FastEMAPeriod { get; set; }
         public int SlowEMAPeriod { get; set; }
+        public int DMPeriod { get; set; } = 14;
         public int VWAPStdDevBandCount { get; set; }
         // --- VWAP Chop Filter ---
         public double MinVWAPDistanceATR { get; set; }
@@ -49,10 +50,22 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB
         public AdaptiveTrailingStopParameters AdaptiveTrailingStop { get; set; } = new AdaptiveTrailingStopParameters();
         public TrendStructuralTrailingStopParameters TrendStructuralTrailingStop { get; set; } = new TrendStructuralTrailingStopParameters();
         public List<ScheduleBiasFilterParameters> ScheduleBiasFilters { get; set; } = new List<ScheduleBiasFilterParameters>();
-        public List<ScheduleSizingFilterParameters> ScheduleSizingFilters { get; set; } = new List<ScheduleSizingFilterParameters>();   
+        public List<ScheduleSizingFilterParameters> ScheduleSizingFilters { get; set; } = new List<ScheduleSizingFilterParameters>();
         #endregion
 
         #region constructors
+        public OptimizationParameters_VWAPPB() : base()
+        {
+            // in our start parameters we have 3 ScheduleBiasFilters and 3 ScheduleSizingFilters,
+            // so we initialize the lists with 3 default entries to make it easier to work with
+            // in the UI and optimization
+            for (int i = 0; i < 6; i++)
+            {
+                ScheduleBiasFilters.Add(new ScheduleBiasFilterParameters());
+                ScheduleSizingFilters.Add(new ScheduleSizingFilterParameters());
+            }
+        }
+
         public OptimizationParameters_VWAPPB(StratBase strat) : base(strat)
         {
             // in our start parameters we have 3 ScheduleBiasFilters and 3 ScheduleSizingFilters,
@@ -76,7 +89,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB
             General.SLTrailingMode = StopLossTrailingMode.Fixed;
             General.TimeWindowTimeZone = TimeWindowTimeZone.Eastern;
             General.TWAnchorTime = "9:30am";
-            General.MaxTradesPerSession = 4;
+            General.MaxTradesPerSession = 2;
             General.LoggingMode = LoggingMode.Production;
 
             // Time parameters

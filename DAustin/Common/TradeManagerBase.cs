@@ -30,6 +30,8 @@ using NinjaTrader.Custom.DAustin.Interfaces;
 using NinjaTrader.Custom.DAustin.Common.Reporting;
 using NinjaTrader.Custom.Strategies.DAustin.Common;
 using NinjaTrader.Custom.DAustin.Common.Orders;
+using NinjaTrader.Custom.DAustin.Extensions;
+
 namespace NinjaTrader.Custom.DAustin.Common
 {
     public class TradeManagerBase : ITradeManager
@@ -1531,6 +1533,8 @@ namespace NinjaTrader.Custom.DAustin.Common
                             log.Debug("Exit reason overridden to 'MaxTime' due to MaxTradeMinutesExitShort criteria met.");
                         }
 
+
+
                         log.Debug("Committing complete RoundTrip trade records to persistent log. Cycle cleanup incoming.");
                         WriteTradeToLog(tc.RoundTripData);
                         // Reset active context tracking object
@@ -1606,6 +1610,15 @@ namespace NinjaTrader.Custom.DAustin.Common
 
                     if (tc != null)
                     {
+                        if (lastClosedTrade.IsWinner())
+                        {
+                            tc.WinningTradesTakenThisSession++;
+                        }
+                        else if (lastClosedTrade.IsLoser())
+                        {
+                            tc.LosingTradesTakenThisSession++;
+                        }
+
                         TradeEventTableFormatter tetf = new TradeEventTableFormatter();
                         logFormattedOrdersTable = "Trade events:" + Environment.NewLine +
                                     tetf.Format(

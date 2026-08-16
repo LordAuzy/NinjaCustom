@@ -21,6 +21,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB
             public ATR ATR { get; set; }
             public EMA FastEMA { get; set; }
             public EMA SlowEMA { get; set; }
+            public DM DM { get; set; } = null;
             public DAVWAPIndicator AnchoredVWAP { get; set; }
         }
         #endregion
@@ -51,6 +52,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB
             Entry.ATR = Strategy.ATR(OptParamsVWAPPB.Entry.ATRPeriod);
             Entry.FastEMA = Strategy.EMA(OptParamsVWAPPB.Entry.FastEMAPeriod);
             Entry.SlowEMA = Strategy.EMA(OptParamsVWAPPB.Entry.SlowEMAPeriod);
+            Entry.DM = Strategy.DM(OptParamsVWAPPB.Entry.DMPeriod);
             Entry.AnchoredVWAP = Strategy.DAVWAPIndicator("9:30am", "Eastern Standard Time");
             Entry.AnchoredVWAP.StdDevBandCount = OptParamsVWAPPB.Entry.VWAPStdDevBandCount;
             Entry.AnchoredVWAP.BandMode = VwapBandMode.Cumulative;

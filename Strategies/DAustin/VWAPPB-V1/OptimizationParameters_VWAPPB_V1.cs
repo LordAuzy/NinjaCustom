@@ -48,10 +48,22 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
         public AdaptiveTrailingStopParameters AdaptiveTrailingStop { get; set; } = new AdaptiveTrailingStopParameters();
         public TrendStructuralTrailingStopParameters TrendStructuralTrailingStop { get; set; } = new TrendStructuralTrailingStopParameters();
         public List<ScheduleBiasFilterParameters> ScheduleBiasFilters { get; set; } = new List<ScheduleBiasFilterParameters>();
-        public List<ScheduleSizingFilterParameters> ScheduleSizingFilters { get; set; } = new List<ScheduleSizingFilterParameters>();   
+        public List<ScheduleSizingFilterParameters> ScheduleSizingFilters { get; set; } = new List<ScheduleSizingFilterParameters>();
         #endregion
 
         #region constructors
+        public OptimizationParameters_VWAPPB_V1() : base()
+        {
+            // in our start parameters we have 3 ScheduleBiasFilters and 3 ScheduleSizingFilters,
+            // so we initialize the lists with 3 default entries to make it easier to work with
+            // in the UI and optimization
+            for (int i = 0; i < 6; i++)
+            {
+                ScheduleBiasFilters.Add(new ScheduleBiasFilterParameters());
+                ScheduleSizingFilters.Add(new ScheduleSizingFilterParameters());
+            }
+        }
+
         public OptimizationParameters_VWAPPB_V1(StratBase strat) : base(strat)
         {
             // in our start parameters we have 3 ScheduleBiasFilters and 3 ScheduleSizingFilters,
@@ -75,7 +87,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
             General.SLTrailingMode = StopLossTrailingMode.Fixed;
             General.TimeWindowTimeZone = TimeWindowTimeZone.Eastern;
             General.TWAnchorTime = "9:30am";
-            General.MaxTradesPerSession = 4;
+            General.MaxTradesPerSession = 2;
             General.LoggingMode = LoggingMode.None;
 
             // Time parameters
@@ -84,7 +96,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
             Time.MaxMinutesInTrade = 0;
             Time.TWAnchorTime = "9:30am";
             Time.TWOffset1 = 6;
-            Time.TWDuration1 = 124;
+            Time.TWDuration1 = 124; 
             Time.TWOffset2 = 0;
             Time.TWDuration2 = 0;
 
@@ -124,6 +136,10 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
             ScheduleSizingFilters[1].Duration = 70;
             ScheduleSizingFilters[1].DayOfWeek = DADayOfWeek.Tuesday;
             ScheduleSizingFilters[1].Multiplier = 2;
+            ScheduleSizingFilters[2].Offset = 30;
+            ScheduleSizingFilters[2].Duration = 30;
+            ScheduleSizingFilters[2].DayOfWeek = DADayOfWeek.Wednesday;
+            ScheduleSizingFilters[2].Multiplier = 2;
 
             // BreakEven Parameters
             BreakEven.R = 1.0;
@@ -360,6 +376,106 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
             TrendStructuralTrailingStop.ATRMultiplier = strat.TST_ATRMultiplier;
             TrendStructuralTrailingStop.ActivationR = strat.TST_ActivationR;
         }
+
+        public override void CopyFrom(OptimizationParametersBase opf)
+        {
+            base.CopyFrom(opf);
+            OptimizationParameters_VWAPPB_V1 opFrom = opf as OptimizationParameters_VWAPPB_V1;
+
+            General.EquityRiskPercent = opFrom.General.EquityRiskPercent;
+            General.SLTrailingMode = opFrom.General.SLTrailingMode;
+            General.TimeWindowTimeZone = opFrom.General.TimeWindowTimeZone;
+            General.TWAnchorTime = opFrom.General.TWAnchorTime;
+            General.MaxTradesPerSession = opFrom.General.MaxTradesPerSession;
+            General.LoggingMode = opFrom.General.LoggingMode;
+
+            Time.TimeZone = opFrom.Time.TimeZone;
+            Time.FlattenTOD = opFrom.Time.FlattenTOD;
+            Time.MaxMinutesInTrade = opFrom.Time.MaxMinutesInTrade;
+            Time.TWAnchorTime = opFrom.Time.TWAnchorTime;
+            Time.TWOffset1 = opFrom.Time.TWOffset1;
+            Time.TWDuration1 = opFrom.Time.TWDuration1;
+            Time.TWOffset2 = opFrom.Time.TWOffset2;
+            Time.TWDuration2 = opFrom.Time.TWDuration2;
+
+            ScheduleBiasFilterParameters SBFp = ScheduleBiasFilters[0];
+            ScheduleBiasFilterParameters SBFpFrom = opFrom.ScheduleBiasFilters[0];
+            SBFp.Offset = SBFpFrom.Offset;
+            SBFp.Duration = SBFpFrom.Duration;
+            SBFp.DayOfWeek = SBFpFrom.DayOfWeek;
+            SBFp.TradingStance = SBFpFrom.TradingStance;
+            SBFp = ScheduleBiasFilters[1];
+            SBFpFrom = opFrom.ScheduleBiasFilters[1];
+            SBFp.Offset = SBFpFrom.Offset;
+            SBFp.Duration = SBFpFrom.Duration;
+            SBFp.DayOfWeek = SBFpFrom.DayOfWeek;
+            SBFp.TradingStance = SBFpFrom.TradingStance;
+            SBFp = ScheduleBiasFilters[2];
+            SBFpFrom = opFrom.ScheduleBiasFilters[2];
+            SBFp.Offset = SBFpFrom.Offset;
+            SBFp.Duration = SBFpFrom.Duration;
+            SBFp.DayOfWeek = SBFpFrom.DayOfWeek;
+            SBFp.TradingStance = SBFpFrom.TradingStance;
+
+            ScheduleSizingFilterParameters SSFp = ScheduleSizingFilters[0];
+            ScheduleSizingFilterParameters SSFpFrom = opFrom.ScheduleSizingFilters[0];
+            SSFp.Offset = SSFpFrom.Offset;
+            SSFp.Duration = SSFpFrom.Duration;
+            SSFp.DayOfWeek = SSFpFrom.DayOfWeek;
+            SSFp.Multiplier = SSFpFrom.Multiplier;
+            SSFp = ScheduleSizingFilters[1];
+            SSFpFrom = opFrom.ScheduleSizingFilters[1];
+            SSFp.Offset = SSFpFrom.Offset;
+            SSFp.Duration = SSFpFrom.Duration;
+            SSFp.DayOfWeek = SSFpFrom.DayOfWeek;
+            SSFp.Multiplier = SSFpFrom.Multiplier;
+            SSFp = ScheduleSizingFilters[2];
+            SSFpFrom = opFrom.ScheduleSizingFilters[2];
+            SSFp.Offset = SSFpFrom.Offset;
+            SSFp.Duration = SSFpFrom.Duration;
+            SSFp.DayOfWeek = SSFpFrom.DayOfWeek;
+            SSFp.Multiplier = SSFpFrom.Multiplier;
+
+            BreakEven.R = opFrom.BreakEven.R;
+            BreakEven.UseATR = opFrom.BreakEven.UseATR;
+            BreakEven.ATRPeriod = opFrom.BreakEven.ATRPeriod;
+            BreakEven.Expanding_R = opFrom.BreakEven.Expanding_R;
+            BreakEven.Contracting_R = opFrom.BreakEven.Contracting_R;
+
+            Entry.VWAPStdDevBandCount = opFrom.Entry.VWAPStdDevBandCount;
+            Entry.ATRPeriod = opFrom.Entry.ATRPeriod;
+            Entry.FastEMAPeriod = opFrom.Entry.FastEMAPeriod;
+            Entry.SlowEMAPeriod = opFrom.Entry.SlowEMAPeriod;
+            Entry.MinVWAPDistanceATR = opFrom.Entry.MinVWAPDistanceATR;
+            Entry.MinVWAPSlopeATR = opFrom.Entry.MinVWAPSlopeATR;
+            Entry.MinEMASpreadATR = opFrom.Entry.MinEMASpreadATR;
+            Entry.MaxPullbackATR = opFrom.Entry.MaxPullbackATR;
+            Entry.PullbackLookbackBars = opFrom.Entry.PullbackLookbackBars;
+            Entry.MaxEntryDistanceATR = opFrom.Entry.MaxEntryDistanceATR;
+            Entry.VWAPConfirmationBars = opFrom.Entry.VWAPConfirmationBars;
+            Entry.InitialStopATRBuffer = opFrom.Entry.InitialStopATRBuffer;
+            Entry.OrderType = opFrom.Entry.OrderType;
+            Entry.OrderExpiryBars = opFrom.Entry.OrderExpiryBars;
+
+            ChandelierGuardStop.ATRPeriod = opFrom.ChandelierGuardStop.ATRPeriod;
+            ChandelierGuardStop.InitialATRBuffer = opFrom.ChandelierGuardStop.InitialATRBuffer;
+            ChandelierGuardStop.BE_Expanding_R = opFrom.ChandelierGuardStop.BE_Expanding_R;
+            ChandelierGuardStop.BE_Contracting_R = opFrom.ChandelierGuardStop.BE_Contracting_R;
+            ChandelierGuardStop.ChandelierATRMult = opFrom.ChandelierGuardStop.ChandelierATRMult;
+            ChandelierGuardStop.TightATRMult = opFrom.ChandelierGuardStop.TightATRMult;
+            ChandelierGuardStop.TightenTriggerR = opFrom.ChandelierGuardStop.TightenTriggerR;
+
+            AdaptiveTrailingStop.FastEMAPeriod = opFrom.AdaptiveTrailingStop.FastEMAPeriod;
+            AdaptiveTrailingStop.SlowEMAPeriod = opFrom.AdaptiveTrailingStop.SlowEMAPeriod;
+            AdaptiveTrailingStop.ATRPeriod = opFrom.AdaptiveTrailingStop.ATRPeriod;
+            AdaptiveTrailingStop.ATRSpreadMultiplier = opFrom.AdaptiveTrailingStop.ATRSpreadMultiplier;
+
+            TrendStructuralTrailingStop.EMAPeriod = opFrom.TrendStructuralTrailingStop.EMAPeriod;
+            TrendStructuralTrailingStop.ATRPeriod = opFrom.TrendStructuralTrailingStop.ATRPeriod;
+            TrendStructuralTrailingStop.ATRMultiplier = opFrom.TrendStructuralTrailingStop.ATRMultiplier;
+            TrendStructuralTrailingStop.ActivationR = opFrom.TrendStructuralTrailingStop.ActivationR;
+        }
+
 
         public override ChandelierGuardStopParameters GetChandelierGuardStopParameters() { return ChandelierGuardStop; }
         public override TimeParameters GetTimeParameters() { return Time; }

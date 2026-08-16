@@ -12,11 +12,6 @@ namespace NinjaTrader.Custom.DAustin.Common.Orders
 {
     public class OrderTicket
     {
-        #region Static
-        private static int _signalNameIndex = 0;
-        private static string _signalNamePrefix = "DAOT";
-        #endregion
-
         #region Properties
         public int MaxTradeMinutes { get; set; } = 0; // 0 means no max trade time
         public StratBase Strategy { get; private set; }
@@ -54,7 +49,23 @@ namespace NinjaTrader.Custom.DAustin.Common.Orders
         public FlexibleValue Risk { get; set; } = null;
         public double AllowedRiskPercentOfAccount { get; set; } = 1;
         public string TransactionId { get; set; } = string.Empty;
-        public string SignalNamePrefix { get; set; } = string.Empty;
+
+        private static string _signalNamePrefixDefault = "DAOT";
+        private static string _signalNamePrefix = string.Empty;
+        public string SignalNamePrefix 
+        { 
+            get
+            {
+                string namePrefix = _signalNamePrefix;
+                if (String.IsNullOrEmpty(namePrefix))
+                {
+                    namePrefix = _signalNamePrefixDefault;
+                }
+                return namePrefix;
+
+            }
+            set { _signalNamePrefix = value; }
+        }
 
         private string _signalName = string.Empty;
         public string SignalName 
@@ -127,7 +138,7 @@ namespace NinjaTrader.Custom.DAustin.Common.Orders
             if (SLOffset != null)
             {   // if the SLOffset is set then use it to calculate the
                 // actual risk after the initial stop placement.
-                return SLOffset;
+                return SLOffset; 
             }
             return Risk;
         }
@@ -135,17 +146,9 @@ namespace NinjaTrader.Custom.DAustin.Common.Orders
         public string GenerateSignalName()
         {
             string sigName = string.Empty;
+            int nameIndex = Strategy.Storage.NameIndex++;
 
-            if (String.IsNullOrEmpty(SignalNamePrefix))
-            {
-                sigName = _signalNamePrefix + "-" + _signalNameIndex.ToString("D4");
-            }
-            else
-            {
-                sigName = SignalNamePrefix + "-" + _signalNameIndex.ToString("D4");
-            }
-
-            _signalNameIndex++;
+            sigName = SignalNamePrefix + "-" + nameIndex.ToString("D4");
 
             return sigName;
         }

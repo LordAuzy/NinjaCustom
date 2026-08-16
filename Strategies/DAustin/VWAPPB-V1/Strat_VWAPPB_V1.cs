@@ -591,12 +591,12 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             try
             {
-                if (State == State.DataLoaded)
-                {   // this part needs to be executed before the base OnStateChange DataLoaded.
-                    OptimizationParameters_VWAPPB_V1 OptParamsVWAPPB = GetOptimizationParameters("OP-" + stratIdentifier) as OptimizationParameters_VWAPPB_V1;
-                    OptParamsVWAPPB.UpdateFromStrat();
-                    OptimizationParameters = OptParamsVWAPPB;
-                }
+                //if (State == State.DataLoaded)
+                //{   // this part needs to be executed before the base OnStateChange DataLoaded.
+                //    OptimizationParameters_VWAPPB_V1 OptParamsVWAPPB = GetOptimizationParameters("OP-" + stratIdentifier) as OptimizationParameters_VWAPPB_V1;
+                //    OptParamsVWAPPB.UpdateFromStrat();
+                //    OptimizationParameters = OptParamsVWAPPB;
+                //}
 
                 // nlog gets configured in base class so
                 // we shouldn't log anything until after this call.
@@ -623,6 +623,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     RealtimeErrorHandling = RealtimeErrorHandling.StopCancelClose;
                     StopTargetHandling = StopTargetHandling.PerEntryExecution;
                     BarsRequiredToTrade = 20;
+                    IncludeTradeHistoryInBacktest = true;
 
                     // Default parameter values
                     // initially set in the optimization parameters class and transferred to here
@@ -631,21 +632,31 @@ namespace NinjaTrader.NinjaScript.Strategies
                     OptimizationParameters_VWAPPB_V1 OptParams = GetOptimizationParameters("OP-" + stratIdentifier) as OptimizationParameters_VWAPPB_V1;
                     OptParams.SetDefaultValues();
                     OptParams.UpdateStratParamValues();
+                    // set on the strat so it will be serialized in the XML
+                    // and available when we are restoring from XML.
+                    OptimizationParameters = OptParams;
                 }
                 else if (State == State.Configure)
                 {
-                    //update our optimization parameters from the strategy properties
                     OptimizationParameters_VWAPPB_V1 OptParams = GetOptimizationParameters("OP-" + stratIdentifier) as OptimizationParameters_VWAPPB_V1;
+
+                    if (IsLoadedFromXml)
+                    {
+                        // By this point, all serialized property values from the
+                        // XML have overwritten your default values.
+                        LoggerTP.Info("Strategy restored via deserialization.");
+
+                        // we want to use the optimization parameters that were serialized in the XML, not the default values.
+                        OptimizationParameters_VWAPPB_V1 OptPLoadedFromXml = OptimizationParameters as OptimizationParameters_VWAPPB_V1;
+                        OptParams.CopyFrom(OptPLoadedFromXml);
+                        OptParams.UpdateStratParamValues();
+                    }
+                    //update our optimization parameters from the strategy properties
                     OptParams.UpdateFromStrat();
                     // initialize indicators
                     Indicators_VWAPPB_V1 indicators = GetIndicators("IDC-" + stratIdentifier) as Indicators_VWAPPB_V1;
                     indicators.OptParams = OptParams;
                     indicators.Initialize();
-                }
-                else if (State == State.DataLoaded)
-                {
-                    OptimizationParameters_VWAPPB_V1 OptParams = GetOptimizationParameters("OP-" + stratIdentifier) as OptimizationParameters_VWAPPB_V1;
-                    Indicators_VWAPPB_V1 indicators = GetIndicators("IDC-" + stratIdentifier) as Indicators_VWAPPB_V1;
 
                     // now we can initialize the entry conditions evaluator and trade context
                     IEntryConditionsEvaluator ece = GetEntryConditionsEvaluator("ECE-" + stratIdentifier);
@@ -654,32 +665,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                     ece.Indicators = indicators;
                     ece.OptParams = OptParams;
 
-                    // add chart indicators for this strategy.
-                    // This is done here so that the indicators are only added once.
-                    Indicators_VWAPPB_V1.EntryIndicators entryIndicators = indicators.Entry;
-
-                    AddChartIndicator(entryIndicators.AnchoredVWAP);
-                    AddChartIndicator(entryIndicators.SlowEMA);
-                    AddChartIndicator(entryIndicators.FastEMA);
-
-                    // customizse the chart indicators for this strategy
-                    entryIndicators.FastEMA.Plots[0].Brush = System.Windows.Media.Brushes.LimeGreen;
-                    entryIndicators.FastEMA.Plots[0].Width = 1;
-
-                    entryIndicators.SlowEMA.Plots[0].Brush = System.Windows.Media.Brushes.OrangeRed;
-                    entryIndicators.SlowEMA.Plots[0].Width = 1;
-
-                    entryIndicators.AnchoredVWAP.Plots[0].Brush = System.Windows.Media.Brushes.Cyan;
-                    entryIndicators.AnchoredVWAP.Plots[0].Width = 2;
-
                     // setup the trade context and add it to the trade manager
                     TradeContext tc = new TradeContext(ece);
                     tc.EntryConditionsEvaluator = ece;
                     List<TradeState> stateList = new List<TradeState>()
-                {
-                    TradeState.Idle,
-                    TradeState.FillPending,
-                };
+                    {
+                        TradeState.Idle,
+                        TradeState.FillPending,
+                    };
 
                     StopLossTrailingMode SLTrailMode = OptParams.General.SLTrailingMode;
                     if (SLTrailMode == StopLossTrailingMode.TrendStructuralTrailing)
@@ -723,6 +716,29 @@ namespace NinjaTrader.NinjaScript.Strategies
                     TradeManager.AddTradeContext(tc);
                     TradeManager.Indicators = indicators;
                     TradeManager.OptParams = OptParams;
+                }
+                else if (State == State.DataLoaded)
+                {
+                    Indicators_VWAPPB_V1 indicators = GetIndicators("IDC-" + stratIdentifier) as Indicators_VWAPPB_V1;
+
+                    // add chart indicators for this strategy.
+                    // This is done here so that the indicators are only added once.
+                    Indicators_VWAPPB_V1.EntryIndicators entryIndicators = indicators.Entry;
+
+                    AddChartIndicator(entryIndicators.AnchoredVWAP);
+                    AddChartIndicator(entryIndicators.SlowEMA);
+                    AddChartIndicator(entryIndicators.FastEMA);
+
+                    // customizse the chart indicators for this strategy
+                    entryIndicators.FastEMA.Plots[0].Brush = System.Windows.Media.Brushes.LimeGreen;
+                    entryIndicators.FastEMA.Plots[0].Width = 1;
+
+                    entryIndicators.SlowEMA.Plots[0].Brush = System.Windows.Media.Brushes.OrangeRed;
+                    entryIndicators.SlowEMA.Plots[0].Width = 1;
+
+                    entryIndicators.AnchoredVWAP.Plots[0].Brush = System.Windows.Media.Brushes.Cyan;
+                    entryIndicators.AnchoredVWAP.Plots[0].Width = 2;
+
                     TradeManager.OnDataLoaded();
                 }
                 else if (State == State.Historical)

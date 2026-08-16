@@ -7,6 +7,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Serialization;
 
 namespace NinjaTrader.Custom.DAustin.Common
 {
@@ -18,6 +19,7 @@ namespace NinjaTrader.Custom.DAustin.Common
         [Browsable(false)]
         public StratBase Strategy { get; set; }
         [Browsable(false)]
+        [XmlIgnore]
         public IIndicators Indicators { get; set; }
         private TimeWindows _entryTimeWindows = null;
         public TradeContext TradeContext { get; set; }

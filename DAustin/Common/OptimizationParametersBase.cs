@@ -7,9 +7,12 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Serialization;
 
 namespace NinjaTrader.Custom.DAustin.Common
 {
+    [XmlInclude(typeof(NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1.OptimizationParameters_VWAPPB_V1))]
+    [XmlInclude(typeof(NinjaTrader.Custom.Strategies.DAustin.VWAPPB.OptimizationParameters_VWAPPB))]
     public class OptimizationParametersBase : IOptimizationParameters
     {
         #region ClassDefinitions
@@ -92,9 +95,15 @@ namespace NinjaTrader.Custom.DAustin.Common
 
         #endregion
 
+        [XmlIgnore]
         public StratBase Strategy { get; set; }
 
         #region constructors
+        public OptimizationParametersBase()
+        {
+
+        }
+
         public OptimizationParametersBase(StratBase strat)
         {
             Strategy = strat;
@@ -112,6 +121,11 @@ namespace NinjaTrader.Custom.DAustin.Common
         }
 
         public virtual void SetDefaultValues()
+        {
+
+        }
+
+        public virtual void CopyFrom(OptimizationParametersBase opFrom)
         {
 
         }

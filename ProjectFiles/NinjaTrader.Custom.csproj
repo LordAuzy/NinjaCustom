@@ -72,6 +72,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="ActiproSoftware.Controls.WPF.SyntaxEditor.Addons.DotNet" Version="25.1.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="NLog" Version="6.1.2" />
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
   </ItemGroup>
@@ -81,6 +82,7 @@
     <Compile Include="DAustin\Common\Reporting\TradeEventTableFormatter.cs" />
     <Compile Include="DAustin\Common\Reporting\TradeSummaryData.cs" />
     <Compile Include="DAustin\Common\TelemetryBarBase.cs" />
+    <Compile Include="DAustin\Extensions\TradeExtensions.cs" />
     <Compile Include="DAustin\Interfaces\ITelemetryBar.cs" />
     <Compile Include="Indicators\DAustin\DAVWAPIndicator.cs" />
     <Compile Include="Resource.Designer.cs">
@@ -392,6 +394,7 @@
     <Compile Include="DAustin\Common\StratBase.cs" />
     <Compile Include="DAustin\Common\StrategyComponentIdAttribute.cs" />
     <Compile Include="DAustin\Common\StratConstants.cs" />
+    <Compile Include="DAustin\Common\StrategyPersistentStore.cs" />
     <Compile Include="Strategies\DAustin\Common\StratIndicatorsBase.cs" />
     <Compile Include="DAustin\Common\StratInputParams.cs" />
     <Compile Include="DAustin\Common\TimeConverter.cs" />
@@ -453,6 +456,7 @@
     <Compile Include="Strategies\DAustin\VWAPPB\Strat_VWAPPB.cs" />
     <Compile Include="Strategies\DAustin\TradeManagers\TradeManager_ORB.cs" />
     <Compile Include="Strategies\DAustin\TwoPhaseCAP_ORB\TradeTriggerChecker.cs" />
+    <Compile Include="Strategies\DAustin\VWAPPB\TelemetryBar_VWAPPB.cs" />
     <Compile Include="SuperDomColumns\%40APQ.cs" />
     <Compile Include="SuperDomColumns\%40Notes.cs" />
     <Compile Include="SuperDomColumns\%40ProfitLoss.cs" />
@@ -514,6 +518,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="AddOns\" />
+    <Folder Include="Strategies\DAustin\OPNDRV\" />
     <Folder Include="Strategies\DAustin\ORB\" />
   </ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

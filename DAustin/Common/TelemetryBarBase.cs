@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Xml.Serialization;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using static NinjaTrader.Custom.DAustin.Common.OptimizationParametersBase;
@@ -36,11 +37,13 @@ namespace NinjaTrader.Custom.DAustin.Common
             "OpenPnL",
             "MFE",
             "MAE"
-        ]; 
+        ];
         #endregion
 
         #region Properties
+        [XmlIgnore]
         public StratBase Strategy { get; set; }
+        [XmlIgnore]
         public IIndicators Indicators { get; set; }
         public DAOrderType OrderType { get; set; } = DAOrderType.None;
         public double EntryPrice { get; set; } = 0;

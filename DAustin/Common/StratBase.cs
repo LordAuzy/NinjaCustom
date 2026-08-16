@@ -61,8 +61,44 @@ namespace NinjaTrader.Custom.DAustin.Common
         }
 
         #region Properties
+        private bool isLoadedFromXml;
+
+        [XmlIgnore]
         [Browsable(false)]
-        public SessionIterator SessionIterator { get; private set; }
+        public bool IsLoadedFromXml
+        {
+            get => isLoadedFromXml;
+            private set => isLoadedFromXml = value;
+        }
+
+        // You can hook into a dummy or real serialized property setter:
+        // When XmlSerializer deserializes an object, it invokes setters for serialized properties.
+        [Browsable(false)]
+        [XmlElement("SerializationMarker")]
+        public bool SerializationMarker
+        {
+            get => true; // Always saves as true in XML
+            set
+            {
+                // If the XML reader touches this setter, we are deserializing!
+                isLoadedFromXml = value;
+            }
+        }
+
+        private SessionIterator _sessionIterator = null;
+        [Browsable(false)]
+        [XmlIgnore]
+        public SessionIterator SessionIterator
+        {
+            get
+            {
+                if (_sessionIterator == null)
+                {
+                    _sessionIterator = new SessionIterator(Bars);
+                }
+                return _sessionIterator;
+            }
+        }
 
         protected TradeManagerBase _tmb = null;
         [Browsable(false)]
@@ -75,6 +111,20 @@ namespace NinjaTrader.Custom.DAustin.Common
                     _tmb = new TradeManagerBase(this);
                 }
                 return _tmb;
+            }
+        }
+
+        StrategyPersistentStore _stratStore = null;
+        [Browsable(false)]
+        public virtual StrategyPersistentStore Storage
+        { 
+            get
+            {
+                if (_stratStore == null)
+                {
+                    _stratStore = new StrategyPersistentStore(this);
+                }
+                return _stratStore;
             }
         }
 
@@ -97,15 +147,15 @@ namespace NinjaTrader.Custom.DAustin.Common
                 return _sip;
             }
 
-            private set { _sip = value; }
+            set { _sip = value; }
         }
 
         [Browsable(false)]
-        public Dictionary<string, IEntryConditionsEvaluator> EntryConditionsEvaluatortList { get; } = new Dictionary<string, IEntryConditionsEvaluator>();
+        private Dictionary<string, IEntryConditionsEvaluator> EntryConditionsEvaluatortList { get; } = new Dictionary<string, IEntryConditionsEvaluator>();
         [Browsable(false)]
-        public Dictionary<string, IOptimizationParameters> OptimizationParameterList { get; } = new Dictionary<string, IOptimizationParameters>();
+        private Dictionary<string, IOptimizationParameters> OptimizationParameterList { get; } = new Dictionary<string, IOptimizationParameters>();
         [Browsable(false)]
-        public Dictionary<string, IIndicators> IndicatorsList { get; } = new Dictionary<string, IIndicators>();
+        private Dictionary<string, IIndicators> IndicatorsList { get; } = new Dictionary<string, IIndicators>();
         #endregion
 
         #region Overrides
@@ -114,19 +164,12 @@ namespace NinjaTrader.Custom.DAustin.Common
             if (State == State.SetDefaults)
             {
                 SetNLogGDC();
-                // failsafe defaults so if my strat code doesn't execute for some reason,
-                // We'll close out of any open positions within 2 minutes of session close
-                // to avoid overnight risk
-                IsExitOnSessionCloseStrategy = true;
-                ExitOnSessionCloseSeconds = 120;
-                IncludeCommission = true;
             }
             else if (State == State.Configure)
             {
             }
             else if (State == State.DataLoaded)
             {
-                SessionIterator = new SessionIterator(Bars);
             }
             else if (State == State.Terminated)
             {
@@ -134,9 +177,24 @@ namespace NinjaTrader.Custom.DAustin.Common
             }
         }
 
+        private bool isCloneTestInstance = false;
         protected override void OnBarUpdate()
         {
             LoggerTP.Trace(">");
+
+            //if (isCloneTestInstance)
+            //{
+            //    // This log confirms that a deserialized strategy instance is successfully 
+            //    // processing bars and executing strategy code.
+            //    Print($"[{Name} CLONE] OnBarUpdate running on Bar {CurrentBar}. Close: {Close[0]}");
+            //    return;
+            //}
+
+            //if (CurrentBar == 0)
+            //{
+            //    TestSerializationInCode();
+            //}
+
             TradeManager.OnBarUpdate();
 
             // Check if this is the final bar of the backtest
@@ -151,6 +209,87 @@ namespace NinjaTrader.Custom.DAustin.Common
                 OnBacktestComplete();
             }
             LoggerTP.Trace("<");
+        }
+
+        private void TestSerializationInCode()
+        {
+            try
+            {
+                Print($"[{Name}] Starting Full Deserialization & Execution Test...");
+
+                // Step A: Serialize 'this' instance to XML string
+                var serializer = new System.Xml.Serialization.XmlSerializer(this.GetType());
+                string xmlPayload;
+
+                using (var sw = new System.IO.StringWriter())
+                {
+                    var ns = new System.Xml.Serialization.XmlSerializerNamespaces();
+                    ns.Add("", "");
+                    serializer.Serialize(sw, this);
+                    xmlPayload = sw.ToString();
+                }
+
+                // Step B: Deserialize a brand-new instance from the XML payload
+                using (var sr = new System.IO.StringReader(xmlPayload))
+                {
+                    var deserializedStrategy = (StratBase)serializer.Deserialize(sr);
+
+                    // Mark it so we know it's the deserialized test object
+                    deserializedStrategy.isCloneTestInstance = true;
+
+                    Print($"[{Name}] SUCCESS: Object re-hydrated from XML.");
+
+                    // Step C: Simulate NT8 state transitions on the deserialized instance
+                    deserializedStrategy.SetState(State.SetDefaults);
+                    deserializedStrategy.SetState(State.Configure);
+
+                    // Step D: Verify that deserialized instance can execute OnBarUpdate
+                    // Pass current market/bar context to test logic execution
+                    deserializedStrategy.OnBarUpdate();
+
+                    Print($"[{Name}] SUCCESS: Deserialized instance successfully executed OnBarUpdate()!");
+                }
+            }
+            catch (Exception ex)
+            {
+                string rootCause = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                Print($"[{Name}] DESERIALIZATION TEST FAILED: {rootCause}");
+            }
+        }
+
+        protected override void OnConnectionStatusUpdate(
+            ConnectionStatusEventArgs connectionStatusUpdate)
+        {
+            // NinjaTrader's base Strategy.OnConnectionStatusUpdate is a no-op hook, so calling
+            // base here isn't strictly required. We call it anyway as a defensive habit in case
+            // the platform ever adds meaningful base logic in a future update.
+            base.OnConnectionStatusUpdate(connectionStatusUpdate);
+
+            if (LoggerTP.IsInfoEnabled)
+            {
+                var simTime = GetDataTimeForLogger();
+                var log = LoggerTP.WithProperty("SimTime", simTime);
+
+                log.Info(
+                    "ConnectionStatusUpdate: Connection={0} | Status={1} | PriceStatus={2} | Error={3}",
+                    connectionStatusUpdate?.Connection?.Options?.Name ?? "Unknown",
+                    connectionStatusUpdate?.Status,
+                    connectionStatusUpdate?.PriceStatus,
+                    connectionStatusUpdate?.Error);
+            }
+
+            if (LoggerTP.IsTraceEnabled)
+            {
+                // Verbose fields that are helpful when diagnosing reconnect/disconnect sequences
+                // but too noisy for Info level.
+                var simTime = GetDataTimeForLogger();
+                var log = LoggerTP.WithProperty("SimTime", simTime);
+
+                log.Trace(
+                    "ConnectionStatusUpdate details: IsReconnecting={0} | ConnectionStatus={1}",
+                    connectionStatusUpdate?.Connection?.Status,
+                    connectionStatusUpdate?.Connection);
+            }
         }
 
         protected override void OnOrderUpdate(
