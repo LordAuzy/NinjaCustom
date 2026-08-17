@@ -409,6 +409,12 @@
     <Compile Include="DAustin\Common\TradeManagerBase.cs" />
     <Compile Include="Strategies\DAustin\Common\TradeManagerDataCollection.cs" />
     <Compile Include="DAustin\Common\Reporting\ClosedTrade.cs" />
+    <Compile Include="Strategies\DAustin\OPNDRV\ECE_OPNDRV.cs" />
+    <Compile Include="Strategies\DAustin\OPNDRV\ECE_OPNDRV_DataCollector.cs" />
+    <Compile Include="Strategies\DAustin\OPNDRV\Indicators_OPNDRV.cs" />
+    <Compile Include="Strategies\DAustin\OPNDRV\OptimizationParameters_OPNDRV.cs" />
+    <Compile Include="Strategies\DAustin\OPNDRV\Strat_OPNDRV.cs" />
+    <Compile Include="Strategies\DAustin\OPNDRV\TelemetryBar_OPNDRV.cs" />
     <Compile Include="Strategies\DAustin\StratComponents\DataCollectors\ECE_ORB_DataCollector.cs" />
     <Compile Include="Strategies\DAustin\StratComponents\DataCollectors\ECE_TrendCL_DataCollector.cs" />
     <Compile Include="Strategies\DAustin\StratComponents\DataCollectors\ECE_TREND_DataCollector.cs" />
@@ -518,7 +524,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="AddOns\" />
-    <Folder Include="Strategies\DAustin\OPNDRV\" />
     <Folder Include="Strategies\DAustin\ORB\" />
   </ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

@@ -51,5 +51,6 @@ namespace NinjaTrader.Custom.DAustin.Common
         public const string TRENCLAUD   = "TRENCLAUD";
         public const string TREND       = "TREND";
         public const string TRENDCL     = "TRENDCL";
+        public const string OPNDRV      = "OPNDRV";
     }
 }
