@@ -355,114 +355,171 @@ namespace NinjaTrader.NinjaScript.Strategies
         //Entry parameters
         [NinjaScriptProperty]
         [Range(0, 3)]
-        [Display(   Name = "VWAPStdDevBandCount",
-                    Description = "Plot VWAP Std Deviation Bands",
+        [Display(   Name = "DriveOffset",
+                    Description = "Choose the offset from the anchor time for the opening drive",
                     Order = 1,
                     GroupName = StratPropertyGroups.Entry)]
-        public int EntryVWAPStdDevBandCount { get; set; } = 0;
+        public int EntryDriveOffset { get; set; } = 0;
 
         [NinjaScriptProperty]
         [Range(1, int.MaxValue)]
-        [Display(   Name = "ATR Period",
-                    Description = "ATR Period - Indicators",
+        [Display(   Name = "DriveDuration",
+                    Description = "Choose the duration for the opening drive",
                     Order = 2,
+                    GroupName = StratPropertyGroups.Entry)]
+        public int EntryDriveDuration { get; set; } = 15;
+
+        [NinjaScriptProperty]
+        [Range(1, int.MaxValue)]
+        [Display(Name = "ATR Period",
+                    Description = "ATR Period - Indicators",
+                    Order = 3,
                     GroupName = StratPropertyGroups.Entry)]
         public int EntryATRPeriod { get; set; } = 14;
 
         [NinjaScriptProperty]
+        [Display(Name = "MinNetMoveATR",
+                    Description = "Minimum opening drive size",
+                    Order = 4,
+                    GroupName = StratPropertyGroups.Entry)]
+        public double EntryMinNetMoveATR { get; set; } = 1.0;
+
+        [NinjaScriptProperty]
+        [Display(Name = "MaxNetMoveATR",
+                    Description = "Maximum opening drive size",
+                    Order = 5,
+                    GroupName = StratPropertyGroups.Entry)]
+        public double EntryMaxNetMoveATR { get; set; } = 3.0;
+
+        [NinjaScriptProperty]
+        [Display(Name = "MinDriveEfficiency",
+                    Description = "Minimum drive efficiency",
+                    Order = 6,
+                    GroupName = StratPropertyGroups.Entry)]
+        public double EntryMinDriveEfficiency { get; set; } = 0.60;
+
+        [NinjaScriptProperty]
+        [Display(Name = "MaxCloseFromExtremePct",
+                    Description = "How close the drive close must be to the drive extreme. Example .25 means close must be within top/bottom 25% of drive.",
+                    Order = 7,
+                    GroupName = StratPropertyGroups.Entry)]
+        public double EntryMaxCloseFromExtremePct { get; set; } = .25;
+
+        [NinjaScriptProperty]
+        [Display(Name = "MinVWAPDistanceATR",
+                    Description = "Minimum displacement from VWAP at end of drive",
+                    Order = 8,
+                    GroupName = StratPropertyGroups.Entry)]
+        public double EntryMinVWAPDistanceATR { get; set; } = 0.5;
+
+        [NinjaScriptProperty]
         [Range(1, int.MaxValue)]
         [Display(   Name = "Fast EMA Period",
-                    Description = "Fast EMA Period - Indicators",
-                    Order = 3,
+                    Description = "Fast EMA Period",
+                    Order = 9,
                     GroupName = StratPropertyGroups.Entry)]
         public int EntryFastEMAPeriod { get; set; } = 9;
 
         [NinjaScriptProperty]
         [Range(1, int.MaxValue)]
         [Display(   Name = "Slow EMA Period",
-                    Description = "Slow EMA Period - Indicators",
-                    Order = 4,
+                    Description = "Slow EMA Period",
+                    Order = 10,
                     GroupName = StratPropertyGroups.Entry)]
         public int EntrySlowEMAPeriod { get; set; } = 21;
 
         [NinjaScriptProperty]
-        [Range(0.01, double.MaxValue)]
-        [Display(   Name = "MinVWAPDistanceATR",
-                    Description = "ChopFilter - MinVWAPDistanceATR",
-                    Order = 5,
+        [Display(   Name = "VWAPSlopeLookback",
+                    Description = "ChopFilter - VWAPSlopeLookback",
+                    Order = 11,
                     GroupName = StratPropertyGroups.Entry)]
-        public double EntryMinVWAPDistanceATR { get; set; } = 0.5;
+        public int EntryVWAPSlopeLookback { get; set; } = 5;
 
         [NinjaScriptProperty]
-        [Range(0.01, double.MaxValue)]
         [Display(   Name = "MinVWAPSlopeATR",
-                    Description = "ChopFilter - MinVWAPSlopeATR",
-                    Order = 6,
+                    Description = "MinVWAPSlopeATR",
+                    Order = 12,
                     GroupName = StratPropertyGroups.Entry)]
-        public double EntryMinVWAPSlopeATR { get; set; } = 1.5;
+        public double EntryMinVWAPSlopeATR { get; set; } = .03;
 
         [NinjaScriptProperty]
         [Range(0.01, double.MaxValue)]
         [Display(   Name = "MinEMASpreadATR",
                     Description = "ChopFilter - MinEMASpreadATR",
-                    Order = 7,
+                    Order = 13,
                     GroupName = StratPropertyGroups.Entry)]
-        public double EntryMinEMASpreadATR { get; set; } = 1.5;
+        public double EntryMinEMASpreadATR { get; set; } = .10;
 
         [NinjaScriptProperty]
-        [Range(0.01, double.MaxValue)]
-        [Display(   Name = "MaxPullbackATR",
-                    Description = "Pullback - MaxPullbackATR",
-                    Order = 8,
+        [Display(   Name = "PullbackMinBars",
+                    Description = "PullbackMinBars",
+                    Order = 14,
                     GroupName = StratPropertyGroups.Entry)]
-        public double EntryMaxPullbackATR { get; set; } = 1.5;
+        public int EntryPullbackMinBars { get; set; } = 2;
 
         [NinjaScriptProperty]
-        [Range(1, int.MaxValue)]
-        [Display(   Name = "PullbackLookbackBars",
-                    Description = "Pullback - PullbackLookbackBars",
-                    Order = 9,
+        [Display(Name = "PullbackMaxBars",
+                    Description = "PullbackMaxBars",
+                    Order = 15,
                     GroupName = StratPropertyGroups.Entry)]
-        public int EntryPullbackLookbackBars { get; set; } = 5;
+        public int EntryPullbackMaxBars { get; set; } = 2;
 
         [NinjaScriptProperty]
-        [Range(0.01, double.MaxValue)]
-        [Display(   Name = "MaxEntryDistanceATR",
-                    Description = "Entry Control - MaxEntryDistanceATR",
-                    Order = 10,
+        [Display(   Name = "MaxRetracementPct",
+                    Description = "MaxRetracementPct",
+                    Order = 16,
                     GroupName = StratPropertyGroups.Entry)]
-        public double EntryMaxEntryDistanceATR { get; set; } = 1.5;
+        public double EntryMaxRetracementPct { get; set; } = .10;
 
         [NinjaScriptProperty]
-        [Range(1, int.MaxValue)]
-        [Display(   Name = "VWAPConfirmationBars",
-                    Description = "Entry Control - VWAPConfirmationBars",
-                    Order = 11,
+        [Display(Name = "MinRetracementPct",
+                    Description = "MinRetracementPct",
+                    Order = 17,
                     GroupName = StratPropertyGroups.Entry)]
-        public int EntryVWAPConfirmationBars { get; set; } = 5;
+        public double EntryMinRetracementPct { get; set; } = .10;
 
         [NinjaScriptProperty]
-        [Range(.001, double.MaxValue)]
-        [Display(   Name = "InitialStopATRBuffer",
-                    Description = "Entry Control - InitialStopATRBuffer",
-                    Order = 12,
+        [Display(Name = "MaxVWAPPenetrationATR",
+                    Description = "MaxVWAPPenetrationATR",
+                    Order = 18,
                     GroupName = StratPropertyGroups.Entry)]
-        public double EntryInitialStopATRBuffer { get; set; } = 1.0;
+        public double EntryMaxVWAPPenetrationATR { get; set; } = .10;
+
+        [NinjaScriptProperty]
+        [Display(Name = "MaxPullbackBarRangeATR",
+                    Description = "MaxPullbackBarRangeATR",
+                    Order = 19,
+                    GroupName = StratPropertyGroups.Entry)]
+        public double EntryMaxPullbackBarRangeATR { get; set; } = 1.00;
 
         [NinjaScriptProperty]
         [Display(   Name = "OrderType",
                     Description = "Order behavior - OrderType",
-                    Order = 13,
+                    Order = 20,
                     GroupName = StratPropertyGroups.Entry)]
         public EntryOrderType EntryOrderType { get; set; } = EntryOrderType.Market;
 
         [NinjaScriptProperty]
         [Range(0, int.MaxValue)]
-        [Display(   Name = "EntryExpiryBars",
-                    Description = "Order behavior - EntryExpiryBars",
-                    Order = 14,
+        [Display(   Name = "OrderExpiryBars",
+                    Description = "Order behavior - EntryOrderExpiryBars",
+                    Order = 21,
                     GroupName = StratPropertyGroups.Entry)]
-        public int EntryExpiryBars { get; set; } = 3;
+        public int EntryOrderExpiryBars { get; set; } = 3;
+
+        [NinjaScriptProperty]
+        [Display(Name = "InitialStopATRBuffer",
+                    Description = "InitialStopATRBuffer",
+                    Order = 22,
+                    GroupName = StratPropertyGroups.Entry)]
+        public double EntryInitialStopATRBuffer { get; set; } = 0.10;
+
+        [NinjaScriptProperty]
+        [Display(Name = "MaxEntryDistanceATR",
+                    Description = "MaxEntryDistanceATR",
+                    Order = 23,
+                    GroupName = StratPropertyGroups.Entry)]
+        public double EntryMaxEntryDistanceATR { get; set; } = 2.50;
         #endregion
 
         #region TrendStructuralTrail[NinjaScriptProperty]
@@ -767,8 +824,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override void OnBacktestComplete()
         {   //do whatever you need to do at the end of a backtest here. Logging final results, etc.
             ECE_OPNDRV ece = GetEntryConditionsEvaluator("ECE-" + stratIdentifier) as ECE_OPNDRV;
-            OptimizationParameters_OPNDRV optParamsVWAPPB = ece.OptParamsOPNDRV;
-            Indicators_OPNDRV indicatorsVWAPPB = ece.IndicatorsVWAPPB;
+            OptimizationParameters_OPNDRV optParams = ece.OptParams;
+            Indicators_OPNDRV indicators = ece.Indicators;
             TimeConverter tc = new TimeConverter();
             TimeZoneInfo EastTZI = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
 
@@ -776,7 +833,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             sb.AppendLine("");
             sb.AppendLine("==Backtest complete==");
             sb.AppendFormat("Backtest date range from {0:M/d/yy} to {1:M/d/yy}", Bars.GetTime(0), Bars.GetTime(Bars.Count - 1)).AppendLine();
-            optParamsVWAPPB.ToStringBuilder(sb);
+            optParams.ToStringBuilder(sb);
             sb.AppendLine("==Entry Trigger Data==");
             sb.AppendFormat("  AboveVWAPCount:{0}", ece.DataCollector.AboveVWAPCount).AppendLine();
             sb.AppendFormat("  UpTrendCount:{0}", ece.DataCollector.UpTrendCount).AppendLine();

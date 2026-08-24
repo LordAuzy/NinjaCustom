@@ -23,11 +23,12 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             public EMA SlowEMA { get; set; }
             public DAVWAPIndicator AnchoredVWAP { get; set; }
             public DM DM { get; set; } = null;
+            public TimeWindowPriceRange OpeningDrive { get; set; } = null;
         }
         #endregion
 
         #region Properties
-        private OptimizationParameters_OPNDRV OptParamsVWAPPB { get { return OptParams as OptimizationParameters_OPNDRV; } }
+        private OptimizationParameters_OPNDRV OptParamsOPNDRV { get { return OptParams as OptimizationParameters_OPNDRV; } }
         public EntryIndicators Entry { get; set; } = new EntryIndicators();
         public ChandelierGuardIndicators ChandelierGuard { get; set; } = new ChandelierGuardIndicators();
         public BreakEvenIndicators BreakEven { get; set; } = new BreakEvenIndicators();
@@ -47,36 +48,36 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
         {
             base.Initialize();
 
-            BreakEven.ATR = Strategy.ATR(OptParamsVWAPPB.BreakEven.ATRPeriod);
+            BreakEven.ATR = Strategy.ATR(OptParamsOPNDRV.BreakEven.ATRPeriod);
 
-            Entry.ATR = Strategy.ATR(OptParamsVWAPPB.Entry.ATRPeriod);
-            Entry.FastEMA = Strategy.EMA(OptParamsVWAPPB.Entry.FastEMAPeriod);
-            Entry.SlowEMA = Strategy.EMA(OptParamsVWAPPB.Entry.SlowEMAPeriod);
-            Entry.DM = Strategy.DM(OptParamsVWAPPB.Entry.DMPeriod);
+            Entry.ATR = Strategy.ATR(OptParamsOPNDRV.Entry.ATRPeriod);
+            Entry.FastEMA = Strategy.EMA(OptParamsOPNDRV.Entry.FastEMAPeriod);
+            Entry.SlowEMA = Strategy.EMA(OptParamsOPNDRV.Entry.SlowEMAPeriod);
             Entry.AnchoredVWAP = Strategy.DAVWAPIndicator("9:30am", "Eastern Standard Time");
-            Entry.AnchoredVWAP.StdDevBandCount = OptParamsVWAPPB.Entry.VWAPStdDevBandCount;
+            Entry.AnchoredVWAP.StdDevBandCount = 0;
             Entry.AnchoredVWAP.BandMode = VwapBandMode.Cumulative;
             Entry.AnchoredVWAP.Initialize();
+            Entry.OpeningDrive = new TimeWindowPriceRange(Strategy, "9:30am", OptParamsOPNDRV.Entry.DriveDuration, "Eastern Standard Time");
 
-            ChandelierGuard.ATR = Strategy.ATR(OptParamsVWAPPB.ChandelierGuardStop.ATRPeriod);
+            ChandelierGuard.ATR = Strategy.ATR(OptParamsOPNDRV.ChandelierGuardStop.ATRPeriod);
 
-            AdaptiveTrailingStopIndicators.FastEMA = Strategy.EMA(OptParamsVWAPPB.AdaptiveTrailingStop.FastEMAPeriod);
-            AdaptiveTrailingStopIndicators.SlowEMA = Strategy.EMA(OptParamsVWAPPB.AdaptiveTrailingStop.SlowEMAPeriod);
-            AdaptiveTrailingStopIndicators.ATR = Strategy.ATR(OptParamsVWAPPB.AdaptiveTrailingStop.ATRPeriod);
+            AdaptiveTrailingStopIndicators.FastEMA = Strategy.EMA(OptParamsOPNDRV.AdaptiveTrailingStop.FastEMAPeriod);
+            AdaptiveTrailingStopIndicators.SlowEMA = Strategy.EMA(OptParamsOPNDRV.AdaptiveTrailingStop.SlowEMAPeriod);
+            AdaptiveTrailingStopIndicators.ATR = Strategy.ATR(OptParamsOPNDRV.AdaptiveTrailingStop.ATRPeriod);
 
-            TrendStructuralIndicators.EMA = Strategy.EMA(OptParamsVWAPPB.TrendStructuralTrailingStop.EMAPeriod);
-            TrendStructuralIndicators.ATR = Strategy.ATR(OptParamsVWAPPB.TrendStructuralTrailingStop.ATRPeriod);
+            TrendStructuralIndicators.EMA = Strategy.EMA(OptParamsOPNDRV.TrendStructuralTrailingStop.EMAPeriod);
+            TrendStructuralIndicators.ATR = Strategy.ATR(OptParamsOPNDRV.TrendStructuralTrailingStop.ATRPeriod);
 
             BiasFilter = new BiasFilter(
-                OptParamsVWAPPB.General.TimeWindowTimeZone,
-                OptParamsVWAPPB.General.TWAnchorTime,
-                OptParamsVWAPPB.ScheduleBiasFilters
+                OptParamsOPNDRV.General.TimeWindowTimeZone,
+                OptParamsOPNDRV.General.TWAnchorTime,
+                OptParamsOPNDRV.ScheduleBiasFilters
             );
 
             SizingFilter = new SizingFilter(
-                OptParamsVWAPPB.General.TimeWindowTimeZone,
-                OptParamsVWAPPB.General.TWAnchorTime,
-                OptParamsVWAPPB.ScheduleSizingFilters
+                OptParamsOPNDRV.General.TimeWindowTimeZone,
+                OptParamsOPNDRV.General.TWAnchorTime,
+                OptParamsOPNDRV.ScheduleSizingFilters
             );
         }
 

@@ -22,7 +22,21 @@ namespace NinjaTrader.Custom.Strategies.DAustin.Common
 
         #region Properties
         public Strategy Strategy { get; set; }
-        public ValueHistory HistoryBuffer { get; set; }
+        private ValueHistory _historyBuffer = null;  
+        public ValueHistory HistoryBuffer 
+        { 
+            get 
+            { 
+                if (_historyBuffer == null)
+                {
+                    _historyBuffer = new ValueHistory(60);
+                }
+                return _historyBuffer; 
+            }
+            set { _historyBuffer = value; }
+         }
+        public double RangeOpen { get; private set; }
+        public double RangeClose { get; private set; }
         public double RangeHigh { get; private set; }
         public TimeSpan RangeHighTOD { get; private set; } = TimeSpan.Zero;
         public double RangeLow { get; private set; }
@@ -51,6 +65,8 @@ namespace NinjaTrader.Custom.Strategies.DAustin.Common
                 return movedPastRange;
             }
         }
+
+        public bool IsComplete { get { return MovedPastRange; } }
         public TimeSpan TradeWindow { get; set; }
 
         /*
@@ -106,6 +122,8 @@ namespace NinjaTrader.Custom.Strategies.DAustin.Common
         public void Reset()
         {
             RangeSet = false;
+            RangeOpen = double.MinValue;
+            RangeClose = double.MinValue;
             RangeHigh = double.MinValue;
             RangeLow = double.MaxValue;
             RangeHighTOD = TimeSpan.Zero;
@@ -119,6 +137,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.Common
             {   // reset if we are starting a new session
                 logger.Info(String.Format("{0}  Resetting.", Strategy.Times[0][0]));
                 Reset();
+                RangeOpen = Strategy.Close[0];
                 return;
             }
 
@@ -166,6 +185,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.Common
             if (MovedInRange == true && currentSeriesTimeOfDay >= RangeEndTOD)
             {   // we've made the last update for the range
                 RangeSet = true;
+                RangeClose = Strategy.Close[0];
                 logger.Info(String.Format("{0}  OpeningRange Set:  High:{1}  Low:{2}", Strategy.Times[0][0], RangeHigh, RangeLow));
                 if (HistoryBuffer != null)
                 {

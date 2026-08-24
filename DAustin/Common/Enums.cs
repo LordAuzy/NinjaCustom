@@ -191,4 +191,20 @@ namespace NinjaTrader.Custom.DAustin.Common
         Cumulative,
         Rolling
     }
+
+    public enum OpeningDriveState
+    {
+        WaitingForDrive,
+        WaitingForPullback,
+        WaitingForContinuation,
+        EntrySubmitted,
+        DoneForSession
+    }
+
+    public enum DriveDirection
+    {
+        None,
+        Long,
+        Short
+    }
 }

@@ -389,6 +389,8 @@
     <Compile Include="DAustin\Common\ScheduleFilter\BiasFilter.cs" />
     <Compile Include="DAustin\Common\ScheduleFilter\ScheduleFilterBase.cs" />
     <Compile Include="DAustin\Common\ScheduleFilter\SizingFilter.cs" />
+    <Compile Include="Strategies\DAustin\OPNDRV\DriveSetup.cs" />
+    <Compile Include="Strategies\DAustin\OPNDRV\DriveState.cs" />
     <Compile Include="Strategies\DAustin\Common\StopLossIndicators.cs" />
     <Compile Include="Strategies\DAustin\Common\StopLossParameters.cs" />
     <Compile Include="DAustin\Common\StratBase.cs" />
@@ -409,6 +411,7 @@
     <Compile Include="DAustin\Common\TradeManagerBase.cs" />
     <Compile Include="Strategies\DAustin\Common\TradeManagerDataCollection.cs" />
     <Compile Include="DAustin\Common\Reporting\ClosedTrade.cs" />
+    <Compile Include="Strategies\DAustin\OPNDRV\DrvPullbackState.cs" />
     <Compile Include="Strategies\DAustin\OPNDRV\ECE_OPNDRV.cs" />
     <Compile Include="Strategies\DAustin\OPNDRV\ECE_OPNDRV_DataCollector.cs" />
     <Compile Include="Strategies\DAustin\OPNDRV\Indicators_OPNDRV.cs" />

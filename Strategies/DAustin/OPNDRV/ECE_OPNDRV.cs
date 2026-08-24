@@ -4,14 +4,21 @@ using ActiproSoftware.Windows.Controls;
 using Infragistics.Windows.DataPresenter;
 using NinjaTrader.Cbi;
 using NinjaTrader.CQG.ProtoBuf;
-using NinjaTrader.Custom.Strategies.DAustin.Common;
+using NinjaTrader.Custom.DAustin.Common;
+using NinjaTrader.Custom.DAustin.Common.Calendars;
+using NinjaTrader.Custom.DAustin.Common.Orders;
+using NinjaTrader.Custom.DAustin.Common.ScheduleFilter;
 using NinjaTrader.Custom.DAustin.Interfaces;
+using NinjaTrader.Custom.Strategies.DAustin.Common;
 using NinjaTrader.Gui.PropertiesTest;
 using NinjaTrader.Gui.Tools;
 using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.NinjaScript.Indicators;
+using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.MarketAnalyzerColumns;
+using NinjaTrader.NinjaScript.Strategies;
 using NinjaTrader.NinjaScript.SuperDomColumns;
+using NLog;
 using NTRes.NinjaTrader.Gui.Tools.Account;
 using Rules1;
 using SharpDX.Direct2D1;
@@ -35,12 +42,6 @@ using static NinjaTrader.Custom.DAustin.Common.OptimizationParametersBase;
 using static System.Windows.Forms.AxHost;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrackBar;
-using NLog;
-using NinjaTrader.NinjaScript.Indicators;
-using NinjaTrader.Custom.DAustin.Common.ScheduleFilter;
-using NinjaTrader.Custom.DAustin.Common;
-using NinjaTrader.Custom.DAustin.Common.Calendars;
-using NinjaTrader.Custom.DAustin.Common.Orders;
 
 namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
 {
@@ -64,16 +65,24 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
         }
 
         #region Properties
-        public Indicators_OPNDRV IndicatorsVWAPPB { get { return Indicators as Indicators_OPNDRV; } }
-        public OptimizationParameters_OPNDRV OptParamsOPNDRV { get { return OptParams as OptimizationParameters_OPNDRV; } }
+        public Indicators_OPNDRV Indicators { get { return Indicators as Indicators_OPNDRV; } }
+        public OptimizationParameters_OPNDRV OptParams { get { return OptParams as OptimizationParameters_OPNDRV; } }
         public ECE_OPNDRV_DataCollector DataCollector { get; private set; } = new ECE_OPNDRV_DataCollector();
-
-        // Break-and-retest state (reset each session)
-        private bool _breakoutLongOccurred = false;
-        private bool _breakoutShortOccurred = false;
-        private bool _retestLongOccurred = false;
-        private bool _retestShortOccurred = false;
-        private DateTime _breakRetestDate = DateTime.MinValue;
+        public OpeningDriveState DriveState { get; private set; }
+        private DrvPullbackState _pullbackState = null;
+        public DrvPullbackState PullbackState 
+        { 
+            get 
+            { 
+                if (_pullbackState == null)
+                {
+                    _pullbackState = new DrvPullbackState(DriveSetup);
+                }
+                return _pullbackState;
+            } 
+            set { _pullbackState = value; }
+        }
+        public DriveSetup DriveSetup { get; private set; } = null;
         #endregion
 
         #region constructors
@@ -85,265 +94,201 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
         #endregion
 
         #region Overrides
+        public override void SessionReset()
+        {
+            base.SessionReset();
+            DriveState = OpeningDriveState.WaitingForDrive;
+            DriveSetup = null;
+            PullbackState = null;
+        }
         public override OrderTicket Evaluate(TradeContext tradeContext)
         {
             OrderTicket orderTicket = null;
-            OPNDRV_EntryParameters EntryOptParams = OptParamsOPNDRV.Entry;
-            GeneralParameters GenOptParams = OptParamsOPNDRV.General;
-            Indicators_OPNDRV Indicators = IndicatorsVWAPPB;
+            OPNDRV_EntryParameters EntryOptParams = OptParams.Entry;
+            GeneralParameters GenOptParams = OptParams.General;
             EMA fastEMA = Indicators.Entry.FastEMA;
             EMA slowEMA = Indicators.Entry.SlowEMA;
             DAVWAPIndicator VWAP = Indicators.Entry.AnchoredVWAP;
-            double VWAPValue = VWAP[0];
-            double atrValue = Indicators.Entry.ATR[0];
-            BiasFilter biasFilter = Indicators.BiasFilter;
-
-            if (FOMCCalendar.IsFOMCDay(Strategy.Time[0]))
-            {
-                LoggerTP.Trace("Is FOMC Day");
-                return null;
-            }
-
-            // for this strategy, we want to be especially strict about avoiding entries on NFP days
-            // due to the high volatility and potential for slippage. Even if the entry conditions are met,
-            // the risk of adverse price movements around the NFP release is significant. Therefore,
-            // we will skip all entries on NFP days to protect the account from unexpected losses.
-            if (NFPCalendar.IsNFPDay(Strategy.Time[0]))
-            {
-                LoggerTP.Trace("Is NFP Day");
-                return null;
-            }
-
-            if (tradeContext.TradesTakenThisSession >= GenOptParams.MaxTradesPerSession)
-            {   // max trades per session reached
-                LoggerTP.Info($"Max trades per session reached: {tradeContext.TradesTakenThisSession}/{GenOptParams.MaxTradesPerSession}");
-                return null;
-            }
-
-
-            if (Indicators.EntryTimeWindows != null && !Indicators.EntryTimeWindows.IsInTimeWindow())
-            {   // not in an entry time window
-                LoggerTP.Trace("Not in entry time window");
-                return null;
-            }
-
-            if (Strategy.CurrentBars[0] < Strategy.BarsRequiredToTrade)
-            {   // in preload phase
-                LoggerTP.Trace("In preload phase");
-                return null;
-            }
-
-            TradingStance ts = biasFilter.GetCurrentTradingStance(Strategy.Time[0]);
-
-            if (ts == TradingStance.None)
-            {   // no trades allowed per bias filter
-                LoggerTP.Trace("Trading stance is TradingStance.None");
-                return null;
-            }
-
-            if (Strategy.CurrentBars[0] < Math.Max(EntryOptParams.ATRPeriod, EntryOptParams.SlowEMAPeriod))
-            {   // not enough bars to calculate indicators
-                LoggerTP.Trace("Not enough bars to calculate indicators");
-                return null;
-            }
-
-            // put new code here for chatgpt No-Chop entry conditions . . .
+            double atr = Indicators.Entry.ATR[0];
             double currentPrice = Strategy.Close[0];
 
-            // --- Basic indicators ---
-            double emaSpread = Math.Abs(fastEMA[0] - slowEMA[0]);
-            double vwapDistance = Math.Abs(currentPrice - VWAPValue);
+            Indicators.Entry.OpeningDrive.Update();
 
-            int confirmBars = Math.Max(1, EntryOptParams.VWAPConfirmationBars);
-            double vwapSlope = VWAPValue - VWAP[Math.Min(confirmBars, Math.Max(1, Strategy.CurrentBars[0]))];
-
-            // =========================
-            // 🚫 CHOP FILTER (CRITICAL)
-            // =========================
-            bool chopZone =
-                vwapDistance < (EntryOptParams.MinVWAPDistanceATR * atrValue) ||
-                Math.Abs(vwapSlope) < (EntryOptParams.MinVWAPSlopeATR * atrValue) ||
-                emaSpread < (EntryOptParams.MinEMASpreadATR * atrValue);
-
-            bool aboveVWAP = true;
-            bool belowVWAP = true;
-            for (int i = 0; i < confirmBars; i++)
+            if (EvaluateStopOutEarly(tradeContext) == true)
             {
-                if (Strategy.Close[i] <= VWAP[i]) aboveVWAP = false;
-                if (Strategy.Close[i] >= VWAP[i]) belowVWAP = false;
+                return null;
             }
 
-            if (aboveVWAP && (ts == TradingStance.LongOnly || ts == TradingStance.All))
+            // -----------------------------------
+            // Opening drive not finished yet
+            // -----------------------------------
+            if (DriveState == OpeningDriveState.WaitingForDrive)
             {
-                // =========================
-                // LONG SETUP
-                // =========================
-                DataCollector.AboveVWAPCount++;
-
-                bool upTrend = aboveVWAP && fastEMA[0] > slowEMA[0];
-                if (upTrend)
-                {
-                    DataCollector.UpTrendCount++;
-                    if (chopZone)
-                    {
-                        DataCollector.UpTrendChopZoneCount++;
-                    }
+                if (!Indicators.Entry.OpeningDrive.IsComplete)
+                {   // still waiting for opening drive to complete
+                    return null;
                 }
+                EvaluateOpeningDrive();
+            }
 
-                if (upTrend && !chopZone)
+            if (DriveState == OpeningDriveState.DoneForSession)
+            {
+                return null;
+            }
+
+            // -----------------------------------
+            // Bars elapsed since drive completion
+            // -----------------------------------
+            int barsAfterDrive = Strategy.CurrentBar - DriveSetup.DriveCompletedBar;
+            if (barsAfterDrive < EntryOptParams.PullbackMinBars)
+            {
+                // haven't hit minimum pullback bars yet,
+                // so just update the pullback extremes.
+                if (DriveSetup.Direction == MarketPosition.Long)
                 {
-                    int pbLookback = Math.Max(1, EntryOptParams.PullbackLookbackBars);
-                    double recentPullbackLow = Strategy.MIN(Strategy.Low, pbLookback)[0];
-                    double pullbackDistance = recentPullbackLow - VWAPValue;
+                    PullbackState.UpdateLow(Strategy.Low[0]);
+                }
+                else if (DriveSetup.Direction == MarketPosition.Short)
+                {
+                    PullbackState.UpdateHigh(Strategy.High[0]);
+                }
+                return null;
+            }
 
-                    bool validPullback =
-                        pullbackDistance >= (-0.1 * atrValue) &&
-                        pullbackDistance <= (EntryOptParams.MaxPullbackATR * atrValue);
+            else if (barsAfterDrive > EntryOptParams.PullbackMaxBars)
+            {
+                DriveState = OpeningDriveState.DoneForSession;
+                return null;
+            }
 
-                    bool bullishTrigger = Strategy.Close[0] > Strategy.Open[0];
+            // ===================================
+            // LONG
+            // ===================================
+            if (DriveSetup.Direction == MarketPosition.Long)
+            {
+                double vwap = VWAP[0];
 
-                    if (validPullback)
+                // -----------------------------------------
+                // Update evolving pullback state
+                // -----------------------------------------
+                PullbackState.UpdateLow(Strategy.Low[0]);
+                double vwapPenetration = Math.Max(0, vwap - Strategy.Low[0]);
+                PullbackState.UpdateVWAPPenetration(vwapPenetration);
+
+                // -----------------------------------------
+                // Actual proposed stop-entry price
+                // -----------------------------------------
+                double entryPrice = Strategy.High[0] + Strategy.TickSize;
+
+                // -----------------------------------------
+                // Pullback qualification
+                // -----------------------------------------
+                double rtp = PullbackState.RetracementPct;
+
+                bool retracementValid = rtp >= EntryOptParams.MinRetracementPct && rtp <= EntryOptParams.MaxRetracementPct;
+                bool vwapValid = PullbackState.MaxVWAPPenetration <= EntryOptParams.MaxVWAPPenetrationATR * atr;
+                bool trendValid = fastEMA[0] > slowEMA[0] && Strategy.Close[0] > vwap;
+                double barRange = Strategy.High[0] - Strategy.Low[0];
+                bool controlledBar = barRange <= EntryOptParams.MaxPullbackBarRangeATR * atr;
+                bool entryDistanceValid = (entryPrice - vwap) <= EntryOptParams.MaxEntryDistanceATR * atr;
+
+                // -----------------------------------------
+                // Entry
+                // -----------------------------------------
+                if (retracementValid &&
+                    vwapValid &&
+                    trendValid &&
+                    controlledBar &&
+                    entryDistanceValid)
+                {
+                    double initialStop = PullbackState.PullbackLow - EntryOptParams.InitialStopATRBuffer * atr;
+                    double risk = entryPrice - initialStop;
+
+                    if (risk <= 0)
                     {
-                        DataCollector.ValidPullbackLongCount++;
+                        return null;
                     }
 
-                    if (bullishTrigger)
+                    orderTicket = new OrderTicket(Strategy, OrderIdPrefix);
+                    orderTicket.Type = DAOrderType.LongStopMarket;
+                    orderTicket.Price = entryPrice;
+                    orderTicket.Risk = FlexibleValue.FromPoints(risk, Strategy);
+
+                    if (EntryOptParams.OrderExpiryBars > 0)
                     {
-                        DataCollector.BullishTriggerCount++;
+                        orderTicket.StopExpiryBars = EntryOptParams.OrderExpiryBars;
                     }
 
-
-                    if (validPullback && bullishTrigger)
-                    {
-                        double swingLow = Strategy.MIN(Strategy.Low, pbLookback)[0];
-                        double initialStop = swingLow - (EntryOptParams.InitialStopATRBuffer * atrValue);
-
-                        DataCollector.LongEntryTriggeredCount++;
-                        // =========================
-                        // ENTRY TYPE
-                        // =========================
-                        if (EntryOptParams.OrderType == EntryOrderType.StopMarket)
-                        {
-                            double entryPrice = Strategy.High[1] + Strategy.TickSize;
-
-                            // 🚫 Skip if already triggered (avoid chasing)
-                            if (currentPrice >= entryPrice)
-                                return null;
-
-                            // Ensure valid stop placement
-                            double ask = Strategy.GetCurrentAsk();
-                            if (entryPrice <= ask)
-                                entryPrice = ask + Strategy.TickSize;
-
-                            double risk = entryPrice - initialStop;
-                            if (risk <= 0)
-                                return null;
-
-                            orderTicket = new OrderTicket(Strategy, OrderIdPrefix);
-                            orderTicket.Type = DAOrderType.LongStopMarket;
-                            orderTicket.Price = entryPrice;
-                            orderTicket.Risk = FlexibleValue.FromPoints(risk, Strategy);
-
-                            if (EntryOptParams.OrderExpiryBars > 0)
-                                orderTicket.StopExpiryBars = EntryOptParams.OrderExpiryBars;
-                        }
-                        else if (EntryOptParams.OrderType == EntryOrderType.Market)
-                        {
-                            // Optional: disable if you want pure stop-entry testing
-                            orderTicket = new OrderTicket(Strategy, OrderIdPrefix);
-                            orderTicket.Type = DAOrderType.Long;
-                            orderTicket.Risk = FlexibleValue.FromPoints(currentPrice - initialStop, Strategy);
-                        }
-                    }
+                    DriveState = OpeningDriveState.EntrySubmitted;
                 }
             }
-            else if (belowVWAP && (ts == TradingStance.ShortOnly || ts == TradingStance.All))
+            else if (DriveSetup.Direction == MarketPosition.Short)
             {
-                // =========================
-                // SHORT SETUP
-                // =========================
-                DataCollector.BelowVWAPCount++;
+                double vwap = VWAP[0];
 
-                bool downTrend = belowVWAP && fastEMA[0] < slowEMA[0];
-                if (downTrend)
+                // -----------------------------------------
+                // Update evolving pullback state
+                // -----------------------------------------
+                PullbackState.UpdateHigh(Strategy.High[0]);
+                double vwapPenetration = Math.Max(0, Strategy.High[0] - vwap);
+                PullbackState.UpdateVWAPPenetration(vwapPenetration);
+
+                // -----------------------------------------
+                // Actual proposed stop-entry price
+                // -----------------------------------------
+                double entryPrice = Strategy.Low[0] - Strategy.TickSize;
+
+                // -----------------------------------------
+                // Pullback qualification
+                // -----------------------------------------
+                double rtp = PullbackState.RetracementPct;
+
+                bool retracementValid = rtp >= EntryOptParams.MinRetracementPct && rtp <= EntryOptParams.MaxRetracementPct;
+                bool vwapValid = PullbackState.MaxVWAPPenetration <= EntryOptParams.MaxVWAPPenetrationATR * atr;
+                bool trendValid = fastEMA[0] < slowEMA[0] && Strategy.Close[0] < vwap;
+                double barRange = Strategy.High[0] - Strategy.Low[0];
+                bool controlledBar = barRange <= EntryOptParams.MaxPullbackBarRangeATR * atr;
+                bool entryDistanceValid = (vwap - entryPrice) <= EntryOptParams.MaxEntryDistanceATR * atr;
+
+                // -----------------------------------------
+                // Entry
+                // -----------------------------------------
+                if (retracementValid &&
+                    vwapValid &&
+                    trendValid &&
+                    controlledBar &&
+                    entryDistanceValid)
                 {
-                    DataCollector.DownTrendCount++;
-                    if (chopZone)
+                    double initialStop = PullbackState.PullbackHigh + EntryOptParams.InitialStopATRBuffer * atr;
+                    double risk = initialStop - entryPrice;
+
+                    if (risk <= 0)
                     {
-                        DataCollector.DownTrendChopZoneCount++;
-                    }
-                }
-
-                if (downTrend && !chopZone)
-                {
-                    int pbLookback = Math.Max(1, EntryOptParams.PullbackLookbackBars);
-                    double recentPullbackHigh = Strategy.MAX(Strategy.High, pbLookback)[0];
-                    double pullbackDistance = VWAPValue - recentPullbackHigh;
-
-                    bool validPullback =
-                        pullbackDistance >= (-0.1 * atrValue) &&
-                        pullbackDistance <= (EntryOptParams.MaxPullbackATR * atrValue);
-
-                    bool bearishTrigger = Strategy.Close[0] < Strategy.Open[0];
-
-                    if (validPullback)
-                    {
-                        DataCollector.ValidPullShortCount++;
+                        return null;
                     }
 
-                    if (bearishTrigger)
+                    orderTicket = new OrderTicket(Strategy, OrderIdPrefix);
+                    orderTicket.Type = DAOrderType.ShortStopMarket;
+                    orderTicket.Price = entryPrice;
+                    orderTicket.Risk = FlexibleValue.FromPoints(risk, Strategy);
+
+                    if (EntryOptParams.OrderExpiryBars > 0)
                     {
-                        DataCollector.BearishTriggerCount++;
+                        orderTicket.StopExpiryBars = EntryOptParams.OrderExpiryBars;
                     }
 
-
-                    if (validPullback && bearishTrigger)
-                    {
-                        double swingHigh = Strategy.MAX(Strategy.High, pbLookback)[0];
-                        double initialStop = swingHigh + (EntryOptParams.InitialStopATRBuffer * atrValue);
-
-                        DataCollector.ShortEntryTriggeredCount++;
-
-                        if (EntryOptParams.OrderType == EntryOrderType.StopMarket)
-                        {
-                            double entryPrice = Strategy.Low[1] - Strategy.TickSize;
-
-                            // 🚫 Skip if already triggered
-                            if (currentPrice <= entryPrice)
-                                return null;
-
-                            // Ensure valid stop placement
-                            double bid = Strategy.GetCurrentBid();
-                            if (entryPrice >= bid)
-                                entryPrice = bid - Strategy.TickSize;
-
-                            double risk = initialStop - entryPrice;
-                            if (risk <= 0)
-                                return null;
-
-                            orderTicket = new OrderTicket(Strategy, OrderIdPrefix);
-                            orderTicket.Type = DAOrderType.ShortStopMarket;
-                            orderTicket.Price = entryPrice;
-                            orderTicket.Risk = FlexibleValue.FromPoints(risk, Strategy);
-
-                            if (EntryOptParams.OrderExpiryBars > 0)
-                                orderTicket.StopExpiryBars = EntryOptParams.OrderExpiryBars;
-                        }
-                        else if (EntryOptParams.OrderType == EntryOrderType.Market)
-                        {
-                            orderTicket = new OrderTicket(Strategy, OrderIdPrefix);
-                            orderTicket.Type = DAOrderType.Short;
-                            orderTicket.Risk = FlexibleValue.FromPoints(initialStop - currentPrice, Strategy);
-                        }
-                    }
+                    DriveState = OpeningDriveState.EntrySubmitted;
                 }
             }
 
+            // -----------------------------------
+            // Risk sizing
+            // -----------------------------------
             if (orderTicket != null)
             {
-                double riskMultiplier = Indicators.SizingFilter.GetCurrentSizingMultiplier(Strategy.Time[0]);
-                //double riskMultiplier = 1;
-                double riskPct = OptParamsOPNDRV.General.EquityRiskPercent;
+                //double riskMultiplier = Indicators.SizingFilter.GetCurrentSizingMultiplier(Strategy.Time[0]);
+                double riskMultiplier = 1;
+                double riskPct = OptParams.General.EquityRiskPercent;
 
                 orderTicket.AllowedRiskPercentOfAccount = riskPct * riskMultiplier;
             }
@@ -359,12 +304,192 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
 
         public void Initialize()
         {
-            _breakoutLongOccurred = false;
-            _breakoutShortOccurred = false;
-            _retestLongOccurred = false;
-            _retestShortOccurred = false;
-            _breakRetestDate = DateTime.MinValue;
+
         }
+        #endregion
+
+        #region PrivateMethods
+        private bool EvaluateStopOutEarly(TradeContext tradeContext)
+        {
+            OPNDRV_EntryParameters EntryOptParams = OptParams.Entry;
+            GeneralParameters GenOptParams = OptParams.General;
+            double atr = Indicators.Entry.ATR[0];
+
+
+            if (FOMCCalendar.IsFOMCDay(Strategy.Time[0]))
+            {
+                LoggerTP.Trace("Is FOMC Day");
+                return true;
+            }
+
+            // for this strategy, we want to be especially strict about avoiding entries on NFP days
+            // due to the high volatility and potential for slippage. Even if the entry conditions are met,
+            // the risk of adverse price movements around the NFP release is significant. Therefore,
+            // we will skip all entries on NFP days to protect the account from unexpected losses.
+            if (NFPCalendar.IsNFPDay(Strategy.Time[0]))
+            {
+                LoggerTP.Trace("Is NFP Day");
+                return true;
+            }
+
+            if (tradeContext.TradesTakenThisSession >= GenOptParams.MaxTradesPerSession)
+            {   // max trades per session reached
+                LoggerTP.Info($"Max trades per session reached: {tradeContext.TradesTakenThisSession}/{GenOptParams.MaxTradesPerSession}");
+                return true;
+            }
+
+            if (Indicators.EntryTimeWindows != null && !Indicators.EntryTimeWindows.IsInTimeWindow())
+            {   // not in an entry time window
+                LoggerTP.Trace("Not in entry time window");
+                return true;
+            }
+
+            if (Strategy.CurrentBars[0] < Strategy.BarsRequiredToTrade)
+            {   // in preload phase
+                LoggerTP.Trace("In preload phase");
+                return true;
+            }
+
+            if (Strategy.CurrentBars[0] < Math.Max(EntryOptParams.ATRPeriod, EntryOptParams.SlowEMAPeriod))
+            {   // not enough bars to calculate indicators
+                LoggerTP.Trace("Not enough bars to calculate indicators");
+                return true;
+            }
+
+            if (atr <= 0)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private void EvaluateOpeningDrive()
+        {
+            OPNDRV_EntryParameters p = OptParams.Entry;
+            Indicators_OPNDRV.EntryIndicators i = Indicators.Entry;
+
+            DriveState ds = ExtractDriveState();
+
+            // --------------------------------------------
+            // Sanity checks
+            // --------------------------------------------
+
+            if (ds.ATR <= 0 || ds.Range <= 0)
+            {
+                DriveState = OpeningDriveState.DoneForSession;
+                return;
+            }
+
+            // --------------------------------------------
+            // Basic opening-drive qualification
+            // --------------------------------------------
+
+            // NetMoveAtr is signed:
+            //
+            //   positive = upward opening displacement
+            //   negative = downward opening displacement
+            //
+            // Efficiency is direction-neutral:
+            //
+            //   abs(Close - Open) / (High - Low)
+            //
+            // A value near 1 means the opening range was used
+            // efficiently in one direction.
+            //
+            bool longDisplacement = ds.NetMoveAtr >= p.MinNetMoveATR;
+            bool shortDisplacement = ds.NetMoveAtr <= -p.MinNetMoveATR;
+            bool driveNotTooExtended = Math.Abs(ds.NetMoveAtr) <= p.MaxNetMoveATR;
+            bool efficient = ds.Efficiency >= p.MinDriveEfficiency;
+
+            // --------------------------------------------
+            // Close location within opening-drive range
+            // --------------------------------------------
+            double closeLocation = (ds.Close - ds.Low) / ds.Range;
+            // 0.0 = close at drive low
+            // 1.0 = close at drive high
+            bool longCloseLocation = closeLocation >= 1.0 - p.MaxCloseFromExtremePct;
+            bool shortCloseLocation = closeLocation <= p.MaxCloseFromExtremePct;
+
+            // --------------------------------------------
+            // VWAP
+            // --------------------------------------------
+            double vwap = i.AnchoredVWAP[0];
+            double signedVWAPDistanceATR = (ds.Close - vwap) / ds.ATR;
+            double vwapSlope = i.AnchoredVWAP[0] - i.AnchoredVWAP[p.VWAPSlopeLookback];
+            double vwapSlopeATR = vwapSlope / ds.ATR;
+            bool longVWAP = signedVWAPDistanceATR >= p.MinVWAPDistanceATR && vwapSlopeATR >= p.MinVWAPSlopeATR;
+            bool shortVWAP = signedVWAPDistanceATR <= -p.MinVWAPDistanceATR && vwapSlopeATR <= -p.MinVWAPSlopeATR;
+
+            // --------------------------------------------
+            // EMA structure
+            // --------------------------------------------
+            double emaSpread = i.FastEMA[0] - i.SlowEMA[0];
+            double emaSpreadATR = emaSpread / ds.ATR;
+            bool longEMA = emaSpreadATR >= p.MinEMASpreadATR;
+            bool shortEMA = emaSpreadATR <= -p.MinEMASpreadATR;
+
+            // --------------------------------------------
+            // Final classification
+            // --------------------------------------------
+            bool longDrive =
+                longDisplacement &&
+                driveNotTooExtended &&
+                efficient &&
+                longCloseLocation &&
+                longVWAP &&
+                longEMA;
+
+            bool shortDrive =
+                shortDisplacement &&
+                driveNotTooExtended &&
+                efficient &&
+                shortCloseLocation &&
+                shortVWAP &&
+                shortEMA;
+
+            // --------------------------------------------
+            // Freeze the qualified opening drive
+            // --------------------------------------------
+            MarketPosition driveDirection =
+                longDrive ? MarketPosition.Long :
+                shortDrive ? MarketPosition.Short :
+                MarketPosition.Flat;
+
+            if (driveDirection != MarketPosition.Flat)
+            {
+                DriveSetup = new DriveSetup
+                {
+                    Direction = driveDirection,
+                    Drive = ds,
+                    DriveCompletedBar = Strategy.CurrentBar,
+                    VWAP = vwap,
+                    VWAPSlopeATR = vwapSlopeATR,
+                    VWAPDistanceATR = signedVWAPDistanceATR,
+                    EMASpreadATR = emaSpreadATR,
+                    CloseLocation = closeLocation
+                };
+
+                DriveState = OpeningDriveState.WaitingForPullback;
+            }
+            else
+            {
+                DriveState = OpeningDriveState.DoneForSession;
+            }
+        }
+
+        private DriveState ExtractDriveState()
+        {
+        DriveState driveState = new DriveState();
+            driveState.High = Indicators.Entry.OpeningDrive.RangeHigh;
+            driveState.Low = Indicators.Entry.OpeningDrive.RangeLow;
+            driveState.Open = Indicators.Entry.OpeningDrive.RangeOpen;
+            driveState.Close = Indicators.Entry.OpeningDrive.RangeClose;
+            driveState.ATR = Indicators.Entry.ATR[0];
+
+            return driveState;
+        }
+
         #endregion
 
         #region VirtualMethods

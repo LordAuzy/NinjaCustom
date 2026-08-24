@@ -1,4 +1,6 @@
-﻿using NinjaTrader.Custom.Strategies.DAustin.Common;
+﻿using NinjaTrader.Core;
+using NinjaTrader.Custom.DAustin.Common;
+using NinjaTrader.Custom.Strategies.DAustin.Common;
 using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.Strategies;
 using System;
@@ -8,32 +10,70 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using NinjaTrader.Custom.DAustin.Common;
 
 namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
 {
     public class OPNDRV_EntryParameters
     {
-        // --- Indicators ---
-        public int ATRPeriod { get; set; }
-        public int FastEMAPeriod { get; set; }
-        public int SlowEMAPeriod { get; set; }
-        public int DMPeriod { get; set; } = 14;
-        public int VWAPStdDevBandCount { get; set; }
-        // --- VWAP Chop Filter ---
-        public double MinVWAPDistanceATR { get; set; }
-        public double MinVWAPSlopeATR { get; set; }
-        public double MinEMASpreadATR { get; set; }
-        // --- Pullback ---
-        public double MaxPullbackATR { get; set; }
-        public int PullbackLookbackBars { get; set; }
-        // --- Entry Control ---
-        public double MaxEntryDistanceATR { get; set; }
-        public int VWAPConfirmationBars { get; set; }
-        public double InitialStopATRBuffer { get; set; }
-        // --- Order Behavior ---
-        public EntryOrderType OrderType { get; set; }
-        public int OrderExpiryBars { get; set; }
+        // -----------------------------
+        // Opening drive definition
+        // -----------------------------
+        public int DriveOffset { get; set; } = 0;
+        public int DriveDuration { get; set; } = 15;
+        public int ATRPeriod { get; set; } = 14;
+
+        // Minimum total opening drive size
+        public double MinNetMoveATR { get; set; } = 1.00;
+        // Maximum opening drive size.
+        // Avoid entering after an already absurdly extended move.
+        public double MaxNetMoveATR { get; set; } = 3.00;
+        // Minimum directional efficiency:
+        //
+        // abs(Close - Open) / (High - Low)
+        //
+        // 1.0 = highly directional
+        public double MinDriveEfficiency { get; set; } = 0.60;
+        // 0.0 = opened and closed at approximately the same price
+        // How close the drive close must be to the drive extreme.
+        // Example .25 means close must be within top/bottom 25% of drive.
+        public double MaxCloseFromExtremePct { get; set; } = 0.25;
+        // Minimum displacement from VWAP at end of drive
+        public double MinVWAPDistanceATR { get; set; } = 0.50;
+
+        // -----------------------------
+        // Trend confirmation
+        // -----------------------------
+        public int FastEMAPeriod { get; set; } = 9;
+        public int SlowEMAPeriod { get; set; } = 21;
+        public int VWAPSlopeLookback { get; set; } = 5;
+        public double MinVWAPSlopeATR { get; set; } = 0.03;
+        public double MinEMASpreadATR { get; set; } = 0.10;
+
+        // -----------------------------
+        // Pullback / consolidation
+        // -----------------------------
+        public int PullbackMinBars { get; set; } = 2;
+        public int PullbackMaxBars { get; set; } = 8;
+        // Maximum retracement of opening drive.
+        // Example .50 = cannot retrace more than 50% of drive.
+        public double MaxRetracementPct { get; set; } = 0.50;
+        // Minimum retracement.
+        // Prevents chasing when no meaningful pause occurred.
+        public double MinRetracementPct { get; set; } = 0.10;
+        // Pullback cannot penetrate VWAP beyond this amount
+        public double MaxVWAPPenetrationATR { get; set; } = 0.10;
+        // Require range contraction relative to ATR
+        public double MaxPullbackBarRangeATR { get; set; } = 1.00;
+
+        // -----------------------------
+        // Entry
+        // -----------------------------
+        public EntryOrderType OrderType { get; set; } = EntryOrderType.StopMarket;
+        public int OrderExpiryBars { get; set; } = 3;
+        // Stop buffer beyond pullback structure
+        public double InitialStopATRBuffer { get; set; } = 0.10;
+        // Reject entry if too far from VWAP
+        public double MaxEntryDistanceATR { get; set; } = 2.50;
     }
 
     [StrategyComponentId("OP-OPNDRV")]
@@ -149,25 +189,32 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             BreakEven.Contracting_R = 0.6;
 
             // Entry Parameters
-            // --- Indicators ---
-            Entry.VWAPStdDevBandCount = 0;
+            //-- Opening drive definition --
+            Entry.DriveOffset = 0;
+            Entry.DriveDuration = 15;
             Entry.ATRPeriod = 14;
+            Entry.MinNetMoveATR = 1.00;
+            Entry.MaxNetMoveATR = 3.00;
+            Entry.MinDriveEfficiency = 0.60;
+            Entry.MaxCloseFromExtremePct = 0.25;
+            Entry.MinVWAPDistanceATR = 0.50;
+            //-- Trend confirmation --
             Entry.FastEMAPeriod = 9;
-            Entry.SlowEMAPeriod = 14;
-            // --- VWAP Chop Filter ---
-            Entry.MinVWAPDistanceATR = 0.3;
-            Entry.MinVWAPSlopeATR = 0.02;
-            Entry.MinEMASpreadATR = 0.3;
-            // --- Pullback ---
-            Entry.MaxPullbackATR = 1.5;
-            Entry.PullbackLookbackBars = 2;
-            // --- Entry Control ---
-            Entry.MaxEntryDistanceATR = 0.3;
-            Entry.VWAPConfirmationBars = 2;
-            Entry.InitialStopATRBuffer = 0.3;
-            // --- Order Behavior ---
+            Entry.SlowEMAPeriod = 21;
+            Entry.VWAPSlopeLookback = 5;
+            Entry.MinVWAPSlopeATR = 0.03;
+            Entry.MinEMASpreadATR = 0.10;
+            //-- Pullback / consolidation --
+            Entry.PullbackMinBars = 2;
+            Entry.PullbackMaxBars = 8;
+            Entry.MaxRetracementPct = 0.50;
+            Entry.MinRetracementPct = 0.10;
+            Entry.MaxVWAPPenetrationATR = 0.10;
+            Entry.MaxPullbackBarRangeATR = 1.00;
             Entry.OrderType = EntryOrderType.StopMarket;
             Entry.OrderExpiryBars = 3;
+            Entry.InitialStopATRBuffer = 0.10;
+            Entry.MaxEntryDistanceATR = 2.50;
 
             // GroupName = StopLoss Parameters
             ChandelierGuardStop.ATRPeriod = 14;
@@ -249,20 +296,29 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             strat.BE_Expanding_R = BreakEven.Expanding_R;
             strat.BE_Contracting_R = BreakEven.Contracting_R;
 
-            strat.EntryVWAPStdDevBandCount = Entry.VWAPStdDevBandCount;
+            strat.EntryDriveOffset = Entry.DriveOffset;
+            strat.EntryDriveDuration = Entry.DriveDuration;
             strat.EntryATRPeriod = Entry.ATRPeriod;
+            strat.EntryMinNetMoveATR = Entry.MinNetMoveATR;
+            strat.EntryMaxNetMoveATR = Entry.MaxNetMoveATR;
+            strat.EntryMinDriveEfficiency = Entry.MinDriveEfficiency;
+            strat.EntryMaxCloseFromExtremePct = Entry.MaxCloseFromExtremePct;
+            strat.EntryMinVWAPDistanceATR = Entry.MinVWAPDistanceATR;
             strat.EntryFastEMAPeriod = Entry.FastEMAPeriod;
             strat.EntrySlowEMAPeriod = Entry.SlowEMAPeriod;
-            strat.EntryMinVWAPDistanceATR = Entry.MinVWAPDistanceATR;
+            strat.EntryVWAPSlopeLookback = Entry.VWAPSlopeLookback;
             strat.EntryMinVWAPSlopeATR = Entry.MinVWAPSlopeATR;
             strat.EntryMinEMASpreadATR = Entry.MinEMASpreadATR;
-            strat.EntryMaxPullbackATR = Entry.MaxPullbackATR;
-            strat.EntryPullbackLookbackBars = Entry.PullbackLookbackBars;
-            strat.EntryMaxEntryDistanceATR = Entry.MaxEntryDistanceATR;
-            strat.EntryVWAPConfirmationBars = Entry.VWAPConfirmationBars;
-            strat.EntryInitialStopATRBuffer = Entry.InitialStopATRBuffer;
+            strat.EntryPullbackMinBars = Entry.PullbackMinBars;
+            strat.EntryPullbackMaxBars = Entry.PullbackMaxBars;
+            strat.EntryMaxRetracementPct = Entry.MaxRetracementPct;
+            strat.EntryMinRetracementPct = Entry.MinRetracementPct;
+            strat.EntryMaxVWAPPenetrationATR = Entry.MaxVWAPPenetrationATR;
+            strat.EntryMaxPullbackBarRangeATR = Entry.MaxPullbackBarRangeATR;
             strat.EntryOrderType = Entry.OrderType;
-            strat.EntryExpiryBars = Entry.OrderExpiryBars;
+            strat.EntryOrderExpiryBars = Entry.OrderExpiryBars;
+            strat.EntryInitialStopATRBuffer = Entry.InitialStopATRBuffer;
+            strat.EntryMaxEntryDistanceATR = Entry.MaxEntryDistanceATR;
 
             strat.CGS_ATRPeriod = ChandelierGuardStop.ATRPeriod;
             strat.CGS_InitialATRBuffer = ChandelierGuardStop.InitialATRBuffer;
@@ -339,24 +395,33 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
 
             BreakEven.R = strat.BE_R;
             BreakEven.UseATR = strat.BE_UseATR;
-            BreakEven.ATRPeriod = strat.BE_ATRPeriod;
+            BreakEven.ATRPeriod = strat.BE_ATRPeriod;  
             BreakEven.Expanding_R = strat.BE_Expanding_R;
             BreakEven.Contracting_R = strat.BE_Contracting_R;
 
-            Entry.VWAPStdDevBandCount = strat.EntryVWAPStdDevBandCount;
+            Entry.DriveOffset = strat.EntryDriveOffset;
+            Entry.DriveDuration = strat.EntryDriveDuration;
             Entry.ATRPeriod = strat.EntryATRPeriod;
+            Entry.MinNetMoveATR = strat.EntryMinNetMoveATR;
+            Entry.MaxNetMoveATR = strat.EntryMaxNetMoveATR;
+            Entry.MinDriveEfficiency = strat.EntryMinDriveEfficiency;
+            Entry.MaxCloseFromExtremePct = strat.EntryMaxCloseFromExtremePct;
+            Entry.MinVWAPDistanceATR = strat.EntryMinVWAPDistanceATR;
             Entry.FastEMAPeriod = strat.EntryFastEMAPeriod;
             Entry.SlowEMAPeriod = strat.EntrySlowEMAPeriod;
-            Entry.MinVWAPDistanceATR = strat.EntryMinVWAPDistanceATR;
+            Entry.VWAPSlopeLookback = strat.EntryVWAPSlopeLookback;
             Entry.MinVWAPSlopeATR = strat.EntryMinVWAPSlopeATR;
             Entry.MinEMASpreadATR = strat.EntryMinEMASpreadATR;
-            Entry.MaxPullbackATR = strat.EntryMaxPullbackATR;
-            Entry.PullbackLookbackBars = strat.EntryPullbackLookbackBars;
-            Entry.MaxEntryDistanceATR = strat.EntryMaxEntryDistanceATR;
-            Entry.VWAPConfirmationBars = strat.EntryVWAPConfirmationBars;
-            Entry.InitialStopATRBuffer = strat.EntryInitialStopATRBuffer;
+            Entry.PullbackMinBars = strat.EntryPullbackMinBars;
+            Entry.PullbackMaxBars = strat.EntryPullbackMaxBars;
+            Entry.MaxRetracementPct = strat.EntryMaxRetracementPct;
+            Entry.MinRetracementPct = strat.EntryMinRetracementPct;
+            Entry.MaxVWAPPenetrationATR = strat.EntryMaxVWAPPenetrationATR;
+            Entry.MaxPullbackBarRangeATR = strat.EntryMaxPullbackBarRangeATR;
             Entry.OrderType = strat.EntryOrderType;
-            Entry.OrderExpiryBars = strat.EntryExpiryBars;
+            Entry.OrderExpiryBars = strat.EntryOrderExpiryBars;
+            Entry.InitialStopATRBuffer = strat.EntryInitialStopATRBuffer;
+            Entry.MaxEntryDistanceATR = strat.EntryMaxEntryDistanceATR;
 
             ChandelierGuardStop.ATRPeriod = strat.CGS_ATRPeriod;
             ChandelierGuardStop.InitialATRBuffer = strat.CGS_InitialATRBuffer;
@@ -442,20 +507,29 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             BreakEven.Expanding_R = opFrom.BreakEven.Expanding_R;
             BreakEven.Contracting_R = opFrom.BreakEven.Contracting_R;
 
-            Entry.VWAPStdDevBandCount = opFrom.Entry.VWAPStdDevBandCount;
+            Entry.DriveOffset = opFrom.Entry.DriveOffset;
+            Entry.DriveDuration = opFrom.Entry.DriveDuration;
             Entry.ATRPeriod = opFrom.Entry.ATRPeriod;
+            Entry.MinNetMoveATR = opFrom.Entry.MinNetMoveATR;
+            Entry.MaxNetMoveATR = opFrom.Entry.MaxNetMoveATR;
+            Entry.MinDriveEfficiency = opFrom.Entry.MinDriveEfficiency;
+            Entry.MaxCloseFromExtremePct = opFrom.Entry.MaxCloseFromExtremePct;
+            Entry.MinVWAPDistanceATR = opFrom.Entry.MinVWAPDistanceATR;
             Entry.FastEMAPeriod = opFrom.Entry.FastEMAPeriod;
             Entry.SlowEMAPeriod = opFrom.Entry.SlowEMAPeriod;
-            Entry.MinVWAPDistanceATR = opFrom.Entry.MinVWAPDistanceATR;
+            Entry.VWAPSlopeLookback = opFrom.Entry.VWAPSlopeLookback;
             Entry.MinVWAPSlopeATR = opFrom.Entry.MinVWAPSlopeATR;
             Entry.MinEMASpreadATR = opFrom.Entry.MinEMASpreadATR;
-            Entry.MaxPullbackATR = opFrom.Entry.MaxPullbackATR;
-            Entry.PullbackLookbackBars = opFrom.Entry.PullbackLookbackBars;
-            Entry.MaxEntryDistanceATR = opFrom.Entry.MaxEntryDistanceATR;
-            Entry.VWAPConfirmationBars = opFrom.Entry.VWAPConfirmationBars;
-            Entry.InitialStopATRBuffer = opFrom.Entry.InitialStopATRBuffer;
+            Entry.PullbackMinBars = opFrom.Entry.PullbackMinBars;
+            Entry.PullbackMaxBars = opFrom.Entry.PullbackMaxBars;
+            Entry.MaxRetracementPct = opFrom.Entry.MaxRetracementPct;
+            Entry.MinRetracementPct = opFrom.Entry.MinRetracementPct;
+            Entry.MaxVWAPPenetrationATR = opFrom.Entry.MaxVWAPPenetrationATR;
+            Entry.MaxPullbackBarRangeATR = opFrom.Entry.MaxPullbackBarRangeATR;
             Entry.OrderType = opFrom.Entry.OrderType;
             Entry.OrderExpiryBars = opFrom.Entry.OrderExpiryBars;
+            Entry.InitialStopATRBuffer = opFrom.Entry.InitialStopATRBuffer;
+            Entry.MaxEntryDistanceATR = opFrom.Entry.MaxEntryDistanceATR;
 
             ChandelierGuardStop.ATRPeriod = opFrom.ChandelierGuardStop.ATRPeriod;
             ChandelierGuardStop.InitialATRBuffer = opFrom.ChandelierGuardStop.InitialATRBuffer;
@@ -563,11 +637,11 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             sb.AppendFormat("  MinVWAPSlopeATR={0}", Entry.MinVWAPSlopeATR).AppendLine();
             sb.AppendFormat("  MinEMASpreadATR={0}", Entry.MinEMASpreadATR).AppendLine();
             sb.AppendLine("  --- Pullback ---");
-            sb.AppendFormat("  MaxPullbackATR={0}", Entry.MaxPullbackATR).AppendLine();
-            sb.AppendFormat("  PullbackLookbackBars={0}", Entry.PullbackLookbackBars).AppendLine();
+//            sb.AppendFormat("  MaxPullbackATR={0}", Entry.MaxPullbackATR).AppendLine();
+//            sb.AppendFormat("  PullbackLookbackBars={0}", Entry.PullbackLookbackBars).AppendLine();
             sb.AppendLine("  --- Entry Control ---");
             sb.AppendFormat("  MaxEntryDistanceATR={0}", Entry.MaxEntryDistanceATR).AppendLine();
-            sb.AppendFormat("  VWAPConfirmationBars={0}", Entry.VWAPConfirmationBars).AppendLine();
+//            sb.AppendFormat("  VWAPConfirmationBars={0}", Entry.VWAPConfirmationBars).AppendLine();
             sb.AppendFormat("  InitialStopATRBuffer={0}", Entry.InitialStopATRBuffer).AppendLine();
             sb.AppendLine("  --- Order Behavior ---");
             sb.AppendFormat("  OrderType={0}", Entry.OrderType).AppendLine();
