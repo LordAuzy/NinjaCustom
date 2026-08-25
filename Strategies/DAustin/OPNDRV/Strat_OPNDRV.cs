@@ -824,8 +824,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override void OnBacktestComplete()
         {   //do whatever you need to do at the end of a backtest here. Logging final results, etc.
             ECE_OPNDRV ece = GetEntryConditionsEvaluator("ECE-" + stratIdentifier) as ECE_OPNDRV;
-            OptimizationParameters_OPNDRV optParams = ece.OptParams;
-            Indicators_OPNDRV indicators = ece.Indicators;
+            OptimizationParameters_OPNDRV optParams = ece.OptParamsOPNDRV;
+            Indicators_OPNDRV indicators = ece.IndicatorsOPNDRV;
             TimeConverter tc = new TimeConverter();
             TimeZoneInfo EastTZI = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
 

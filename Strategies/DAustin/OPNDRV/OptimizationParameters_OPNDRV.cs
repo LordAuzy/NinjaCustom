@@ -574,86 +574,32 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             sb.AppendFormat("  TWDuration1={0}", Time.TWDuration1).AppendLine();
             sb.AppendFormat("  TWOffset2={0}", Time.TWOffset2).AppendLine();
             sb.AppendFormat("  TWDuration2={0}", Time.TWDuration2).AppendLine();
-            if (ScheduleBiasFilters[0].Duration > 0)
-            {
-                sb.AppendLine("==Schedule Bias Filter 1===");
-                sb.AppendFormat("  Offset={0}", ScheduleBiasFilters[0].Offset).AppendLine();
-                sb.AppendFormat("  Duration={0}", ScheduleBiasFilters[0].Duration).AppendLine();
-                sb.AppendFormat("  DayOfWeek={0}", ScheduleBiasFilters[0].DayOfWeek).AppendLine();
-                sb.AppendFormat("  TradingStance={0}", ScheduleBiasFilters[0].TradingStance).AppendLine();
-            }
-            if (ScheduleBiasFilters[1].Duration > 0)
-            {
-                sb.AppendLine("==Schedule Bias Filter 2===");
-                sb.AppendFormat("  Offset={0}", ScheduleBiasFilters[1].Offset).AppendLine();
-                sb.AppendFormat("  Duration={0}", ScheduleBiasFilters[1].Duration).AppendLine();
-                sb.AppendFormat("  DayOfWeek={0}", ScheduleBiasFilters[1].DayOfWeek).AppendLine();
-                sb.AppendFormat("  TradingStance={0}", ScheduleBiasFilters[1].TradingStance).AppendLine();
-            }
-            if (ScheduleBiasFilters[2].Duration > 0)
-            {
-                sb.AppendLine("==Schedule Bias Filter 3===");
-                sb.AppendFormat("  Offset={0}", ScheduleBiasFilters[2].Offset).AppendLine();
-                sb.AppendFormat("  Duration={0}", ScheduleBiasFilters[2].Duration).AppendLine();
-                sb.AppendFormat("  DayOfWeek={0}", ScheduleBiasFilters[2].DayOfWeek).AppendLine();
-                sb.AppendFormat("  TradingStance={0}", ScheduleBiasFilters[2].TradingStance).AppendLine();
-            }
-            if (ScheduleSizingFilters[0].Duration > 0)
-            {
-                sb.AppendLine("==Schedule Sizing Filter 1===");
-                sb.AppendFormat("  Offset={0}", ScheduleSizingFilters[0].Offset).AppendLine();
-                sb.AppendFormat("  Duration={0}", ScheduleSizingFilters[0].Duration).AppendLine();
-                sb.AppendFormat("  DayOfWeek={0}", ScheduleSizingFilters[0].DayOfWeek).AppendLine();
-                sb.AppendFormat("  Multiplier={0}", ScheduleSizingFilters[0].Multiplier).AppendLine();
-            }
-            if (ScheduleSizingFilters[1].Duration > 0)
-            {
-                sb.AppendLine("==Schedule Sizing Filter 2===");
-                sb.AppendFormat("  Offset={0}", ScheduleSizingFilters[1].Offset).AppendLine();
-                sb.AppendFormat("  Duration={0}", ScheduleSizingFilters[1].Duration).AppendLine();
-                sb.AppendFormat("  DayOfWeek={0}", ScheduleSizingFilters[1].DayOfWeek).AppendLine();
-                sb.AppendFormat("  Multiplier={0}", ScheduleSizingFilters[1].Multiplier).AppendLine();
-            }
-            if (ScheduleSizingFilters[2].Duration > 0)
-            {
-                sb.AppendLine("==Schedule Sizing Filter 3===");
-                sb.AppendFormat("  Offset={0}", ScheduleSizingFilters[2].Offset).AppendLine();
-                sb.AppendFormat("  Duration={0}", ScheduleSizingFilters[2].Duration).AppendLine();
-                sb.AppendFormat("  DayOfWeek={0}", ScheduleSizingFilters[2].DayOfWeek).AppendLine();
-                sb.AppendFormat("  Multiplier={0}", ScheduleSizingFilters[2].Multiplier).AppendLine();
-            }
-            sb.AppendLine("==BreakEven Parameters===");
-            sb.AppendFormat("  R={0}", BreakEven.R).AppendLine();
-            sb.AppendFormat("  UseATR={0}", BreakEven.UseATR).AppendLine();
-            sb.AppendFormat("  Expanding_R={0}", BreakEven.Expanding_R).AppendLine();
-            sb.AppendFormat("  Contracting_R={0}", BreakEven.Contracting_R).AppendLine();
             sb.AppendLine("==Entry Parameters===");
-            sb.AppendLine("  --- Indicators ---");
+            sb.AppendLine("  --Opening drive definition--");
+            sb.AppendFormat("  DriveOffset={0}", Entry.DriveOffset).AppendLine();
+            sb.AppendFormat("  DriveDuration", Entry.DriveDuration).AppendLine();
             sb.AppendFormat("  ATRPeriod={0}", Entry.ATRPeriod).AppendLine();
+            sb.AppendFormat("  MinNetMoveATR={0}", Entry.MinNetMoveATR).AppendLine();
+            sb.AppendFormat("  MaxNetMoveATR={0}", Entry.MaxNetMoveATR).AppendLine();
+            sb.AppendFormat("  MinDriveEfficiency={0}", Entry.MinDriveEfficiency).AppendLine();
+            sb.AppendFormat("  MaxCloseFromExtremePct={0}", Entry.MaxCloseFromExtremePct).AppendLine();
+            sb.AppendFormat("  MinVWAPDistanceATR={0}", Entry.MinVWAPDistanceATR).AppendLine();
+            sb.AppendLine("  --Trend confirmation--");
             sb.AppendFormat("  FastEMAPeriod={0}", Entry.FastEMAPeriod).AppendLine();
             sb.AppendFormat("  SlowEMAPeriod={0}", Entry.SlowEMAPeriod).AppendLine();
-            sb.AppendLine("  --- VWAP Chop Filter ---");
-            sb.AppendFormat("  MinVWAPDistanceATR={0}", Entry.MinVWAPDistanceATR).AppendLine();
+            sb.AppendFormat("  VWAPSlopeLookback={0}", Entry.VWAPSlopeLookback).AppendLine();
             sb.AppendFormat("  MinVWAPSlopeATR={0}", Entry.MinVWAPSlopeATR).AppendLine();
             sb.AppendFormat("  MinEMASpreadATR={0}", Entry.MinEMASpreadATR).AppendLine();
-            sb.AppendLine("  --- Pullback ---");
-//            sb.AppendFormat("  MaxPullbackATR={0}", Entry.MaxPullbackATR).AppendLine();
-//            sb.AppendFormat("  PullbackLookbackBars={0}", Entry.PullbackLookbackBars).AppendLine();
-            sb.AppendLine("  --- Entry Control ---");
-            sb.AppendFormat("  MaxEntryDistanceATR={0}", Entry.MaxEntryDistanceATR).AppendLine();
-//            sb.AppendFormat("  VWAPConfirmationBars={0}", Entry.VWAPConfirmationBars).AppendLine();
-            sb.AppendFormat("  InitialStopATRBuffer={0}", Entry.InitialStopATRBuffer).AppendLine();
+            sb.AppendLine("  --- Pullback/consolidation ---");
+            sb.AppendFormat("  PullbackMinBars={0}", Entry.PullbackMinBars).AppendLine();
+            sb.AppendFormat("  PullbackMaxBars={0}", Entry.PullbackMaxBars).AppendLine();
+            sb.AppendFormat("  MaxRetracementPct={0}", Entry.MaxRetracementPct).AppendLine();
+            sb.AppendFormat("  MinRetracementPct={0}", Entry.MinRetracementPct).AppendLine();
+            sb.AppendFormat("  MaxVWAPPenetrationATR={0}", Entry.MaxVWAPPenetrationATR).AppendLine();
+            sb.AppendFormat("  MaxPullbackBarRangeATR={0}", Entry.MaxPullbackBarRangeATR).AppendLine();
             sb.AppendLine("  --- Order Behavior ---");
             sb.AppendFormat("  OrderType={0}", Entry.OrderType).AppendLine();
             sb.AppendFormat("  OrderExpiryBars={0}", Entry.OrderExpiryBars).AppendLine();
-            sb.AppendLine("==ChandelierGuardStop Parameters===");
-            sb.AppendFormat("  ATRPeriod={0}", ChandelierGuardStop.ATRPeriod).AppendLine();
-            sb.AppendFormat("  InitialATRBuffer={0}", ChandelierGuardStop.InitialATRBuffer).AppendLine();
-            sb.AppendFormat("  BE_Expanding_R={0}", ChandelierGuardStop.BE_Expanding_R).AppendLine();
-            sb.AppendFormat("  BE_Contracting_R={0}", ChandelierGuardStop.BE_Contracting_R).AppendLine();
-            sb.AppendFormat("  ChandelierATRMult={0}", ChandelierGuardStop.ChandelierATRMult).AppendLine();
-            sb.AppendFormat("  TightATRMult={0}", ChandelierGuardStop.TightATRMult).AppendLine();
-            sb.AppendFormat("  TightenTriggerR={0}", ChandelierGuardStop.TightenTriggerR).AppendLine();
             sb.AppendLine("======OptimizationParameters=End=======");
         }
         #endregion

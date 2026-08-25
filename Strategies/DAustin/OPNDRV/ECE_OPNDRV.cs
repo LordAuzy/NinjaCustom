@@ -65,8 +65,8 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
         }
 
         #region Properties
-        public Indicators_OPNDRV Indicators { get { return Indicators as Indicators_OPNDRV; } }
-        public OptimizationParameters_OPNDRV OptParams { get { return OptParams as OptimizationParameters_OPNDRV; } }
+        public Indicators_OPNDRV IndicatorsOPNDRV { get { return Indicators as Indicators_OPNDRV; } }
+        public OptimizationParameters_OPNDRV OptParamsOPNDRV { get { return OptParams as OptimizationParameters_OPNDRV; } }
         public ECE_OPNDRV_DataCollector DataCollector { get; private set; } = new ECE_OPNDRV_DataCollector();
         public OpeningDriveState DriveState { get; private set; }
         private DrvPullbackState _pullbackState = null;
@@ -104,15 +104,15 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
         public override OrderTicket Evaluate(TradeContext tradeContext)
         {
             OrderTicket orderTicket = null;
-            OPNDRV_EntryParameters EntryOptParams = OptParams.Entry;
-            GeneralParameters GenOptParams = OptParams.General;
-            EMA fastEMA = Indicators.Entry.FastEMA;
-            EMA slowEMA = Indicators.Entry.SlowEMA;
-            DAVWAPIndicator VWAP = Indicators.Entry.AnchoredVWAP;
-            double atr = Indicators.Entry.ATR[0];
+            OPNDRV_EntryParameters EntryOptParams = OptParamsOPNDRV.Entry;
+            GeneralParameters GenOptParams = OptParamsOPNDRV.General;
+            EMA fastEMA = IndicatorsOPNDRV.Entry.FastEMA;
+            EMA slowEMA = IndicatorsOPNDRV.Entry.SlowEMA;
+            DAVWAPIndicator VWAP = IndicatorsOPNDRV.Entry.AnchoredVWAP;
+            double atr = IndicatorsOPNDRV.Entry.ATR[0];
             double currentPrice = Strategy.Close[0];
 
-            Indicators.Entry.OpeningDrive.Update();
+            IndicatorsOPNDRV.Entry.OpeningDrive.Update();
 
             if (EvaluateStopOutEarly(tradeContext) == true)
             {
@@ -124,7 +124,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             // -----------------------------------
             if (DriveState == OpeningDriveState.WaitingForDrive)
             {
-                if (!Indicators.Entry.OpeningDrive.IsComplete)
+                if (!IndicatorsOPNDRV.Entry.OpeningDrive.IsComplete)
                 {   // still waiting for opening drive to complete
                     return null;
                 }
@@ -288,7 +288,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             {
                 //double riskMultiplier = Indicators.SizingFilter.GetCurrentSizingMultiplier(Strategy.Time[0]);
                 double riskMultiplier = 1;
-                double riskPct = OptParams.General.EquityRiskPercent;
+                double riskPct = OptParamsOPNDRV.General.EquityRiskPercent;
 
                 orderTicket.AllowedRiskPercentOfAccount = riskPct * riskMultiplier;
             }
@@ -311,9 +311,9 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
         #region PrivateMethods
         private bool EvaluateStopOutEarly(TradeContext tradeContext)
         {
-            OPNDRV_EntryParameters EntryOptParams = OptParams.Entry;
-            GeneralParameters GenOptParams = OptParams.General;
-            double atr = Indicators.Entry.ATR[0];
+            OPNDRV_EntryParameters EntryOptParams = OptParamsOPNDRV.Entry;
+            GeneralParameters GenOptParams = OptParamsOPNDRV.General;
+            double atr = IndicatorsOPNDRV.Entry.ATR[0];
 
 
             if (FOMCCalendar.IsFOMCDay(Strategy.Time[0]))
@@ -338,7 +338,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
                 return true;
             }
 
-            if (Indicators.EntryTimeWindows != null && !Indicators.EntryTimeWindows.IsInTimeWindow())
+            if (IndicatorsOPNDRV.EntryTimeWindows != null && !IndicatorsOPNDRV .EntryTimeWindows.IsInTimeWindow())
             {   // not in an entry time window
                 LoggerTP.Trace("Not in entry time window");
                 return true;
@@ -366,8 +366,8 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
 
         private void EvaluateOpeningDrive()
         {
-            OPNDRV_EntryParameters p = OptParams.Entry;
-            Indicators_OPNDRV.EntryIndicators i = Indicators.Entry;
+            OPNDRV_EntryParameters p = OptParamsOPNDRV.Entry;
+            Indicators_OPNDRV.EntryIndicators i = IndicatorsOPNDRV.Entry;
 
             DriveState ds = ExtractDriveState();
 
@@ -480,12 +480,13 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
 
         private DriveState ExtractDriveState()
         {
-        DriveState driveState = new DriveState();
-            driveState.High = Indicators.Entry.OpeningDrive.RangeHigh;
-            driveState.Low = Indicators.Entry.OpeningDrive.RangeLow;
-            driveState.Open = Indicators.Entry.OpeningDrive.RangeOpen;
-            driveState.Close = Indicators.Entry.OpeningDrive.RangeClose;
-            driveState.ATR = Indicators.Entry.ATR[0];
+            DriveState driveState = new DriveState();
+
+            driveState.High = IndicatorsOPNDRV.Entry.OpeningDrive.RangeHigh;
+            driveState.Low = IndicatorsOPNDRV.Entry.OpeningDrive.RangeLow;
+            driveState.Open = IndicatorsOPNDRV.Entry.OpeningDrive.RangeOpen;
+            driveState.Close = IndicatorsOPNDRV.Entry.OpeningDrive.RangeClose;
+            driveState.ATR = IndicatorsOPNDRV.Entry.ATR[0];
 
             return driveState;
         }
