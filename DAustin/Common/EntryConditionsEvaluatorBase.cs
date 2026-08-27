@@ -1,6 +1,8 @@
 ﻿using NinjaTrader.Custom.DAustin.Common.Orders;
 using NinjaTrader.Custom.DAustin.Interfaces;
+using NinjaTrader.Custom.DAustin.Logging;
 using NinjaTrader.Custom.Strategies.DAustin.Common;
+using NinjaTrader.NinjaScript.Strategies;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -16,6 +18,25 @@ namespace NinjaTrader.Custom.DAustin.Common
         #region Properties
         [Browsable(false)]
         public string OrderIdPrefix { get; set; } = "DAECE";
+        [Browsable(false)]
+
+        private StrategyLogging _logs = null;
+        [Browsable(false)]
+        public StrategyLogging Logs
+        {
+            get
+            {
+                if (_logs == null)
+                {
+                    if (Strategy != null && Strategy.Logs != null)
+                    {
+                        _logs = Strategy.Logs;
+                    }
+                }
+                return _logs;
+            }
+        }
+
         [Browsable(false)]
         public StratBase Strategy { get; set; }
         [Browsable(false)]

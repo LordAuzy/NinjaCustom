@@ -1,6 +1,12 @@
 ﻿using ActiproSoftware.Windows;
 using NinjaTrader.Cbi;
 using NinjaTrader.CQG.ProtoBuf;
+using NinjaTrader.Custom.DAustin.Common.Orders;
+using NinjaTrader.Custom.DAustin.Common.Reporting;
+using NinjaTrader.Custom.DAustin.Extensions;
+using NinjaTrader.Custom.DAustin.Interfaces;
+using NinjaTrader.Custom.DAustin.Logging;
+using NinjaTrader.Custom.Strategies.DAustin.Common;
 using NinjaTrader.Custom.Strategies.DAustin.Indicators;
 using NinjaTrader.Data;
 using NinjaTrader.Gui.PropertiesTest;
@@ -9,10 +15,13 @@ using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.Strategies;
 using NinjaTrader.NinjaScript.Strategies.DAustin.Mom_9_21_Cross;
 using NinjaTrader.NinjaScript.SuperDomColumns;
+using NLog;
+using NLog.Config;
 using SharpDX.Win32;
 using System;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data.Common;
 using System.Linq;
 using System.Text;
@@ -22,47 +31,26 @@ using System.Windows.Forms;
 using System.Windows.Media;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Rebar;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.ToolTip;
-using NLog;
-using NLog.Config;
 using IB = NinjaTrader.Custom.DAustin.Common.IndicatorsBase;
 using OB = NinjaTrader.Custom.DAustin.Common.OptimizationParametersBase;
-using NinjaTrader.Custom.DAustin.Interfaces;
-using NinjaTrader.Custom.DAustin.Common.Reporting;
-using NinjaTrader.Custom.Strategies.DAustin.Common;
-using NinjaTrader.Custom.DAustin.Common.Orders;
-using NinjaTrader.Custom.DAustin.Extensions;
 
 namespace NinjaTrader.Custom.DAustin.Common
 {
     public class TradeManagerBase : ITradeManager
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
-        private Logger _loggerTP = null;
-        private bool _fullyInitialized = false;
-        private Logger LoggerTP
+        private StrategyLogging _logs = null;
+        public StrategyLogging Logs
         {
             get
             {
-                if (_loggerTP == null || _fullyInitialized == false)
+                if (_logs == null)
                 {
-                    (_loggerTP, _fullyInitialized) = Strategy.CreateLoggerWithBaseProps(logger);
+                    if (Strategy != null && Strategy.Logs != null)
+                    {
+                        _logs = Strategy.Logs;
+                    }
                 }
-                return _loggerTP;
-            }
-        }
-
-        public static NLog.Logger _tradeLogger = LogManager.GetLogger("TradeExecutionLogger");
-        private Logger _tradeLoggerTP = null;
-        private bool _tradeLoggerfullyInitialized = false;
-        private Logger TradeLoggerTP
-        {
-            get
-            {
-                if (_tradeLoggerTP == null || _tradeLoggerfullyInitialized == false)
-                {
-                    (_tradeLoggerTP, _tradeLoggerfullyInitialized) = Strategy.CreateLoggerWithBaseProps(_tradeLogger);
-                }
-                return _tradeLoggerTP;
+                return _logs;
             }
         }
 
@@ -198,7 +186,7 @@ namespace NinjaTrader.Custom.DAustin.Common
             // if we are in the flatten time window then we want to cancel any pending orders
             if (Strategy.Position.MarketPosition != MarketPosition.Flat)
             {
-                LoggerTP.Info("Flattening positions due to flatten time window.");
+                Logs.Info("Flattening positions due to flatten time window.");
                 foreach (TradeContext tc in TradeContexts)
                 {
                     if (tc.EntryOrder != null)
@@ -218,7 +206,7 @@ namespace NinjaTrader.Custom.DAustin.Common
 
         public virtual void OnBarUpdate()
         {
-            LoggerTP.Trace(">"); ;
+            Logs.Trace(">"); ;
             if (Indicators != null)
             {
                 Indicators.Update();
@@ -260,17 +248,6 @@ namespace NinjaTrader.Custom.DAustin.Common
 
             if (IsInFlattenTimeWindow(Strategy.Time[0]))
             {   // all trades get exited
-                if (LoggerTP.IsTraceEnabled)
-                {
-                    // We log this at trace level because it can be helpful to see when we are in the flatten window
-                    // and if we are correctly flattening all positions, but it is very verbose and would likely be
-                    // too much information to include in debug logs.
-                    //
-                    //                    var simTime = Strategy.GetDataTimeForLogger();
-                    //                    var log = logger.WithProperty("SimTime", simTime);
-
-                    //                    log.Trace("Current time is within flatten window. Checking if there are any positions to flatten.");
-                }
                 FlattenStrategyPositions();
             }
             else
@@ -304,7 +281,7 @@ namespace NinjaTrader.Custom.DAustin.Common
                     }
                 }
             }
-            LoggerTP.Trace("<"); ;
+            Logs.Trace("<"); ;
         }
 
         private void DispatchState(TradeContext tc)
@@ -424,10 +401,7 @@ namespace NinjaTrader.Custom.DAustin.Common
                 { 
                     if (tc.EntryOrder.OrderState == OrderState.Cancelled)
                     {
-                        if (LoggerTP.IsDebugEnabled)
-                        {
-                            LoggerTP.Debug("EntryOrder Cancelled. SignalName");
-                        }
+                        Logs.Debug("EntryOrder Cancelled. SignalName");
                         tc.SetState(TradeState.Exited);
                     }
                     else if (tc.EntryOrder.OrderState == OrderState.Filled)
@@ -438,25 +412,22 @@ namespace NinjaTrader.Custom.DAustin.Common
                             if (tc.TPSet == false || tc.LimitOrder != null && tc.LimitOrder.FromEntrySignal == ot.SignalName &&
                                     tc.LimitOrder.OrderState == OrderState.Working)
                             {
-                                if (LoggerTP.IsDebugEnabled)
+                                StringBuilder sb = new StringBuilder();
+                                if (tc.EntryOrder != null)
                                 {
-                                    StringBuilder sb = new StringBuilder();
-                                    if (tc.EntryOrder != null)
-                                    {
-                                        sb.AppendFormat("AverageFill={0}  ", tc.EntryOrder.AverageFillPrice);
-                                    }
-                                    if (tc.StopOrder != null)
-                                    {
-                                        sb.AppendFormat("StopPrice={0}  ", tc.StopOrder.StopPrice);
-                                    }
-                                    if (tc.LimitOrder != null)
-                                    {
-                                        sb.AppendFormat("Limit={0}  ", tc.LimitOrder.LimitPrice);
-                                    }
-                                    sb.AppendLine();
-
-                                    LoggerTP.Debug(sb.ToString());
+                                    sb.AppendFormat("AverageFill={0}  ", tc.EntryOrder.AverageFillPrice);
                                 }
+                                if (tc.StopOrder != null)
+                                {
+                                    sb.AppendFormat("StopPrice={0}  ", tc.StopOrder.StopPrice);
+                                }
+                                if (tc.LimitOrder != null)
+                                {
+                                    sb.AppendFormat("Limit={0}  ", tc.LimitOrder.LimitPrice);
+                                }
+                                sb.AppendLine();
+
+                                Logs.Debug(sb.ToString());
 
                                 // initialize TradeContext variables when order filled
                                 tc.HighestHighSinceEntry = tc.EntryOrder.AverageFillPrice;
@@ -871,7 +842,7 @@ namespace NinjaTrader.Custom.DAustin.Common
                 // breaks the 9 EMA, get out.
                 if (profitR > 0.8 && currentPrice < fastEMA && Strategy.Close[1] < Indicators.GetFastEMA[1])
                 {
-                    LoggerTP.Info($"[{tc.OrderTicket.SignalName}] Trail exit: 2 consecutive closes below 9 EMA.");
+                    Logs.Info($"[{tc.OrderTicket.SignalName}] Trail exit: 2 consecutive closes below 9 EMA.");
                     Strategy.ExitLong(tc.StopOrder.Quantity, tc.OrderTicket.SignalName + "-TSExit", tc.OrderTicket.SignalName);
                     tc.SetState(TradeState.ExitPending);
                 }
@@ -903,7 +874,7 @@ namespace NinjaTrader.Custom.DAustin.Common
                 // breaks the 9 EMA, get out.
                 if (profitR > 0.8 && currentPrice > fastEMA && Strategy.Close[1] > Indicators.GetFastEMA[1])
                 {
-                    LoggerTP.Info($"[{tc.OrderTicket.SignalName}] Trail exit: 2 consecutive closes above 9 EMA.");
+                    Logs.Info($"[{tc.OrderTicket.SignalName}] Trail exit: 2 consecutive closes above 9 EMA.");
                     Strategy.ExitShort(tc.StopOrder.Quantity, tc.OrderTicket.SignalName + "-TSExit", tc.OrderTicket.SignalName);
                     tc.SetState(TradeState.ExitPending);
                 }
@@ -1166,9 +1137,6 @@ namespace NinjaTrader.Custom.DAustin.Common
             string comment)
         {
             var simTime = Strategy.GetDataTimeForLogger();
-            var log = LoggerTP.WithProperty("SimTime", simTime);
-
-            log.Trace(">");
 
             string paramsLogString = String.Format("Id: {0} | Name: {1} | State: {2} | Filled: {3}/{4} | Limit: {5} | Stop: {6} | AvgPrice: {7} | Error: {8} | Comment: {9} | UpdateTime: {10}",
                 order.Id, order.Name, orderState, filled, quantity, limitPrice, stopPrice, averageFillPrice, error, comment ?? "None", time);
@@ -1176,15 +1144,15 @@ namespace NinjaTrader.Custom.DAustin.Common
             // 1. DYNAMICALLY CHOOSE LOG LEVEL BASED ON ORDER STATE AND ERROR CODES
             if (orderState == Cbi.OrderState.Rejected)
             {
-                log.Warn("CRITICAL: Order REJECTED by Broker/Engine! | " + paramsLogString);
+                Logs.Warn(simTime, "CRITICAL: Order REJECTED by Broker/Engine! | " + paramsLogString);
             }
             else if (error != Cbi.ErrorCode.NoError)
             {
-                log.Warn("Order Error Detected | " + paramsLogString);
+                Logs.Warn(simTime, "Order Error Detected | " + paramsLogString);
             }
             else
             {
-                log.Debug("Order Update Received | " + paramsLogString);
+                Logs.Debug(simTime, "Order Update Received | " + paramsLogString);
             }
 
             try
@@ -1192,7 +1160,7 @@ namespace NinjaTrader.Custom.DAustin.Common
                 // Fail-safe check to prevent NullReferenceExceptions on the collection lookup
                 if (order == null)
                 {
-                    log.Warn("Received a null order object.");
+                    Logs.Warn(simTime, "Received a null order object.");
                 }
                 else 
                 {
@@ -1211,7 +1179,7 @@ namespace NinjaTrader.Custom.DAustin.Common
                         // we can hit here when orders that aren't our SL or TP are executed. For example
                         // if we call exitlong or exitshort.
                         // Added order details to make this warning actually useful for debugging.
-                        log.Info("Order '{0}' (FromEntry: '{1}' not found in TradeContext List. External exit or system order assumed.",
+                        Logs.Info(simTime, "Order '{0}' (FromEntry: '{1}' not found in TradeContext List. External exit or system order assumed.",
                             order.Name, order.FromEntrySignal);
                     }
                     else
@@ -1228,11 +1196,11 @@ namespace NinjaTrader.Custom.DAustin.Common
                                 // switches from historic to realtime so for us that's OK.
                                 tc.OrderTicket.TransactionId = order.OrderId;
 
-                                log.Info("Async ID Bound | Signal '{0}' has been bound to Transaction ID: {1}",
+                                Logs.Info(simTime, "Async ID Bound | Signal '{0}' has been bound to Transaction ID: {1}",
                                     tc.OrderTicket.SignalName, order.OrderId);
                             }
 
-                            log.Debug("Mapping Entry Order onto TradeContext: {0}", tc.OrderTicket.SignalName);
+                            Logs.Debug(simTime, "Mapping Entry Order onto TradeContext: {0}", tc.OrderTicket.SignalName);
                             tc.EntryOrder = order; 
                         }
                         // --- SECTION 2: EXIT ORDER PROCESSING (SL or TP) ---
@@ -1240,12 +1208,12 @@ namespace NinjaTrader.Custom.DAustin.Common
                         {
                             if (stopPrice != 0)
                             {
-                                log.Debug("Mapping Stop Order onto TradeContext: {0}", tc.OrderTicket.SignalName);
+                                Logs.Debug(simTime, "Mapping Stop Order onto TradeContext: {0}", tc.OrderTicket.SignalName);
                                 tc.StopOrder = order;
                             }
                             else if (limitPrice != 0)
                             {
-                                log.Debug("Mapping Limit Order onto TradeContext: {0}", tc.OrderTicket.SignalName);
+                                Logs.Debug(simTime, "Mapping Limit Order onto TradeContext: {0}", tc.OrderTicket.SignalName);
                                 tc.LimitOrder = order;
                             }
                         }
@@ -1255,9 +1223,8 @@ namespace NinjaTrader.Custom.DAustin.Common
             catch (Exception ex)
             {
                 // Pass the exception along with context so you know exactly which order broke the code
-                log.Error(ex, "Exception occurred during OnOrderUpdate processing for Order: {0}", order?.Name ?? "UNKNOWN");
+                Logs.Error(simTime, ex, "Exception occurred during OnOrderUpdate processing for Order: {0}", order?.Name ?? "UNKNOWN");
             }
-            log.Trace("<");
         }
 
         public virtual void OnOrderUpdate(
@@ -1274,15 +1241,12 @@ namespace NinjaTrader.Custom.DAustin.Common
         {
             // Setup logger with SimTime baked in so all logs from here on will have it
             var simTime = Strategy.GetDataTimeForLogger();
-            var log = LoggerTP.WithProperty("SimTime", simTime);
-
-            log.Trace(">");
+            //var log = LoggerTP.WithProperty("SimTime", simTime);
 
             // FIX 1: Move defensive null check to the absolute top to protect formatting parameters
             if (order == null)
             {
-                log.Warn("Received a null order object during OnOrderUpdate wrapper routing.");
-                log.Trace("<");
+                Logs.Warn(simTime, "Received a null order object during OnOrderUpdate wrapper routing.");
                 return;
             }
 
@@ -1293,15 +1257,15 @@ namespace NinjaTrader.Custom.DAustin.Common
             // 1. DYNAMICALLY CHOOSE LOG LEVEL BASED ON ORDER STATE AND ERROR CODES
             if (orderState == Cbi.OrderState.Rejected)
             {
-                log.Warn("CRITICAL: Order REJECTED by Broker/Engine! | " + paramsLogString);
+                Logs.Warn(simTime, "CRITICAL: Order REJECTED by Broker/Engine! | " + paramsLogString);
             }
             else if (error != Cbi.ErrorCode.NoError)
             {
-                log.Warn("Order Error Detected | " + paramsLogString);
+                Logs.Warn(simTime, "Order Error Detected | " + paramsLogString);
             }
             else
             {
-                log.Debug("Order Update Received | " + paramsLogString);
+                Logs.Debug(simTime, "Order Update Received | " + paramsLogString);
             }
 
             try
@@ -1326,9 +1290,8 @@ namespace NinjaTrader.Custom.DAustin.Common
                 if (tc == null)
                 {
                     // Fixed typo in string interpolation formatting (added matching right parenthesis)
-                    log.Info("Order '{0}' (OrderId: '{1}' | FromEntry: '{2}') not found in TradeContext List. External exit or system order assumed.",
+                    Logs.Info(simTime, "Order '{0}' (OrderId: '{1}' | FromEntry: '{2}') not found in TradeContext List. External exit or system order assumed.",
                         order.Name, order.OrderId, order.FromEntrySignal);
-                    log.Trace("<");
                     return; // FIX 3: Immediate exit halts dead execution loops on unmanaged contexts
                 }
 
@@ -1346,11 +1309,11 @@ namespace NinjaTrader.Custom.DAustin.Common
                     {
                         tc.OrderTicket.TransactionId = order.OrderId;
 
-                        log.Info("Async ID Bound | Signal '{0}' has been bound to Transaction ID: {1}",
+                        Logs.Info(simTime, "Async ID Bound | Signal '{0}' has been bound to Transaction ID: {1}",
                             tc.OrderTicket.SignalName, order.OrderId);
                     }
 
-                    log.Debug("Mapping Entry Order onto TradeContext: {0} [BrokerId: {1}]", tc.OrderTicket.SignalName, order.OrderId);
+                    Logs.Debug(simTime, "Mapping Entry Order onto TradeContext: {0} [BrokerId: {1}]", tc.OrderTicket.SignalName, order.OrderId);
                     tc.EntryOrder = order;
                 }
                 // --- SECTION 2: EXIT ORDER PROCESSING (SL or TP) ---
@@ -1358,23 +1321,21 @@ namespace NinjaTrader.Custom.DAustin.Common
                 {
                     if (stopPrice != 0)
                     {
-                        log.Debug("Mapping Stop Order onto TradeContext for Entry: {0} [OrderId: {1}]", tc.OrderTicket.SignalName, order.OrderId);
+                        Logs.Debug(simTime, "Mapping Stop Order onto TradeContext for Entry: {0} [OrderId: {1}]", tc.OrderTicket.SignalName, order.OrderId);
                         tc.StopOrder = order;
                     }
                     else if (limitPrice != 0)
                     {
-                        log.Debug("Mapping Limit Order onto TradeContext for Entry: {0} [OrderId: {1}]", tc.OrderTicket.SignalName, order.OrderId);
+                        Logs.Debug(simTime, "Mapping Limit Order onto TradeContext for Entry: {0} [OrderId: {1}]", tc.OrderTicket.SignalName, order.OrderId);
                         tc.LimitOrder = order;
                     }
                 }
             }
             catch (Exception ex)
             {
-                log.Error(ex, "Exception occurred during OnOrderUpdate processing for Order: {0} [OrderId: {1}]",
+                Logs.Error(simTime, ex, "Exception occurred during OnOrderUpdate processing for Order: {0} [OrderId: {1}]",
                     order.Name ?? "UNKNOWN", order.OrderId ?? "UNKNOWN");
             }
-
-            log.Trace("<");
         }
 
 
@@ -1388,21 +1349,19 @@ namespace NinjaTrader.Custom.DAustin.Common
             DateTime time)
         {
             var simTime = Strategy.GetDataTimeForLogger();
-            var log = LoggerTP.WithProperty("SimTime", simTime);
-
-            log.Trace(">");
+            Logs.Trace(simTime, ">TradeManagerBase.OnExecutionUpdate>");
 
             // FIX 1: Move defensive null validation to the absolute top to prevent property evaluation crashes
             if (execution == null || execution.Order == null)
             {
-                log.Warn("Received a null execution or associated order object. ExecId: {0} | OrderId: {1}",
+                Logs.Warn(simTime, "Received a null execution or associated order object. ExecId: {0} | OrderId: {1}",
                     executionId ?? "UNKNOWN", orderId ?? "UNKNOWN");
-                log.Trace("<");
+                Logs.Trace(simTime, "<TradeManagerBase.OnExecutionUpdate<");
                 return;
             }
 
             // FIX 2: Corrected double 'SignalName' log header typo. Correctly indexed OrderId vs. SignalName.
-            log.Debug("Execution Update Received | ExecId: {0} | OrderId: {1} | SignalName: {2} | Pos: {3} | Qty: {4} @ {5} | Time: {6}",
+            Logs.Debug(simTime, "Execution Update Received | ExecId: {0} | OrderId: {1} | SignalName: {2} | Pos: {3} | Qty: {4} @ {5} | Time: {6}",
                 executionId, orderId, execution.Name ?? "UNKNOWN", marketPosition, quantity, price, time);
 
             try
@@ -1426,9 +1385,9 @@ namespace NinjaTrader.Custom.DAustin.Common
 
                 if (tc == null)
                 {
-                    log.Info("Execution '{0}' (OrderId: '{1}' | FromEntry: '{2}') not found in TradeContext List. External exit assumed.",
+                    Logs.Info(simTime, "Execution '{0}' (OrderId: '{1}' | FromEntry: '{2}') not found in TradeContext List. External exit assumed.",
                         execution.Name, orderId, execution.Order.FromEntrySignal);
-                    log.Trace("<");
+                    Logs.Trace(simTime, "<TradeManagerBase.OnExecutionUpdate<");
                     return; // FIX 4: Flattened control flow branch via immediate return routing
                 }
 
@@ -1448,7 +1407,7 @@ namespace NinjaTrader.Custom.DAustin.Common
 
                     if (execution.Order.OrderState == OrderState.Filled)
                     {
-                        log.Info("ENTRY FILLED | Ticket: {0} | Instrument: {1} | Account: {2} | Direction: {3} | Fill Price: {4}",
+                        Logs.Info(simTime, "ENTRY FILLED | Ticket: {0} | Instrument: {1} | Account: {2} | Direction: {3} | Fill Price: {4}",
                         tc.OrderTicket.SignalName, execution.Instrument, execution.Account, execution.MarketPosition, execution.Order.AverageFillPrice);
 
                         // Increment session trade counter (1-based indexing for reporting)
@@ -1471,7 +1430,7 @@ namespace NinjaTrader.Custom.DAustin.Common
                     }
                     else
                     {
-                        log.Debug("Entry Order State Changed | Ticket: {0} | Current State: {1}",
+                        Logs.Debug(simTime, "Entry Order State Changed | Ticket: {0} | Current State: {1}",
                             tc.OrderTicket.SignalName, execution.Order.OrderState);
                     }
                 }
@@ -1480,18 +1439,18 @@ namespace NinjaTrader.Custom.DAustin.Common
                 {
                     if (execution.Order.StopPrice != 0)
                     {
-                        log.Debug("Mapping Stop Order onto TradeContext for Entry: {0} [OrderId: {1}]", tc.OrderTicket.SignalName, orderId);
+                        Logs.Debug(simTime, "Mapping Stop Order onto TradeContext for Entry: {0} [OrderId: {1}]", tc.OrderTicket.SignalName, orderId);
                         tc.StopOrder = execution.Order;
                     }
                     else if (execution.Order.LimitPrice != 0)
                     {
-                        log.Debug("Mapping Limit Order onto TradeContext for Entry: {0} [OrderId: {1}]", tc.OrderTicket.SignalName, orderId);
+                        Logs.Debug(simTime, "Mapping Limit Order onto TradeContext for Entry: {0} [OrderId: {1}]", tc.OrderTicket.SignalName, orderId);
                         tc.LimitOrder = execution.Order;
                     }
 
                     if (tc.IsClosed)
                     {
-                        log.Info("EXIT FILLED | From Entry: {0} | Exit Signal: {1} | Fill Price: {2} | Commission: {3}",
+                        Logs.Info(simTime, "EXIT FILLED | From Entry: {0} | Exit Signal: {1} | Fill Price: {2} | Commission: {3}",
                             execution.Order.FromEntrySignal, execution.Name, execution.Order.AverageFillPrice, execution.Commission);
 
                         ExecutionLeg exitLeg = tc.RoundTripData.Exit;
@@ -1524,18 +1483,18 @@ namespace NinjaTrader.Custom.DAustin.Common
                         {
                             TradeData.MaxTimeInTradeCountLong++;
                             exitLeg.Reason = "MaxTime";
-                            log.Debug("Exit reason overridden to 'MaxTime' due to MaxTradeMinutesExitLong criteria met.");
+                            Logs.Debug(simTime, "Exit reason overridden to 'MaxTime' due to MaxTradeMinutesExitLong criteria met.");
                         }
                         else if (execution.Name == "MaxTradeMinutesExitShort")
                         {
                             TradeData.MaxTimeInTradeCountShort++;
                             exitLeg.Reason = "MaxTime";
-                            log.Debug("Exit reason overridden to 'MaxTime' due to MaxTradeMinutesExitShort criteria met.");
+                            Logs.Debug(simTime, "Exit reason overridden to 'MaxTime' due to MaxTradeMinutesExitShort criteria met.");
                         }
 
 
 
-                        log.Debug("Committing complete RoundTrip trade records to persistent log. Cycle cleanup incoming.");
+                        Logs.Debug(simTime, "Committing complete RoundTrip trade records to persistent log. Cycle cleanup incoming.");
                         WriteTradeToLog(tc.RoundTripData);
                         // Reset active context tracking object
                         tc.RoundTripData = null;
@@ -1545,17 +1504,17 @@ namespace NinjaTrader.Custom.DAustin.Common
                     }
                     else
                     {
-                        log.Debug("Exit Order State Changed | Parent Entry: {0} | Current State: {1}", execution.Order.FromEntrySignal, execution.Order.OrderState);
+                        Logs.Debug(simTime, "Exit Order State Changed | Parent Entry: {0} | Current State: {1}", execution.Order.FromEntrySignal, execution.Order.OrderState);
                     }
                 }
             }
             catch (Exception ex)
             {
-                log.Error(ex, "Exception encountered inside OnExecutionUpdate loop processing ExecId: {0} for OrderId: {1}",
+                Logs.Error(simTime, ex, "Exception encountered inside OnExecutionUpdate loop processing ExecId: {0} for OrderId: {1}",
                             executionId ?? "UNKNOWN", orderId ?? "UNKNOWN");
             }
 
-            log.Trace("<");
+            Logs.Trace(simTime, "<TradeManagerBase.OnExecutionUpdate<");
         }
 
         private string AnalyticsSummaryLogString(
@@ -1563,7 +1522,7 @@ namespace NinjaTrader.Custom.DAustin.Common
             TradeSummaryData TSD)
         {
             var simTime = Strategy.GetDataTimeForLogger();
-            var log = LoggerTP.WithProperty("SimTime", simTime);
+            //var log = LoggerTP.WithProperty("SimTime", simTime);
 
             StringBuilder sb = new StringBuilder();
             sb.AppendLine(new string('=', tableWidth));
@@ -1594,8 +1553,8 @@ namespace NinjaTrader.Custom.DAustin.Common
              MarketPosition marketPosition)
         {
             var simTime = Strategy.GetDataTimeForLogger();
-            var log = LoggerTP.WithProperty("SimTime", simTime);
-            var tradeLogger = TradeLoggerTP.WithProperty("SimTime", simTime);
+            //var log = LoggerTP.WithProperty("SimTime", simTime);
+            //var tradeLogger = TradeLoggerTP.WithProperty("SimTime", simTime);
 
             if (marketPosition == MarketPosition.Flat)
             {
@@ -1639,7 +1598,8 @@ namespace NinjaTrader.Custom.DAustin.Common
                         {
                             summaryLogString = logFormattedOrdersTable + Environment.NewLine + summaryLogString + Environment.NewLine;
                         }
-                        tradeLogger.Info(summaryLogString);
+                        //tradeLogger.Info(summaryLogString);
+                        Logs.WriteTrade(simTime, summaryLogString);
                     }
 
 
@@ -1677,7 +1637,7 @@ namespace NinjaTrader.Custom.DAustin.Common
                     */
                 }
 
-                LoggerTP.Info("OnPositionUpdate - MarketPosition is flat. Reseting all TradeContexts.");
+                Logs.Info("OnPositionUpdate - MarketPosition is flat. Reseting all TradeContexts.");
                 foreach (TradeContext tcr in TradeContexts)
                 {
                     if (tcr.OrderTicket != null)
@@ -1706,10 +1666,7 @@ namespace NinjaTrader.Custom.DAustin.Common
             DateTime timestamp,
             string message)
         {
-            if (LoggerTP.IsTraceEnabled)
-            {
-                LoggerTP.Trace("timestamp:{0}  message:{1}", timestamp, message);
-            }
+            Logs.Trace("timestamp:{0}  message:{1}", timestamp, message);
         }
 
         #endregion

@@ -128,7 +128,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             General.TimeWindowTimeZone = TimeWindowTimeZone.Eastern;
             General.TWAnchorTime = "9:30am";
             General.MaxTradesPerSession = 2;
-            General.LoggingMode = LoggingMode.None;
+            General.LoggingMode = LoggingMode.Off;
 
             // Time parameters
             Time.TimeZone = TimeWindowTimeZone.Eastern;

@@ -1,4 +1,5 @@
 ﻿using NinjaTrader.Cbi;
+using NinjaTrader.Custom.DAustin.Logging;
 using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.Strategies;
 using NLog;
@@ -13,33 +14,19 @@ namespace NinjaTrader.Custom.DAustin.Common.Reporting
 {
     public class CompletedTradeReportGenerator
     {
-        private static Logger _logger = LogManager.GetCurrentClassLogger();
-        private Logger _loggerTP = null;
-        private bool _fullyInitialized = false;
-        private Logger LoggerTP
+        private StrategyLogging _logs = null;
+        public StrategyLogging Logs
         {
             get
             {
-                if (_loggerTP == null || _fullyInitialized == false)
+                if (_logs == null)
                 {
-                    (_loggerTP, _fullyInitialized) = Strategy.CreateLoggerWithBaseProps(_logger);
+                    if (Strategy != null && Strategy.Logs != null)
+                    {
+                        _logs = Strategy.Logs;
+                    }
                 }
-                return _loggerTP;
-            }
-        }
-
-        public static NLog.Logger _tradeCSVLogger = LogManager.GetLogger("TradeExecutionCSVLogger");
-        private Logger _csvloggerTP = null;
-        private bool _csvfullyInitialized = false;
-        private Logger CSVLoggerTP
-        {
-            get
-            {
-                if (_csvloggerTP == null || _csvfullyInitialized == false)
-                {
-                    (_csvloggerTP, _csvfullyInitialized) = Strategy.CreateLoggerWithBaseProps(_tradeCSVLogger);
-                }
-                return _csvloggerTP;
+                return _logs;
             }
         }
 
@@ -57,7 +44,9 @@ namespace NinjaTrader.Custom.DAustin.Common.Reporting
 
         public void LogCompletedTrade(ClosedTrade completedTradeData)
         {
-            EnsureCSVHeaderExists();
+            DateTime simTime = Strategy.GetDataTimeForLogger();
+
+            EnsureCSVHeaderExists(simTime);
             if (completedTradeData?.Entry == null || completedTradeData?.Exit == null)
             {
                 // Log error or skip
@@ -65,7 +54,7 @@ namespace NinjaTrader.Custom.DAustin.Common.Reporting
             }
 
             CalculateTradeMetrics(completedTradeData);
-            CSVLoggerTP.Info(ToCSV(completedTradeData));
+            Logs.WriteTradeCSV(simTime, ToCSV(completedTradeData));
         }
 
         private void CalculateTradeMetrics(ClosedTrade td)
@@ -166,11 +155,6 @@ namespace NinjaTrader.Custom.DAustin.Common.Reporting
                    $"{td.Metrics.ExitSlippage:F4}";
         }
 
-        public void WriteHeader()
-        {
-            CSVLoggerTP.Info(GetCSVHeader());
-        }
-
         private string GetCSVHeader()
         {
             return
@@ -215,33 +199,9 @@ namespace NinjaTrader.Custom.DAustin.Common.Reporting
             return value;
         }
 
-        private void EnsureCSVHeaderExists()
+        private void EnsureCSVHeaderExists(DateTime simTime)
         {
-            Logger csvLogger = CSVLoggerTP;
-
-            var logEvent = new LogEventInfo(NLog.LogLevel.Info, csvLogger.Name, string.Empty);
-
-            foreach (var property in csvLogger.Properties)
-            {
-                logEvent.Properties[property.Key] = property.Value;
-            }
-
-            string logfilePath = LogManager.Configuration
-                .FindTargetByName<NLog.Targets.FileTarget>("TradeLogCSVTarget")
-                ?.FileName
-                ?.Render(logEvent);
-
-            if (String.IsNullOrEmpty(logfilePath))
-            {
-                LoggerTP.Error("LogfilePath is null. Not able to check if logfile needs CSV header.");
-                return;
-            }
-
-            if (!File.Exists(logfilePath) || new FileInfo(logfilePath).Length == 0)
-            {
-                WriteHeader();
-            }
+            Logs.EnsureTradeCSVHeaderExists(simTime, GetCSVHeader());
         }
     }
 }
-

@@ -84,6 +84,9 @@
     <Compile Include="DAustin\Common\TelemetryBarBase.cs" />
     <Compile Include="DAustin\Extensions\TradeExtensions.cs" />
     <Compile Include="DAustin\Interfaces\ITelemetryBar.cs" />
+    <Compile Include="DAustin\Logging\StrategyLogging.cs" />
+    <Compile Include="DAustin\Logging\StrategyLoggingOptions.cs" />
+    <Compile Include="DAustin\Logging\StrategyLogIdentity.cs" />
     <Compile Include="Indicators\DAustin\DAVWAPIndicator.cs" />
     <Compile Include="Resource.Designer.cs">
       <DesignTime>True</DesignTime>

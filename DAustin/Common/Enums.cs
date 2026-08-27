@@ -19,10 +19,21 @@ namespace NinjaTrader.Custom.DAustin.Common
 
     public enum LoggingMode
     {
-        None,
-        Production,
-        Debug,
+        Off,
+        Error,
+        Normal,
+        Diagnostic,
         Trace
+    }
+
+    public enum StrategyLogLevel
+    {
+        Off = 0,
+        Error = 1,
+        Warn = 2,
+        Info = 3,
+        Debug = 4,
+        Trace = 5
     }
 
     public enum DAOrderType

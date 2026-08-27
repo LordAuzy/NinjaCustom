@@ -9,6 +9,7 @@ using NinjaTrader.Custom.DAustin.Common.Calendars;
 using NinjaTrader.Custom.DAustin.Common.Orders;
 using NinjaTrader.Custom.DAustin.Common.ScheduleFilter;
 using NinjaTrader.Custom.DAustin.Interfaces;
+using NinjaTrader.Custom.DAustin.Logging;
 using NinjaTrader.Custom.Strategies.DAustin.Common;
 using NinjaTrader.Gui.PropertiesTest;
 using NinjaTrader.Gui.Tools;
@@ -48,22 +49,6 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
     [StrategyComponentId("ECE-OPNDRV")]
     public class ECE_OPNDRV : EntryConditionsEvaluatorBase
     {
-        private static Logger _logger = LogManager.GetCurrentClassLogger();
-
-        private Logger _loggerTP = null;
-        private bool _fullyInitialized = false;
-        private Logger LoggerTP
-        {
-            get
-            {
-                if (_loggerTP == null || _fullyInitialized == false)
-                {
-                    (_loggerTP, _fullyInitialized) = Strategy.CreateLoggerWithBaseProps(_logger);
-                }
-                return _loggerTP;
-            }
-        }
-
         #region Properties
         public Indicators_OPNDRV IndicatorsOPNDRV { get { return Indicators as Indicators_OPNDRV; } }
         public OptimizationParameters_OPNDRV OptParamsOPNDRV { get { return OptParams as OptimizationParameters_OPNDRV; } }
@@ -318,7 +303,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
 
             if (FOMCCalendar.IsFOMCDay(Strategy.Time[0]))
             {
-                LoggerTP.Trace("Is FOMC Day");
+                Logs.Trace("Is FOMC Day");
                 return true;
             }
 
@@ -328,31 +313,31 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             // we will skip all entries on NFP days to protect the account from unexpected losses.
             if (NFPCalendar.IsNFPDay(Strategy.Time[0]))
             {
-                LoggerTP.Trace("Is NFP Day");
+                Logs.Trace("Is NFP Day");
                 return true;
             }
 
             if (tradeContext.TradesTakenThisSession >= GenOptParams.MaxTradesPerSession)
             {   // max trades per session reached
-                LoggerTP.Info($"Max trades per session reached: {tradeContext.TradesTakenThisSession}/{GenOptParams.MaxTradesPerSession}");
+                Logs.Info($"Max trades per session reached: {tradeContext.TradesTakenThisSession}/{GenOptParams.MaxTradesPerSession}");
                 return true;
             }
 
             if (IndicatorsOPNDRV.EntryTimeWindows != null && !IndicatorsOPNDRV .EntryTimeWindows.IsInTimeWindow())
             {   // not in an entry time window
-                LoggerTP.Trace("Not in entry time window");
+                Logs.Trace("Not in entry time window");
                 return true;
             }
 
             if (Strategy.CurrentBars[0] < Strategy.BarsRequiredToTrade)
             {   // in preload phase
-                LoggerTP.Trace("In preload phase");
+                Logs.Trace("In preload phase");
                 return true;
             }
 
             if (Strategy.CurrentBars[0] < Math.Max(EntryOptParams.ATRPeriod, EntryOptParams.SlowEMAPeriod))
             {   // not enough bars to calculate indicators
-                LoggerTP.Trace("Not enough bars to calculate indicators");
+                Logs.Trace("Not enough bars to calculate indicators");
                 return true;
             }
 
@@ -490,7 +475,6 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
 
             return driveState;
         }
-
         #endregion
 
         #region VirtualMethods

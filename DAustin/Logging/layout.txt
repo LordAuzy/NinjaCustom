@@ -1,0 +1,14 @@
+﻿Documents
+└── NinjaTrader 8
+    └── NLogLogs
+        └── OPNDRV
+            └── MNQ 12-26
+                └── Sim101
+                    ├── diagnostic.log
+                    ├── trace.log
+                    ├── archives
+                    │   └── ...
+                    └── Trades
+                        ├── Trades_v1_2026-08.csv
+                        ├── Trades_v1_2026-08.log
+                        └── TradeBarTelemetry_v1_2026-08.csv

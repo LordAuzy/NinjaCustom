@@ -6,6 +6,7 @@ using NinjaTrader.Core.FloatingPoint;
 using NinjaTrader.CQG.ProtoBuf;
 using NinjaTrader.Custom.DAustin.Common.Reporting;
 using NinjaTrader.Custom.DAustin.Interfaces;
+using NinjaTrader.Custom.DAustin.Logging;
 using NinjaTrader.Custom.Strategies.DAustin.Common;
 using NinjaTrader.Data;
 using NinjaTrader.Gui;
@@ -44,24 +45,10 @@ namespace NinjaTrader.Custom.DAustin.Common
 {
     public class StratBase : Strategy
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
-
-        private Logger _loggerTP = null;
-        private bool _fullyInitialized = false;
-        private Logger LoggerTP
-        {
-            get
-            {
-                if (_loggerTP == null || _fullyInitialized == false)
-                {
-                    (_loggerTP, _fullyInitialized) = CreateLoggerWithBaseProps(logger);
-                }
-                return _loggerTP;
-            }
-        }
-
         #region Properties
+        public StrategyLogging Logs { get; set; }
         private bool isLoadedFromXml;
+        bool _fullyInitialized = false;
 
         [XmlIgnore]
         [Browsable(false)]
@@ -180,7 +167,7 @@ namespace NinjaTrader.Custom.DAustin.Common
         private bool isCloneTestInstance = false;
         protected override void OnBarUpdate()
         {
-            LoggerTP.Trace(">");
+            Logs.Trace(">");
 
             //if (isCloneTestInstance)
             //{
@@ -208,7 +195,7 @@ namespace NinjaTrader.Custom.DAustin.Common
                 // So, I'm doing it here in OnBarUpdate() on the last bar of the backtest.
                 OnBacktestComplete();
             }
-            LoggerTP.Trace("<");
+            Logs.Trace("<");
         }
 
         private void TestSerializationInCode()
@@ -264,32 +251,21 @@ namespace NinjaTrader.Custom.DAustin.Common
             // base here isn't strictly required. We call it anyway as a defensive habit in case
             // the platform ever adds meaningful base logic in a future update.
             base.OnConnectionStatusUpdate(connectionStatusUpdate);
+            var simTime = GetDataTimeForLogger();
 
-            if (LoggerTP.IsInfoEnabled)
-            {
-                var simTime = GetDataTimeForLogger();
-                var log = LoggerTP.WithProperty("SimTime", simTime);
+            Logs.Info(
+                simTime,
+                "ConnectionStatusUpdate: Connection={0} | Status={1} | PriceStatus={2} | Error={3}",
+                connectionStatusUpdate?.Connection?.Options?.Name ?? "Unknown",
+                connectionStatusUpdate?.Status,
+                connectionStatusUpdate?.PriceStatus,
+                connectionStatusUpdate?.Error);
 
-                log.Info(
-                    "ConnectionStatusUpdate: Connection={0} | Status={1} | PriceStatus={2} | Error={3}",
-                    connectionStatusUpdate?.Connection?.Options?.Name ?? "Unknown",
-                    connectionStatusUpdate?.Status,
-                    connectionStatusUpdate?.PriceStatus,
-                    connectionStatusUpdate?.Error);
-            }
-
-            if (LoggerTP.IsTraceEnabled)
-            {
-                // Verbose fields that are helpful when diagnosing reconnect/disconnect sequences
-                // but too noisy for Info level.
-                var simTime = GetDataTimeForLogger();
-                var log = LoggerTP.WithProperty("SimTime", simTime);
-
-                log.Trace(
-                    "ConnectionStatusUpdate details: IsReconnecting={0} | ConnectionStatus={1}",
-                    connectionStatusUpdate?.Connection?.Status,
-                    connectionStatusUpdate?.Connection);
-            }
+            Logs.Trace(
+                simTime,
+                "ConnectionStatusUpdate details: IsReconnecting={0} | ConnectionStatus={1}",
+                connectionStatusUpdate?.Connection?.Status,
+                connectionStatusUpdate?.Connection);
         }
 
         protected override void OnOrderUpdate(
@@ -529,13 +505,13 @@ namespace NinjaTrader.Custom.DAustin.Common
             string DiagnosticLogMinLevel = "Debug";
             string TraceLogMinLevel = "Trace";
 
-            if (loggingMode == LoggingMode.Debug)
+            if (loggingMode == LoggingMode.Diagnostic)
             {
                 NTOutputMinLevel = "Warn";
                 DiagnosticLogMinLevel = "Debug";
                 TraceLogMinLevel = "Off";
             }
-            else if (loggingMode == LoggingMode.Production)
+            else if (loggingMode == LoggingMode.Normal)
             {
                 NTOutputMinLevel = "Warn";
                 DiagnosticLogMinLevel = "Info";
@@ -543,7 +519,7 @@ namespace NinjaTrader.Custom.DAustin.Common
             }
 
 //            if (loggingMode == LoggingMode.None || accountName == "Backtest")
-            if (loggingMode == LoggingMode.None )
+            if (loggingMode == LoggingMode.Off )
             {
                 // if we are in a backtest logging puts too much drag on the system
                 return (LogManager.CreateNullLogger(), _fullyInitialized);

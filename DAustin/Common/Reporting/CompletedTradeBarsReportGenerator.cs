@@ -1,4 +1,7 @@
 ﻿using NinjaTrader.Cbi;
+using NinjaTrader.Custom.DAustin.Common;
+using NinjaTrader.Custom.DAustin.Interfaces;
+using NinjaTrader.Custom.DAustin.Logging;
 using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.Strategies;
 using NLog;
@@ -8,44 +11,27 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using NinjaTrader.Custom.DAustin.Interfaces;
-using NinjaTrader.Custom.DAustin.Common;
 
 namespace NinjaTrader.Custom.DAustin.Common.Reporting
 {
     public class CompletedTradeBarsReportGenerator
     {
-        private static Logger _logger = LogManager.GetCurrentClassLogger();
-        private Logger _loggerTP = null;
-        private bool _fullyInitialized = false;
-        private Logger LoggerTP
-        {
-            get
-            {
-                if (_loggerTP == null || _fullyInitialized == false)
-                {
-                    (_loggerTP, _fullyInitialized) = Strategy.CreateLoggerWithBaseProps(_logger);
-                }
-                return _loggerTP;
-            }
-        }
-
-        public static NLog.Logger _tradeCSVLogger = LogManager.GetLogger("TelemetryTradeExecutionCSVLogger");
-        private Logger _csvloggerTP = null;
-        private bool _csvfullyInitialized = false;
-        private Logger CSVLoggerTP
-        {
-            get
-            {
-                if (_csvloggerTP == null || _csvfullyInitialized == false)
-                {
-                    (_csvloggerTP, _csvfullyInitialized) = Strategy.CreateLoggerWithBaseProps(_tradeCSVLogger);
-                }
-                return _csvloggerTP;
-            }
-        }
-
         #region Properties
+        private StrategyLogging _logs = null;
+        public StrategyLogging Logs
+        {
+            get
+            {
+                if (_logs == null)
+                {
+                    if (Strategy != null && Strategy.Logs != null)
+                    {
+                        _logs = Strategy.Logs;
+                    }
+                }
+                return _logs;
+            }
+        }
         public static string TradeCSVSchemaVersion => "1.0.0";
         public StratBase Strategy { get; private set; }
         #endregion
@@ -61,15 +47,16 @@ namespace NinjaTrader.Custom.DAustin.Common.Reporting
         {
             if (completedTradeBars == null || completedTradeBars.Count == 0)
             {
-                LoggerTP.Warn("No completed trade bars to log.");
+                Logs.Warn("No completed trade bars to log.");
                 return;
             }
 
-            EnsureCSVHeaderExists(completedTradeBars[0]);
+            DateTime simTime = Strategy.GetDataTimeForLogger();
+            EnsureCSVHeaderExists(completedTradeBars[0], simTime);
 
             foreach (ITelemetryBar bar in completedTradeBars)
             {
-                CSVLoggerTP.Info(ToCSV(bar));
+                Logs.WriteTelemetryCSV(simTime, ToCSV(bar));
             }
         }
         private void CalculateTradeMetrics(ClosedTrade td)
@@ -145,13 +132,6 @@ namespace NinjaTrader.Custom.DAustin.Common.Reporting
             return csv;
         }
 
-        public void WriteHeader(ITelemetryBar tb)
-        {
-            List<string> columnList = tb.GetColumnNames();
-            string headerString = string.Join(",", columnList);
-            CSVLoggerTP.Info(headerString);
-        }
-
         private string EscapeCSV(string value)
         {
             if (string.IsNullOrEmpty(value))
@@ -163,33 +143,14 @@ namespace NinjaTrader.Custom.DAustin.Common.Reporting
             return value;
         }
 
-        private void EnsureCSVHeaderExists(ITelemetryBar tb)
+        private void EnsureCSVHeaderExists(ITelemetryBar tb, DateTime simTime)
         {
-            Logger csvLogger = CSVLoggerTP;
+            List<string> columnList = tb.GetColumnNames();
+            string headerString = string.Join(",", columnList);
 
-            var logEvent = new LogEventInfo(NLog.LogLevel.Info, csvLogger.Name, string.Empty);
-
-            foreach (var property in csvLogger.Properties)
-            {
-                logEvent.Properties[property.Key] = property.Value;
-            }
-
-            string logfilePath = LogManager.Configuration
-                .FindTargetByName<NLog.Targets.FileTarget>("TelemetryTradeLogCSVTarget")
-                ?.FileName
-                ?.Render(logEvent);
-
-            if (String.IsNullOrEmpty(logfilePath))
-            {
-                LoggerTP.Error("LogfilePath is null. Not able to check if logfile needs CSV header.");
-                return;
-            }
-
-            if (!File.Exists(logfilePath) || new FileInfo(logfilePath).Length == 0)
-            {
-                WriteHeader(tb);
-            }
+            Logs.EnsureTelemetryCSVHeaderExists(simTime, headerString);
         }
     }
 }
+
 
