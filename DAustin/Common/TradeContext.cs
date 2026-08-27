@@ -3,6 +3,7 @@ using NinjaTrader.CQG.ProtoBuf;
 using NinjaTrader.Custom.DAustin.Common.Orders;
 using NinjaTrader.Custom.DAustin.Common.Reporting;
 using NinjaTrader.Custom.DAustin.Interfaces;
+using NinjaTrader.Custom.DAustin.Logging;
 using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.Strategies;
 using NLog;
@@ -17,23 +18,23 @@ namespace NinjaTrader.Custom.DAustin.Common
 {
     public class TradeContext
     {
-        private static Logger _logger = LogManager.GetCurrentClassLogger();
-
-        private Logger _loggerTP = null;
-        private bool _fullyInitialized = false;
-        private Logger LoggerTP
+        #region Properties
+        private StrategyLogging _logs = null;
+        public StrategyLogging Logs
         {
             get
             {
-                if (_loggerTP == null || _fullyInitialized == false && EntryConditionsEvaluator != null)
+                if (_logs == null)
                 {
-                    (_loggerTP, _fullyInitialized) = EntryConditionsEvaluator.Strategy.CreateLoggerWithBaseProps(_logger);
+                    if (EntryConditionsEvaluator.Strategy != null && EntryConditionsEvaluator.Strategy.Logs != null)
+                    {
+                        _logs = EntryConditionsEvaluator.Strategy.Logs;
+                    }
                 }
-                return _loggerTP;
+                return _logs;
             }
         }
 
-        #region Properties
         public TradeState State { get { return StateList[TradeStateIndex]; } }
         public List<TradeState> StateList { get; set; } = null;
         private int _tradeStateIndex = 0;
@@ -44,11 +45,11 @@ namespace NinjaTrader.Custom.DAustin.Common
             {
                 if (value < 0 || value >= StateList.Count)
                 {
-                    LoggerTP.Error($"Attempted to set invalid TradeStateIndex: {value}. StateList count: {StateList.Count}");
+                    Logs.Error($"Attempted to set invalid TradeStateIndex: {value}. StateList count: {StateList.Count}");
                     throw new ArgumentOutOfRangeException("TradeStateIndex", $"Value must be between 0 and {StateList.Count - 1}");
                 }
                 _tradeStateIndex = value;
-                LoggerTP.Info($"TradeState set to {StateList[_tradeStateIndex]} (index={_tradeStateIndex})");
+                Logs.Info($"TradeState set to {StateList[_tradeStateIndex]} (index={_tradeStateIndex})");
             }
         }
 
@@ -160,7 +161,7 @@ namespace NinjaTrader.Custom.DAustin.Common
             newStopPrice = RoundToNearestValidTick(newStopPrice);
             PendingStopPrice = newStopPrice;
             PendingNextState = nextState;
-            LoggerTP.Info($"PendingNextState set to {PendingNextState}");
+            Logs.Info($"PendingNextState set to {PendingNextState}");
             PendingStopSubmittedTime = OrderTicket?.Strategy?.Time != null ? OrderTicket.Strategy.Time[0] : DateTime.UtcNow;
             UpdateStop(newStopPrice);
             SetState(TradeState.StopMovePending);
@@ -222,7 +223,7 @@ namespace NinjaTrader.Custom.DAustin.Common
             TradeEvent te = TradeEventFromOrder(time, order);
             if (te == null)
             {
-                LoggerTP.Warn($"TradeEventFromOrder returned null for order {order?.OrderId}");
+                Logs.Warn($"TradeEventFromOrder returned null for order {order?.OrderId}");
                 return;
             }
             else
@@ -239,7 +240,7 @@ namespace NinjaTrader.Custom.DAustin.Common
             TradeEvent te = TradeEventFromExecution(time, execution);
             if (te == null)
             {
-                LoggerTP.Warn($"TradeEventFromExecution returned null for execution {execution?.ExecutionId}");
+                Logs.Warn($"TradeEventFromExecution returned null for execution {execution?.ExecutionId}");
                 return;
             }
             else

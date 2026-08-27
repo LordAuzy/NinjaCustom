@@ -3,7 +3,9 @@ using ActiproSoftware.Windows.Media.Animation;
 using NinjaTrader.Cbi;
 using NinjaTrader.Core.FloatingPoint;
 using NinjaTrader.Custom.DAustin.Common;
+using NinjaTrader.Custom.DAustin.Common.Reporting;
 using NinjaTrader.Custom.DAustin.Interfaces;
+using NinjaTrader.Custom.DAustin.Logging;
 using NinjaTrader.Custom.Strategies.DAustin.TradeManagers;
 using NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1;
 using NinjaTrader.Data;
@@ -63,21 +65,6 @@ namespace NinjaTrader.NinjaScript.Strategies
     #endregion
     public class Strat_VWAPPB_V1 : StratBase
     {
-        private static Logger _logger = LogManager.GetCurrentClassLogger();
-        private Logger _loggerTP = null;
-        private bool _fullyInitialized = false;
-        private Logger LoggerTP
-        {
-            get
-            {
-                if (_loggerTP == null || _fullyInitialized == false)
-                {
-                    (_loggerTP, _fullyInitialized) = CreateLoggerWithBaseProps(_logger);
-                }
-                return _loggerTP;
-            }
-        }
-
         [Browsable(false)]
         public override String StrategyVersion { get { return "1.0.0"; } }
 
@@ -602,7 +589,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // we shouldn't log anything until after this call.
                 base.OnStateChange();
 
-                LoggerTP.Trace($"State = {State}");
+                if (Logs != null)
+                {
+                    Logs.Trace($"State = {State}");
+                }
 
                 if (State == State.SetDefaults)
                 {
@@ -644,8 +634,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                     {
                         // By this point, all serialized property values from the
                         // XML have overwritten your default values.
-                        LoggerTP.Info("Strategy restored via deserialization.");
-
                         // we want to use the optimization parameters that were serialized in the XML, not the default values.
                         OptimizationParameters_VWAPPB_V1 OptPLoadedFromXml = OptimizationParameters as OptimizationParameters_VWAPPB_V1;
                         OptParams.CopyFrom(OptPLoadedFromXml);
@@ -653,6 +641,16 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                     //update our optimization parameters from the strategy properties
                     OptParams.UpdateFromStrat();
+                    //initialize logging
+                    StrategyLoggingOptions logOptions = StrategyLoggingOptions.FromMode(OptParams.General.LoggingMode);
+                    Logs = StrategyLogging.Create(
+                        strategyName: Name,
+                        instrumentName: Instrument.FullName,
+                        accountName: Account != null ? Account.Name : "Backtest",
+                        options: logOptions,
+                        tradeCSVSchemaVersion: CompletedTradeReportGenerator.TradeCSVSchemaVersion,
+                        telemetryCSVSchemaVersion: CompletedTradeBarsReportGenerator.TradeCSVSchemaVersion);
+
                     // initialize indicators
                     Indicators_VWAPPB_V1 indicators = GetIndicators("IDC-" + stratIdentifier) as Indicators_VWAPPB_V1;
                     indicators.OptParams = OptParams;
@@ -753,7 +751,15 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             catch (Exception ex)
             {
-                LoggerTP.Error(ex, "Error in OnStateChange");
+                if (Logs != null)
+                {
+                    Logs.Error(ex, "Error in OnStateChange");
+                }
+                else
+                {
+                    LogManager.GetCurrentClassLogger()
+                        .Error(ex, "Error in OnStateChange before StrategyLogging initialization");
+                }
                 throw;
             }
         }
@@ -790,7 +796,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             sb.AppendFormat("  ValidPullShortCount:{0}", ece.DataCollector.ValidPullShortCount).AppendLine();
             sb.AppendFormat("  BearishTriggerCount:{0}", ece.DataCollector.BearishTriggerCount).AppendLine();
             sb.AppendFormat("  ShortEntryTriggeredCount:{0}", ece.DataCollector.ShortEntryTriggeredCount).AppendLine();
-            LoggerTP.Info(sb.ToString());
+            Logs.Info(sb.ToString());
         }
         #endregion
     }

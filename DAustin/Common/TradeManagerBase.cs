@@ -1241,7 +1241,6 @@ namespace NinjaTrader.Custom.DAustin.Common
         {
             // Setup logger with SimTime baked in so all logs from here on will have it
             var simTime = Strategy.GetDataTimeForLogger();
-            //var log = LoggerTP.WithProperty("SimTime", simTime);
 
             // FIX 1: Move defensive null check to the absolute top to protect formatting parameters
             if (order == null)
@@ -1522,7 +1521,6 @@ namespace NinjaTrader.Custom.DAustin.Common
             TradeSummaryData TSD)
         {
             var simTime = Strategy.GetDataTimeForLogger();
-            //var log = LoggerTP.WithProperty("SimTime", simTime);
 
             StringBuilder sb = new StringBuilder();
             sb.AppendLine(new string('=', tableWidth));
@@ -1553,8 +1551,6 @@ namespace NinjaTrader.Custom.DAustin.Common
              MarketPosition marketPosition)
         {
             var simTime = Strategy.GetDataTimeForLogger();
-            //var log = LoggerTP.WithProperty("SimTime", simTime);
-            //var tradeLogger = TradeLoggerTP.WithProperty("SimTime", simTime);
 
             if (marketPosition == MarketPosition.Flat)
             {

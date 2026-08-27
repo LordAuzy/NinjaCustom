@@ -3,7 +3,9 @@ using ActiproSoftware.Windows.Media.Animation;
 using NinjaTrader.Cbi;
 using NinjaTrader.Core.FloatingPoint;
 using NinjaTrader.Custom.DAustin.Common;
+using NinjaTrader.Custom.DAustin.Common.Reporting;
 using NinjaTrader.Custom.DAustin.Interfaces;
+using NinjaTrader.Custom.DAustin.Logging;
 using NinjaTrader.Custom.Strategies.DAustin.TradeManagers;
 using NinjaTrader.Custom.Strategies.DAustin.VWAPPB;
 using NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1;
@@ -64,21 +66,6 @@ namespace NinjaTrader.NinjaScript.Strategies
     #endregion
     public class Strat_VWAPPB : StratBase
     {
-        private static Logger _logger = LogManager.GetCurrentClassLogger();
-        private Logger _loggerTP = null;
-        private bool _fullyInitialized = false;
-        private Logger LoggerTP
-        {
-            get
-            {
-                if (_loggerTP == null || _fullyInitialized == false)
-                {
-                    (_loggerTP, _fullyInitialized) = CreateLoggerWithBaseProps(_logger);
-                }
-                return _loggerTP;
-            }
-        }
-
         [Browsable(false)]
         public override String StrategyVersion { get { return "1.0.0"; } }
 
@@ -601,7 +588,10 @@ When it happens: The strategy is disabled by you, the workspace is closed, or th
             // we shouldn't log anything until after this call.
             base.OnStateChange();
 
-            LoggerTP.Trace($"State = {State}");
+            if (Logs != null)
+            {
+                Logs.Trace($"State = {State}");
+            }
 
             if (State == State.SetDefaults)
             {
@@ -636,6 +626,16 @@ When it happens: The strategy is disabled by you, the workspace is closed, or th
                 //update our optimization parameters from the strategy properties
                 NinjaTrader.Custom.Strategies.DAustin.VWAPPB.OptimizationParameters_VWAPPB OptParamsVWAPPB = GetOptimizationParameters("OP-" + stratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPPB.OptimizationParameters_VWAPPB;
                 OptParamsVWAPPB.UpdateFromStrat();
+                //initialize logging
+                StrategyLoggingOptions logOptions = StrategyLoggingOptions.FromMode(OptParamsVWAPPB.General.LoggingMode);
+                Logs = StrategyLogging.Create(
+                    strategyName: Name,
+                    instrumentName: Instrument.FullName,
+                    accountName: Account != null ? Account.Name : "Backtest",
+                    options: logOptions,
+                    tradeCSVSchemaVersion: CompletedTradeReportGenerator.TradeCSVSchemaVersion,
+                    telemetryCSVSchemaVersion: CompletedTradeBarsReportGenerator.TradeCSVSchemaVersion);
+
                 // initialize indicators
                 NinjaTrader.Custom.Strategies.DAustin.VWAPPB.Indicators_VWAPPB indicators = GetIndicators("IDC-" + stratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPPB.Indicators_VWAPPB;
                 indicators.OptParams = OptParamsVWAPPB;
@@ -766,7 +766,7 @@ When it happens: The strategy is disabled by you, the workspace is closed, or th
             sb.AppendFormat("  ValidPullShortCount:{0}", ece.DataCollector.ValidPullShortCount).AppendLine();
             sb.AppendFormat("  BearishTriggerCount:{0}", ece.DataCollector.BearishTriggerCount).AppendLine();
             sb.AppendFormat("  ShortEntryTriggeredCount:{0}", ece.DataCollector.ShortEntryTriggeredCount).AppendLine();
-            LoggerTP.Info(sb.ToString());
+            Logs.Info(sb.ToString());
         }
         #endregion
     }

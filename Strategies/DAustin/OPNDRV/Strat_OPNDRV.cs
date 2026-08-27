@@ -691,8 +691,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                     {
                         // By this point, all serialized property values from the
                         // XML have overwritten your default values.
-                        Logs.Info("Strategy restored via deserialization.");
-
                         // we want to use the optimization parameters that were serialized in the XML, not the default values.
                         OptimizationParameters_OPNDRV OptPLoadedFromXml = OptimizationParameters as OptimizationParameters_OPNDRV;
                         OptParams.CopyFrom(OptPLoadedFromXml);
