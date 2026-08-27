@@ -15,15 +15,15 @@ namespace NinjaTrader.Custom.DAustin.Logging
 
         public string TradeCSVSchemaVersion { get; private set; }
         public string TelemetryCSVSchemaVersion { get; private set; }
+        public string RunId { get; private set; }
         #endregion
 
         #region Private Fields
-
         private readonly Logger diagnosticLogger;
         private readonly Logger tradeLogger;
         private readonly Logger tradeCSVLogger;
         private readonly Logger telemetryCSVLogger;
-
+        private readonly Logger runSummaryLogger;
         #endregion
 
         #region Constructors
@@ -38,33 +38,16 @@ namespace NinjaTrader.Custom.DAustin.Logging
             Options = options;
             TradeCSVSchemaVersion = tradeCSVSchemaVersion;
             TelemetryCSVSchemaVersion = telemetryCSVSchemaVersion;
-
-            //
-            // All loggers receive ONE routing property.
+            RunId = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             //
             // NLog.config decides what files/targets receive
             // the various logger names and levels.
             //
-
-            diagnosticLogger =
-                CreateLogger(
-                    "Strategy",
-                    identity);
-
-            tradeLogger =
-                CreateLogger(
-                    "TradeExecution",
-                    identity);
-
-            tradeCSVLogger =
-                CreateLogger(
-                    "TradeExecutionCSV",
-                    identity);
-
-            telemetryCSVLogger =
-                CreateLogger(
-                    "TelemetryTradeExecutionCSV",
-                    identity);
+            diagnosticLogger = CreateLogger( "Strategy", identity, RunId);
+            tradeLogger = CreateLogger("TradeExecution", identity, RunId);
+            tradeCSVLogger = CreateLogger("TradeExecutionCSV", identity, RunId);
+            telemetryCSVLogger = CreateLogger("TelemetryTradeExecutionCSV", identity, RunId);
+            runSummaryLogger = CreateLogger("RunSummary", identity, RunId);
         }
 
         #endregion
@@ -468,6 +451,34 @@ namespace NinjaTrader.Custom.DAustin.Logging
         }
         #endregion
 
+        #region SummaryLogging
+        public void WriteRunSummary(string message)
+        {
+            if (!Options.EnableRunSummary)
+                return;
+
+            Write(
+                runSummaryLogger,
+                LogLevel.Info,
+                message,
+                null,
+                null);
+        }
+
+        public void WriteRunSummary(DateTime simTime, string message)
+        {
+            if (!Options.EnableRunSummary)
+                return;
+
+            Write(
+                runSummaryLogger,
+                LogLevel.Info,
+                message,
+                simTime,
+                null);
+        }
+        #endregion
+
         #region Trade Logging
 
         public void WriteTrade(string message)
@@ -566,18 +577,18 @@ namespace NinjaTrader.Custom.DAustin.Logging
 
         private static Logger CreateLogger(
             string loggerName,
-            StrategyLogIdentity identity)
+            StrategyLogIdentity identity,
+            string runId)
         {
-            Logger baseLogger =
-                LogManager.GetLogger(loggerName);
+            Logger baseLogger = LogManager.GetLogger(loggerName);
 
             //
             // This is now the ONLY contextual property needed
             // to determine the destination directory.
             //
-            return baseLogger.WithProperty(
-                "LogDirectory",
-                identity.LogDirectory);
+            return baseLogger.
+                WithProperty("LogDirectory", identity.LogDirectory)
+                .WithProperty("RunId", runId);
         }
 
 

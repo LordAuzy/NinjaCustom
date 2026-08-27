@@ -16,7 +16,7 @@ namespace NinjaTrader.Custom.DAustin.Logging
         public bool EnableTradeCSV { get; private set; }
 
         public bool EnableTelemetryCSV { get; private set; }
-
+        public bool EnableRunSummary { get; private set; }
         public StrategyLoggingOptions()
         {
         }
@@ -32,7 +32,8 @@ namespace NinjaTrader.Custom.DAustin.Logging
                         Level = StrategyLogLevel.Off,
                         EnableTradeLog = false,
                         EnableTradeCSV = false,
-                        EnableTelemetryCSV = false
+                        EnableTelemetryCSV = false,
+                        EnableRunSummary = false
                     };
 
                 case LoggingMode.Error:
@@ -41,7 +42,8 @@ namespace NinjaTrader.Custom.DAustin.Logging
                         Level = StrategyLogLevel.Error,
                         EnableTradeLog = true,
                         EnableTradeCSV = true,
-                        EnableTelemetryCSV = true
+                        EnableTelemetryCSV = true,
+                        EnableRunSummary = true
                     };
 
                 case LoggingMode.Normal:
@@ -50,7 +52,8 @@ namespace NinjaTrader.Custom.DAustin.Logging
                         Level = StrategyLogLevel.Info,
                         EnableTradeLog = true,
                         EnableTradeCSV = true,
-                        EnableTelemetryCSV = true
+                        EnableTelemetryCSV = true,
+                        EnableRunSummary = true
                     };
 
                 case LoggingMode.Diagnostic:
@@ -59,7 +62,8 @@ namespace NinjaTrader.Custom.DAustin.Logging
                         Level = StrategyLogLevel.Debug,
                         EnableTradeLog = true,
                         EnableTradeCSV = true,
-                        EnableTelemetryCSV = true
+                        EnableTelemetryCSV = true,
+                        EnableRunSummary = true
                     };
 
                 case LoggingMode.Trace:
@@ -68,7 +72,8 @@ namespace NinjaTrader.Custom.DAustin.Logging
                         Level = StrategyLogLevel.Trace,
                         EnableTradeLog = true,
                         EnableTradeCSV = true,
-                        EnableTelemetryCSV = true
+                        EnableTelemetryCSV = true,
+                        EnableRunSummary = true
                     };
 
                 default:
@@ -77,7 +82,8 @@ namespace NinjaTrader.Custom.DAustin.Logging
                         Level = StrategyLogLevel.Error,
                         EnableTradeLog = true,
                         EnableTradeCSV = true,
-                        EnableTelemetryCSV = true
+                        EnableTelemetryCSV = true,
+                        EnableRunSummary = true
                     };
             }
         }

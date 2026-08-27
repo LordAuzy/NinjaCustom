@@ -857,7 +857,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             sb.AppendFormat("  ValidPullShortCount:{0}", ece.DataCollector.ValidPullShortCount).AppendLine();
             sb.AppendFormat("  BearishTriggerCount:{0}", ece.DataCollector.BearishTriggerCount).AppendLine();
             sb.AppendFormat("  ShortEntryTriggeredCount:{0}", ece.DataCollector.ShortEntryTriggeredCount).AppendLine();
-            Logs.Info(sb.ToString());
+            Logs.WriteRunSummary(sb.ToString());
         }
         #endregion
     }
