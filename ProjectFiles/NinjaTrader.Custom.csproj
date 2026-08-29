@@ -78,11 +78,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DAustin\Common\Orders\TradeEvent.cs" />
+    <Compile Include="DAustin\Common\Reporting\BaseCSVWriter.cs" />
     <Compile Include="DAustin\Common\Reporting\CompletedTradeBarsReportGenerator.cs" />
+    <Compile Include="DAustin\Common\Reporting\TradeCSVWriter.cs" />
     <Compile Include="DAustin\Common\Reporting\TradeEventTableFormatter.cs" />
     <Compile Include="DAustin\Common\Reporting\TradeSummaryData.cs" />
     <Compile Include="DAustin\Common\TelemetryBarBase.cs" />
     <Compile Include="DAustin\Extensions\TradeExtensions.cs" />
+    <Compile Include="DAustin\Interfaces\ICSVDataSource.cs" />
     <Compile Include="DAustin\Interfaces\ITelemetryBar.cs" />
     <Compile Include="DAustin\Logging\StrategyLogging.cs" />
     <Compile Include="DAustin\Logging\StrategyLoggingOptions.cs" />
@@ -421,6 +424,7 @@
     <Compile Include="Strategies\DAustin\OPNDRV\OptimizationParameters_OPNDRV.cs" />
     <Compile Include="Strategies\DAustin\OPNDRV\Strat_OPNDRV.cs" />
     <Compile Include="Strategies\DAustin\OPNDRV\TelemetryBar_OPNDRV.cs" />
+    <Compile Include="Strategies\DAustin\OPNDRV\TradeContext_OPNDRV.cs" />
     <Compile Include="Strategies\DAustin\StratComponents\DataCollectors\ECE_ORB_DataCollector.cs" />
     <Compile Include="Strategies\DAustin\StratComponents\DataCollectors\ECE_TrendCL_DataCollector.cs" />
     <Compile Include="Strategies\DAustin\StratComponents\DataCollectors\ECE_TREND_DataCollector.cs" />

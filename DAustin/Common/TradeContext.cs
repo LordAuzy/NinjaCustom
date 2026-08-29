@@ -85,8 +85,7 @@ namespace NinjaTrader.Custom.DAustin.Common
             {
                 if (roundTripTradeData == null)
                 {
-                    roundTripTradeData = new ClosedTrade();
-                    roundTripTradeData.StrategyVersion = EntryConditionsEvaluator.Strategy.StrategyVersion;
+                    roundTripTradeData = new ClosedTrade(EntryConditionsEvaluator.Strategy);
                 }
                 return roundTripTradeData;  
             } 
@@ -322,6 +321,14 @@ namespace NinjaTrader.Custom.DAustin.Common
                 TradeStateIndex = index;
             }
             return StateList[TradeStateIndex];
+        }
+
+        public virtual void AddDataSources(TradeCSVWriter csvw)
+        {
+            if (roundTripTradeData != null)
+            {
+                csvw.AddDataSource(roundTripTradeData);
+            }
         }
 
         public virtual void SessionReset()

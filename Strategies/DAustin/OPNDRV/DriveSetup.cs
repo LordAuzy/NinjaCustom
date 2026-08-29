@@ -1,4 +1,5 @@
 ﻿using NinjaTrader.Cbi;
+using NinjaTrader.Custom.DAustin.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
 {
-    public class DriveSetup
+    public class DriveSetup : ICSVDataSource
     {
         public MarketPosition Direction { get; set; }
         public DriveState Drive { get; set; }
@@ -21,5 +22,71 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
         public DriveSetup()
         {
         }
+
+        public DriveSetup Clone()
+        {
+            return new DriveSetup
+            {
+                Direction = Direction,
+                Drive = Drive?.Clone(),
+                DriveCompletedBar = DriveCompletedBar,
+                VWAP = VWAP,
+                VWAPSlopeATR = VWAPSlopeATR,
+                VWAPDistanceATR = VWAPDistanceATR,
+                EMASpreadATR = EMASpreadATR,
+                CloseLocation = CloseLocation
+            };
+        }
+
+        #region ICSVDataSource Implementation
+        private static readonly List<string> _columnNames = new List<string>
+        {
+            "DriveRangeATR",
+            "DriveNetMoveATR",
+            "DriveEfficiency",
+            "DriveCloseLocation",
+            "DriveVWAPDistanceATR",
+            "DriveVWAPSlopeATR",
+            "DriveEMASpreadATR"
+        };
+
+        public List<string> GetColumnNames(List<string> columns)
+        {
+            List<string> columnNames = columns;
+
+            if (columnNames == null)
+            {   // if list wasn't passed in, create a new list to return
+                columnNames = new List<string>();
+            }
+
+            columnNames.AddRange(_columnNames);
+            return columnNames;
+        }
+
+        public List<string> FirstDataRow(List<string> data)
+        {
+            List<string> dataRow = data;
+
+            if (dataRow == null)
+            {   // if list wasn't passed in, create a new list to return
+                dataRow = new List<string>();
+            }
+
+            dataRow.Add(Drive.RangeATR.ToString("F2"));
+            dataRow.Add(Drive.NetMoveAtr.ToString("F2"));
+            dataRow.Add(Drive.Efficiency.ToString("F2"));
+            dataRow.Add(CloseLocation.ToString("F2"));
+            dataRow.Add(VWAPDistanceATR.ToString("F2"));
+            dataRow.Add(VWAPSlopeATR.ToString("F2"));
+            dataRow.Add(EMASpreadATR.ToString("F2"));
+
+            return dataRow;
+        }
+
+        public List<string> NextDataRow(List<string> data)
+        {
+            return FirstDataRow(data);
+        }
+        #endregion
     }
 }

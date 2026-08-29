@@ -177,6 +177,13 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
                 bool controlledBar = barRange <= EntryOptParams.MaxPullbackBarRangeATR * atr;
                 bool entryDistanceValid = (entryPrice - vwap) <= EntryOptParams.MaxEntryDistanceATR * atr;
 
+                DataCollector.DriveSetupLongCount++;
+                if (retracementValid) { DataCollector.LongRetracementValidCount++; }
+                if (vwapValid) { DataCollector.LongVWAPValidCount++; }
+                if (trendValid) { DataCollector.LongTrendValidCount++; }
+                if (controlledBar) { DataCollector.LongControlledBarCount++; }
+                if (entryDistanceValid) { DataCollector.LongEntryDistanceValidCount++; }
+
                 // -----------------------------------------
                 // Entry
                 // -----------------------------------------
@@ -186,6 +193,8 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
                     controlledBar &&
                     entryDistanceValid)
                 {
+                    DataCollector.DriveSetupLongTriggeredCount++;
+
                     double initialStop = PullbackState.PullbackLow - EntryOptParams.InitialStopATRBuffer * atr;
                     double risk = entryPrice - initialStop;
 
@@ -235,6 +244,13 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
                 bool controlledBar = barRange <= EntryOptParams.MaxPullbackBarRangeATR * atr;
                 bool entryDistanceValid = (vwap - entryPrice) <= EntryOptParams.MaxEntryDistanceATR * atr;
 
+                DataCollector.DriveSetupShortCount++;
+                if (retracementValid) { DataCollector.ShortRetracementValidCount++; }
+                if (vwapValid) { DataCollector.ShortVWAPValidCount++; }
+                if (trendValid) { DataCollector.ShortTrendValidCount++; }
+                if (controlledBar) { DataCollector.ShortControlledBarCount++; }
+                if (entryDistanceValid) { DataCollector.ShortEntryDistanceValidCount++; }
+
                 // -----------------------------------------
                 // Entry
                 // -----------------------------------------
@@ -244,6 +260,8 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
                     controlledBar &&
                     entryDistanceValid)
                 {
+                    DataCollector.DriveSetupShortTriggeredCount++;
+
                     double initialStop = PullbackState.PullbackHigh + EntryOptParams.InitialStopATRBuffer * atr;
                     double risk = initialStop - entryPrice;
 
@@ -271,6 +289,9 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             // -----------------------------------
             if (orderTicket != null)
             {
+                TradeContext_OPNDRV tcOD = tradeContext as TradeContext_OPNDRV;
+                tcOD.DriveSetup = DriveSetup.Clone();
+
                 //double riskMultiplier = Indicators.SizingFilter.GetCurrentSizingMultiplier(Strategy.Time[0]);
                 double riskMultiplier = 1;
                 double riskPct = OptParamsOPNDRV.General.EquityRiskPercent;

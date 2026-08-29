@@ -1491,10 +1491,10 @@ namespace NinjaTrader.Custom.DAustin.Common
                             Logs.Debug(simTime, "Exit reason overridden to 'MaxTime' due to MaxTradeMinutesExitShort criteria met.");
                         }
 
-
-
                         Logs.Debug(simTime, "Committing complete RoundTrip trade records to persistent log. Cycle cleanup incoming.");
-                        WriteTradeToLog(tc.RoundTripData);
+                        TradeCSVWriter csvw = new TradeCSVWriter(Strategy);
+                        tc.AddDataSources(csvw);
+                        csvw.LogCSV();
                         // Reset active context tracking object
                         tc.RoundTripData = null;
 
@@ -1646,9 +1646,9 @@ namespace NinjaTrader.Custom.DAustin.Common
 
         private void WriteTradeToLog(ClosedTrade tradeData)
         {
-            CompletedTradeReportGenerator rptGen = new CompletedTradeReportGenerator(Strategy);            
-            // Write trade data
-            rptGen.LogCompletedTrade(tradeData);
+            TradeCSVWriter csvw = new TradeCSVWriter(Strategy);
+            csvw.AddDataSource(tradeData);
+            csvw.LogCSV();
         }
 
         private void WriteTradeTelemetryToLog(List<ITelemetryBar> completedTradeBars)

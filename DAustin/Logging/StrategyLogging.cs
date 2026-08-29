@@ -662,7 +662,7 @@ namespace NinjaTrader.Custom.DAustin.Logging
                     "Trades");
 
             string fileName =
-                $"Trades_v{TradeCSVSchemaVersion}_{logTime:yyyy-MM}.csv";
+                $"Trades_v{TradeCSVSchemaVersion}_{RunId}.csv";
 
             return Path.Combine(
                 tradesDirectory,
@@ -677,7 +677,7 @@ namespace NinjaTrader.Custom.DAustin.Logging
                     "Trades");
 
             string fileName =
-                $"TradeBarTelemetry_v{TelemetryCSVSchemaVersion}_{logTime:yyyy-MM}.csv";
+                $"TradeBarTelemetry_v{TelemetryCSVSchemaVersion}_{RunId}.csv";
 
             return Path.Combine(
                 tradesDirectory,

@@ -62,5 +62,19 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
         {
         }
         #endregion
+
+        #region Public Methods
+        public DriveState Clone()
+        {
+            return new DriveState
+            {
+                High = High,
+                Low = Low,
+                Open = Open,
+                Close = Close,
+                ATR = ATR
+            };
+        }
+        #endregion
     }
 }

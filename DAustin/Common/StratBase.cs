@@ -558,5 +558,13 @@ namespace NinjaTrader.Custom.DAustin.Common
             GlobalDiagnosticsContext.Set("TradeBarsCSVSchemaVersion", CompletedTradeBarsReportGenerator.TradeCSVSchemaVersion);
         }
         #endregion
+
+        #region OverrideableMethods
+        public virtual TradeContext CreateTradeContext(IEntryConditionsEvaluator ece)
+        {
+            return new TradeContext(ece);
+        }
+
+        #endregion
     }
 }

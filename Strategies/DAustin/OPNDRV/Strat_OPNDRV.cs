@@ -720,9 +720,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                     ece.Indicators = indicators;
                     ece.OptParams = OptParams;
 
-                    // setup the trade context and add it to the trade manager
-                    TradeContext tc = new TradeContext(ece);
-                    tc.EntryConditionsEvaluator = ece;
                     List<TradeState> stateList = new List<TradeState>()
                     {
                         TradeState.Idle,
@@ -760,6 +757,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // tradeContext resets.
                     stateList.Add(TradeState.StopMovePending);
 
+                    TradeContext tc = CreateTradeContext(ece);
                     tc.StateList = stateList;
                     tc.SetState(TradeState.Idle);
                     if (OptParams.Time.TimeZone != TimeWindowTimeZone.None && !String.IsNullOrEmpty(OptParams.Time.FlattenTOD))
@@ -831,6 +829,11 @@ namespace NinjaTrader.NinjaScript.Strategies
             return new TelemetryBar_OPNDRV(this, indicators);
         }
 
+        public override TradeContext CreateTradeContext(IEntryConditionsEvaluator ece)
+        {
+            return new TradeContext_OPNDRV(ece);
+        }
+
         protected override void OnBacktestComplete()
         {   //do whatever you need to do at the end of a backtest here. Logging final results, etc.
             ECE_OPNDRV ece = GetEntryConditionsEvaluator("ECE-" + stratIdentifier) as ECE_OPNDRV;
@@ -844,19 +847,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             sb.AppendLine("==Backtest complete==");
             sb.AppendFormat("Backtest date range from {0:M/d/yy} to {1:M/d/yy}", Bars.GetTime(0), Bars.GetTime(Bars.Count - 1)).AppendLine();
             optParams.ToStringBuilder(sb);
-            sb.AppendLine("==Entry Trigger Data==");
-            sb.AppendFormat("  AboveVWAPCount:{0}", ece.DataCollector.AboveVWAPCount).AppendLine();
-            sb.AppendFormat("  UpTrendCount:{0}", ece.DataCollector.UpTrendCount).AppendLine();
-            sb.AppendFormat("  UpTrendChopZoneCount:{0}", ece.DataCollector.UpTrendChopZoneCount).AppendLine();
-            sb.AppendFormat("  ValidPullbackLongCount:{0}", ece.DataCollector.ValidPullbackLongCount).AppendLine();
-            sb.AppendFormat("  BullishTriggerCount:{0}", ece.DataCollector.BullishTriggerCount).AppendLine();
-            sb.AppendFormat("  LongEntryTriggeredCount:{0}", ece.DataCollector.LongEntryTriggeredCount).AppendLine();
-            sb.AppendFormat("  BelowVWAPCount:{0}", ece.DataCollector.BelowVWAPCount).AppendLine();
-            sb.AppendFormat("  DownTrendCount:{0}", ece.DataCollector.DownTrendCount).AppendLine();
-            sb.AppendFormat("  DownTrendChopZoneCount:{0}", ece.DataCollector.DownTrendChopZoneCount).AppendLine();
-            sb.AppendFormat("  ValidPullShortCount:{0}", ece.DataCollector.ValidPullShortCount).AppendLine();
-            sb.AppendFormat("  BearishTriggerCount:{0}", ece.DataCollector.BearishTriggerCount).AppendLine();
-            sb.AppendFormat("  ShortEntryTriggeredCount:{0}", ece.DataCollector.ShortEntryTriggeredCount).AppendLine();
+            ece.DataCollector.ToStringBuilder(sb);
             Logs.WriteRunSummary(sb.ToString());
         }
         #endregion

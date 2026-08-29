@@ -1,4 +1,7 @@
-﻿using NinjaTrader.Custom.Strategies.DAustin.Common;
+﻿using NinjaTrader.Cbi;
+using NinjaTrader.Custom.Strategies.DAustin.Common;
+using NinjaTrader.Custom.Strategies.DAustin.OPNDRV;
+using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.MarketAnalyzerColumns;
 using NinjaTrader.NinjaScript.Strategies;
 using System;
@@ -11,30 +14,41 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
 {
     public class ECE_OPNDRV_DataCollector
     {
-        // EvaluateGeminiNoChop counters
-        public int BiasLongCount { get; set; } = 0;
-        public int BiasShortCount { get; set; } = 0;
-        public int EnvironmentHealthyCountLong { get; set; } = 0;
-        public int EnvironmentHealthyCountShort { get; set; } = 0;
-        public int EntryLongCount { get; set; } = 0;
-        public int EntryShortCount { get; set; } = 0;
-        public int LongDepartureCount { get; set; } = 0;
-        public int LongChopCount { get; set; } = 0;
-        public int ShortDepartureCount { get; set; } = 0;
-        public int ShortChopCount { get; set; } = 0;
+        public int DriveSetupLongCount { get; set; } = 0;
+        public int LongRetracementValidCount { get; set; } = 0;
+        public int LongVWAPValidCount { get; set; } = 0;
+        public int LongTrendValidCount { get; set; } = 0;
+        public int LongControlledBarCount { get; set; } = 0;
+        public int LongEntryDistanceValidCount { get; set; } = 0;
+        public int DriveSetupLongTriggeredCount { get; set; } = 0;
 
-        // EvaluateChatGPTNoChop counters
-        public int AboveVWAPCount { get; set; } = 0;
-        public int BelowVWAPCount { get; set; } = 0;
-        public int UpTrendCount { get; set; } = 0;
-        public int DownTrendCount { get; set; } = 0;
-        public int UpTrendChopZoneCount { get; set; } = 0;
-        public int DownTrendChopZoneCount { get; set; } = 0;
-        public int ValidPullbackLongCount { get; set; } = 0;
-        public int ValidPullShortCount { get; set; } = 0;
-        public int BullishTriggerCount { get; set; } = 0;
-        public int BearishTriggerCount { get; set; } = 0;
-        public int LongEntryTriggeredCount { get; set; } = 0; 
-        public int ShortEntryTriggeredCount { get; set; } = 0;
+        public int DriveSetupShortCount { get; set; } = 0;
+        public int ShortRetracementValidCount { get; set; } = 0;
+        public int ShortVWAPValidCount { get; set; } = 0;
+        public int ShortTrendValidCount { get; set; } = 0;
+        public int ShortControlledBarCount { get; set; } = 0;
+        public int ShortEntryDistanceValidCount { get; set; } = 0;
+        public int DriveSetupShortTriggeredCount { get; set; } = 0;
+
+        public void ToStringBuilder(StringBuilder sb)
+        {
+            sb.AppendLine("==Entry Trigger Data==");
+            sb.AppendLine("  ==Long==");
+            sb.AppendLine($"  DriveSetupLongCount: {DriveSetupLongCount}");
+            sb.AppendLine($"  LongRetracementValidCount: {LongRetracementValidCount}");
+            sb.AppendLine($"  LongVWAPValidCount: {LongVWAPValidCount}");
+            sb.AppendLine($"  LongTrendValidCount: {LongTrendValidCount}");
+            sb.AppendLine($"  LongControlledBarCount: {LongControlledBarCount}");
+            sb.AppendLine($"  LongEntryDistanceValidCount: {LongEntryDistanceValidCount}");
+            sb.AppendLine($"  DriveSetupLongTriggeredCount: {DriveSetupLongTriggeredCount}");
+            sb.AppendLine("  ==Short==");
+            sb.AppendLine($"  DriveSetupShortCount: {DriveSetupShortCount}");
+            sb.AppendLine($"  ShortRetracementValidCount: {ShortRetracementValidCount}");
+            sb.AppendLine($"  ShortVWAPValidCount: {ShortVWAPValidCount}");
+            sb.AppendLine($"  ShortTrendValidCount: {ShortTrendValidCount}");
+            sb.AppendLine($"  ShortControlledBarCount: {ShortControlledBarCount}");
+            sb.AppendLine($"  ShortEntryDistanceValidCount: {ShortEntryDistanceValidCount}");
+            sb.AppendLine($"  DriveSetupShortTriggeredCount: {DriveSetupShortTriggeredCount}");
+        }
     }
 }
