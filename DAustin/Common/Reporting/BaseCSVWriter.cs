@@ -13,6 +13,8 @@ namespace NinjaTrader.Custom.DAustin.Common.Reporting
     {
         #region Properties
         private List<ICSVDataSource> _csvDataSources = new List<ICSVDataSource>();
+        public int DataSourceCount { get { return _csvDataSources.Count(); } }
+
         public StratBase Strategy { get; private set; }
         #endregion
 
@@ -42,29 +44,45 @@ namespace NinjaTrader.Custom.DAustin.Common.Reporting
 
         public void LogCSV()
         {
-            DateTime simTime = Strategy.GetDataTimeForLogger();
-            List<string> colNames = new List<string>();
-            List<string> dataRow = new List<string>();
-
-            foreach (var dataSource in _csvDataSources)
+            if (_csvDataSources != null && _csvDataSources.Count > 0)
             {
-                dataSource.GetColumnNames(colNames);
-            }
-            EnsureCSVHeaderExists(simTime, colNames);
 
-            foreach (var dataSource in _csvDataSources)
-            {
-                dataSource.FirstDataRow(dataRow);
-            }
+                DateTime simTime = Strategy.GetDataTimeForLogger();
+                List<string> colNames = new List<string>();
+                List<string> dataRow = new List<string>();
 
-            if (dataRow.Count == colNames.Count)
-            {   // only write the row if the number of data items
-                // matches the number of columns
-                WriteCSV(simTime, dataRow);
+                foreach (ICSVDataSource dataSource in _csvDataSources)
+                {
+                    dataSource.GetColumnNames(colNames);
+                    dataSource.Rewind();
+                }
+                EnsureCSVHeaderExists(simTime, colNames);
+
+                do
+                {
+                    dataRow.Clear();
+                    foreach (ICSVDataSource dataSource in _csvDataSources)
+                    {
+                        if (dataSource != null && dataRow != null)
+                        {
+                            dataRow = dataSource.NextDataRow(dataRow);
+                        }
+                        else
+                        {
+                            Strategy.Logs.Warn("Encountered a null dataSource in the _csvDatasources collection");
+                            dataRow = null;
+                        }
+                    }
+
+                    if (dataRow != null && dataRow.Count > 0)
+                    {
+                        WriteCSV(simTime, dataRow);
+                    }
+                } while (dataRow != null);
             }
             else
             {
-                Strategy.Logs.Warn($"Data row count ({dataRow.Count}) does not match column count ({colNames.Count}). Row not logged.");
+                Strategy.Logs.Warn("Attempting to log to CSV when _csvDatasources is empty");
             }
         }
         #endregion

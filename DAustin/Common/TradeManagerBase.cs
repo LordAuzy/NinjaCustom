@@ -1348,7 +1348,7 @@ namespace NinjaTrader.Custom.DAustin.Common
             DateTime time)
         {
             var simTime = Strategy.GetDataTimeForLogger();
-            Logs.Trace(simTime, ">TradeManagerBase.OnExecutionUpdate>");
+            Logs.Trace(simTime, ">");
 
             // FIX 1: Move defensive null validation to the absolute top to prevent property evaluation crashes
             if (execution == null || execution.Order == null)
@@ -1491,15 +1491,26 @@ namespace NinjaTrader.Custom.DAustin.Common
                             Logs.Debug(simTime, "Exit reason overridden to 'MaxTime' due to MaxTradeMinutesExitShort criteria met.");
                         }
 
-                        Logs.Debug(simTime, "Committing complete RoundTrip trade records to persistent log. Cycle cleanup incoming.");
+                        Logs.Debug(simTime, "Committing complete RoundTrip trade records to persistent log.");
                         TradeCSVWriter csvw = new TradeCSVWriter(Strategy);
                         tc.AddDataSources(csvw);
                         csvw.LogCSV();
-                        // Reset active context tracking object
+                        Logs.Debug(simTime, "Nulling out RoundTripData.");
                         tc.RoundTripData = null;
 
-                        WriteTradeTelemetryToLog(tc.TradeBars);
-                        tc.TradeBars.Clear(); 
+                        Logs.Debug(simTime, "Committing Tradebar telemetry to persistent log.");
+                        TelemetryCSVWriter telemetryCsvw = new TelemetryCSVWriter(Strategy);
+                        tc.AddDataSources(telemetryCsvw);
+                        if (telemetryCsvw.DataSourceCount == 0)
+                        {
+                            Logs.Debug("DataSource collection is empty. No Tradebars to log");
+                        }
+                        else
+                        {
+                            telemetryCsvw.LogCSV();
+                        }
+                        Logs.Debug(simTime, "Nulling out Tradebars.");
+                        tc.TradeBars = null;
                     }
                     else
                     {
@@ -1512,8 +1523,7 @@ namespace NinjaTrader.Custom.DAustin.Common
                 Logs.Error(simTime, ex, "Exception encountered inside OnExecutionUpdate loop processing ExecId: {0} for OrderId: {1}",
                             executionId ?? "UNKNOWN", orderId ?? "UNKNOWN");
             }
-
-            Logs.Trace(simTime, "<TradeManagerBase.OnExecutionUpdate<");
+            Logs.Trace(simTime, "<");
         }
 
         private string AnalyticsSummaryLogString(
@@ -1642,20 +1652,6 @@ namespace NinjaTrader.Custom.DAustin.Common
                     }
                 }
             }
-        }
-
-        private void WriteTradeToLog(ClosedTrade tradeData)
-        {
-            TradeCSVWriter csvw = new TradeCSVWriter(Strategy);
-            csvw.AddDataSource(tradeData);
-            csvw.LogCSV();
-        }
-
-        private void WriteTradeTelemetryToLog(List<ITelemetryBar> completedTradeBars)
-        {
-            CompletedTradeBarsReportGenerator rptGen = new CompletedTradeBarsReportGenerator(Strategy);
-            // Write trade data
-            rptGen.LogCompletedTradeBars(completedTradeBars);
         }
 
         public void OnOrderTrace(

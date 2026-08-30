@@ -42,7 +42,7 @@ namespace NinjaTrader.Custom.DAustin.Common.Reporting
         public int SessionTradeNumber { get; set; }
         public Instrument Instrument { get; set; } = null;
         public Cbi.Account Account { get; set; } = null;
-         public MarketPosition Direction { get; set; }
+        public MarketPosition Direction { get; set; }
 
         public ExecutionLeg Entry { get; } = new ExecutionLeg();
         public ExecutionLeg Exit { get; } = new ExecutionLeg();
@@ -51,8 +51,18 @@ namespace NinjaTrader.Custom.DAustin.Common.Reporting
         public double InitialRisk { get; set; }
         public double HighestHighSinceEntry { get; set; }
         public double LowestLowSinceEntry { get; set; }
+        #endregion
+
+        #region Constructors
+        public ClosedTrade(StratBase strategy)
+        {
+            Strategy = strategy;
+            StrategyVersion = Strategy.StrategyVersion;
+        }
+        #endregion
 
         #region ICSVDataSource Implementation
+        int dataRowIndex = 0;
         private static readonly List<string> _columnNames = new List<string>
         {
             "StrategyVersion",
@@ -85,15 +95,6 @@ namespace NinjaTrader.Custom.DAustin.Common.Reporting
             "EntrySlippage",
             "ExitSlippage"
         };
-        #endregion
-
-        #region Constructors
-        public ClosedTrade(StratBase strategy)
-        {
-            Strategy = strategy;
-            StrategyVersion = Strategy.StrategyVersion;
-        }
-        #endregion
 
         public List<string> GetColumnNames(List<string> columns = null)
         {
@@ -108,59 +109,70 @@ namespace NinjaTrader.Custom.DAustin.Common.Reporting
             return columnNames;
         }
 
-        public List<string> FirstDataRow(List<string> data) 
-        { 
-            List<string> dataRow = data;
+        public List<string> NextDataRow(List<string> data)
+        {
+            List<string> dataRow = null;
 
-            if (dataRow == null)
-            {   // if list wasn't passed in, create a new list to return
-                dataRow = new List<string>();
-            }
-
-            if (Metrics == null)
+            dataRowIndex++;
+            // this data source only has one row of data,
+            // so return null after the first row is returned
+            if (dataRowIndex == 1)
             {
-                Metrics = BuildTradePerformance();
-            }
+                dataRow = data;
 
-            if (Metrics != null)
-            {   // now we are ready to populate the data row with trade information
-                dataRow.Add(StrategyVersion);
-                dataRow.Add(Strategy.Logs.RunId.ToString());
-                dataRow.Add(TradeId);
-                dataRow.Add(Entry.DateTime.ToString("yyyy-MM-dd"));
-                dataRow.Add(SessionTradeNumber.ToString());
-                dataRow.Add(Instrument?.FullName ?? "");
-                dataRow.Add(Account?.Name ?? "");
-                dataRow.Add(Direction.ToString());
-                dataRow.Add(Entry.Quantity.ToString());
-                dataRow.Add(Entry.SignalPrice.ToString("F2"));
-                dataRow.Add(Entry.FillPrice.ToString("F2"));
-                dataRow.Add(Exit.SignalPrice.ToString("F2"));
-                dataRow.Add(Exit.FillPrice.ToString("F2"));
-                dataRow.Add(Entry.DateTime.ToString("yyyy-MM-dd HH:mm:ss.fff"));
-                dataRow.Add(Exit.DateTime.ToString("yyyy-MM-dd HH:mm:ss.fff"));
-                dataRow.Add(Exit.Quantity.ToString());
-                dataRow.Add(Exit.Reason ?? "");
-                dataRow.Add(Metrics.GrossProfit.ToString("F2"));
-                dataRow.Add(Metrics.GrossProfitR.ToString("F2"));
-                dataRow.Add(Metrics.Commission.ToString("F2"));
-                dataRow.Add(Metrics.NetProfit.ToString("F2"));
-                dataRow.Add(Metrics.Duration.TotalMinutes.ToString("F2"));
-                dataRow.Add(InitialRisk.ToString("F2"));
-                dataRow.Add(HighestHighSinceEntry.ToString("F2"));
-                dataRow.Add(LowestLowSinceEntry.ToString("F2"));
-                dataRow.Add(Metrics.MAE.ToString("F2"));
-                dataRow.Add(Metrics.MFE.ToString("F2"));
-                dataRow.Add(Metrics.EntrySlippage.ToString("F4"));
-                dataRow.Add(Metrics.ExitSlippage.ToString("F4"));
+                if (dataRow == null)
+                {   // if list wasn't passed in, create a new list to return
+                    dataRow = new List<string>();
+                }
+
+                if (Metrics == null)
+                {
+                    Metrics = BuildTradePerformance();
+                }
+
+                if (Metrics != null)
+                {   // now we are ready to populate the data row with trade information
+                    dataRow.Add(StrategyVersion);
+                    dataRow.Add(Strategy.Logs.RunId.ToString());
+                    dataRow.Add(TradeId);
+                    dataRow.Add(Entry.DateTime.ToString("yyyy-MM-dd"));
+                    dataRow.Add(SessionTradeNumber.ToString());
+                    dataRow.Add(Instrument?.FullName ?? "");
+                    dataRow.Add(Account?.Name ?? "");
+                    dataRow.Add(Direction.ToString());
+                    dataRow.Add(Entry.Quantity.ToString());
+                    dataRow.Add(Entry.SignalPrice.ToString("F2"));
+                    dataRow.Add(Entry.FillPrice.ToString("F2"));
+                    dataRow.Add(Exit.SignalPrice.ToString("F2"));
+                    dataRow.Add(Exit.FillPrice.ToString("F2"));
+                    dataRow.Add(Entry.DateTime.ToString("yyyy-MM-dd HH:mm:ss.fff"));
+                    dataRow.Add(Exit.DateTime.ToString("yyyy-MM-dd HH:mm:ss.fff"));
+                    dataRow.Add(Exit.Quantity.ToString());
+                    dataRow.Add(Exit.Reason ?? "");
+                    dataRow.Add(Metrics.GrossProfit.ToString("F2"));
+                    dataRow.Add(Metrics.GrossProfitR.ToString("F2"));
+                    dataRow.Add(Metrics.Commission.ToString("F2"));
+                    dataRow.Add(Metrics.NetProfit.ToString("F2"));
+                    dataRow.Add(Metrics.Duration.TotalMinutes.ToString("F2"));
+                    dataRow.Add(InitialRisk.ToString("F2"));
+                    dataRow.Add(HighestHighSinceEntry.ToString("F2"));
+                    dataRow.Add(LowestLowSinceEntry.ToString("F2"));
+                    dataRow.Add(Metrics.MAE.ToString("F2"));
+                    dataRow.Add(Metrics.MFE.ToString("F2"));
+                    dataRow.Add(Metrics.EntrySlippage.ToString("F4"));
+                    dataRow.Add(Metrics.ExitSlippage.ToString("F4"));
+                }
             }
-            return dataRow; 
+            return dataRow;
         }
 
-        // This only ever has one row of data, so NextDataRow is not applicable.
-        // It is implemented to satisfy the interface.
-        public List<string> NextDataRow(List<string> data) { return null; }
+        public void Rewind()
+        {
+            dataRowIndex = 0;
+        }
+        #endregion
 
+        #region Private Methods
         private TradePerformance BuildTradePerformance()
         {
             if (Entry == null || Exit == null)
@@ -233,5 +245,5 @@ namespace NinjaTrader.Custom.DAustin.Common.Reporting
             return tp;
         }
         #endregion
-        }
+    }
 }

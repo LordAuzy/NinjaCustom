@@ -590,6 +590,9 @@ namespace NinjaTrader.NinjaScript.Strategies
         #region Properties
         [Browsable(false)]
         public string stratIdentifier { get; set; } = StratIdentifiers.OPNDRV;
+        public override string TradeCSVSchemaVersion => "1.0.0";
+        public override string TelemetryCSVSchemaVersion => "1.0.0";
+
         #endregion
         /*
         The Standard Lifecycle Order
@@ -705,8 +708,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                         instrumentName: Instrument.FullName,
                         accountName: Account != null ? Account.Name : "Backtest",
                         options: logOptions,
-                        tradeCSVSchemaVersion: CompletedTradeReportGenerator.TradeCSVSchemaVersion,
-                        telemetryCSVSchemaVersion: CompletedTradeBarsReportGenerator.TradeCSVSchemaVersion);
+                        tradeCSVSchemaVersion: TradeCSVSchemaVersion,
+                        telemetryCSVSchemaVersion: TelemetryCSVSchemaVersion);
 
                     // initialize indicators
                     Indicators_OPNDRV indicators = GetIndicators("IDC-" + stratIdentifier) as Indicators_OPNDRV;

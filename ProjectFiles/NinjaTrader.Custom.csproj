@@ -80,10 +80,12 @@
     <Compile Include="DAustin\Common\Orders\TradeEvent.cs" />
     <Compile Include="DAustin\Common\Reporting\BaseCSVWriter.cs" />
     <Compile Include="DAustin\Common\Reporting\CompletedTradeBarsReportGenerator.cs" />
+    <Compile Include="DAustin\Common\Reporting\TelemetryCSVWriter.cs" />
     <Compile Include="DAustin\Common\Reporting\TradeCSVWriter.cs" />
     <Compile Include="DAustin\Common\Reporting\TradeEventTableFormatter.cs" />
     <Compile Include="DAustin\Common\Reporting\TradeSummaryData.cs" />
     <Compile Include="DAustin\Common\TelemetryBarBase.cs" />
+    <Compile Include="DAustin\Common\TelemetryBarCollection.cs" />
     <Compile Include="DAustin\Extensions\TradeExtensions.cs" />
     <Compile Include="DAustin\Interfaces\ICSVDataSource.cs" />
     <Compile Include="DAustin\Interfaces\ITelemetryBar.cs" />
@@ -391,7 +393,6 @@
     <Compile Include="DAustin\Common\FlexibleValue.cs" />
     <Compile Include="DAustin\Common\Orders\OrderTicket.cs" />
     <Compile Include="DAustin\Common\ATRRegimeParameters.cs" />
-    <Compile Include="DAustin\Common\Reporting\CompletedTradeReportGenerator.cs" />
     <Compile Include="DAustin\Common\ScheduleFilter\BiasFilter.cs" />
     <Compile Include="DAustin\Common\ScheduleFilter\ScheduleFilterBase.cs" />
     <Compile Include="DAustin\Common\ScheduleFilter\SizingFilter.cs" />

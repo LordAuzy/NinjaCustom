@@ -648,8 +648,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                         instrumentName: Instrument.FullName,
                         accountName: Account != null ? Account.Name : "Backtest",
                         options: logOptions,
-                        tradeCSVSchemaVersion: CompletedTradeReportGenerator.TradeCSVSchemaVersion,
-                        telemetryCSVSchemaVersion: CompletedTradeBarsReportGenerator.TradeCSVSchemaVersion);
+                        tradeCSVSchemaVersion: TradeCSVSchemaVersion,
+                        telemetryCSVSchemaVersion: TelemetryCSVSchemaVersion);
 
                     // initialize indicators
                     Indicators_VWAPPB_V1 indicators = GetIndicators("IDC-" + stratIdentifier) as Indicators_VWAPPB_V1;

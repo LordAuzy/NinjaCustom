@@ -39,6 +39,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
         }
 
         #region ICSVDataSource Implementation
+        int dataRowIndex = 0;
         private static readonly List<string> _columnNames = new List<string>
         {
             "DriveRangeATR",
@@ -63,29 +64,36 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             return columnNames;
         }
 
-        public List<string> FirstDataRow(List<string> data)
+        public List<string> NextDataRow(List<string> data)
         {
-            List<string> dataRow = data;
+            List<string> dataRow = null;
 
-            if (dataRow == null)
-            {   // if list wasn't passed in, create a new list to return
-                dataRow = new List<string>();
+            dataRowIndex++;
+            // this data source only has one row of data,
+            // so return null after the first row is returned
+            if (dataRowIndex == 1)
+            {
+                dataRow = data;
+
+                if (dataRow == null)
+                {   // if list wasn't passed in, create a new list to return
+                    dataRow = new List<string>();
+                }
+
+                dataRow.Add(Drive.RangeATR.ToString("F2"));
+                dataRow.Add(Drive.NetMoveAtr.ToString("F2"));
+                dataRow.Add(Drive.Efficiency.ToString("F2"));
+                dataRow.Add(CloseLocation.ToString("F2"));
+                dataRow.Add(VWAPDistanceATR.ToString("F2"));
+                dataRow.Add(VWAPSlopeATR.ToString("F2"));
+                dataRow.Add(EMASpreadATR.ToString("F2"));
             }
-
-            dataRow.Add(Drive.RangeATR.ToString("F2"));
-            dataRow.Add(Drive.NetMoveAtr.ToString("F2"));
-            dataRow.Add(Drive.Efficiency.ToString("F2"));
-            dataRow.Add(CloseLocation.ToString("F2"));
-            dataRow.Add(VWAPDistanceATR.ToString("F2"));
-            dataRow.Add(VWAPSlopeATR.ToString("F2"));
-            dataRow.Add(EMASpreadATR.ToString("F2"));
-
             return dataRow;
         }
 
-        public List<string> NextDataRow(List<string> data)
+        public void Rewind()
         {
-            return FirstDataRow(data);
+            dataRowIndex = 0;
         }
         #endregion
     }

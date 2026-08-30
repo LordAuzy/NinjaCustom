@@ -12,27 +12,6 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
 {
     public class TelemetryBar_OPNDRV : TelemetryBarBase
     {
-        #region static
-        private static List<string> s_columnNames { get; } =
-        [
-            "VWAP",
-            "VWAPSlope5",
-            "DistanceFromVWAP",
-            "EMAFast",
-            "EMASlow",
-            //"EMAFastSlope",
-            //"EMASlowSlope",
-            "EMASpread",
-            "EMASpreadSlope5",
-            "ATR",
-            "ADX",
-            "ADXSlope",
-            "DIMinus",
-            "DIPlus"
-        #endregion
-        ];
-
-
         #region Properties
         public double ATR { get; set; } = 0;
         public double VWAP { get; set; } = 0;
@@ -67,7 +46,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
         public override List<string> GetColumnNames()
         {
             List<string> columnNames = base.GetColumnNames();
-            columnNames.AddRange(s_columnNames);
+            columnNames.AddRange(_columnNames);
             return columnNames;
         }
 
@@ -81,8 +60,6 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             rowData.Add(DistanceFromVWAP.ToString(doubleStringFormatter));
             rowData.Add(EMAFast.ToString(doubleStringFormatter));
             rowData.Add(EMASlow.ToString(doubleStringFormatter));
-            //rowData.Add(EMAFastSlope.ToString());
-            //rowData.Add(EMASlowSlope.ToString());
             rowData.Add(EMASpread.ToString(doubleStringFormatter));
             rowData.Add(EMASpreadSlope.ToString(doubleStringFormatter));
             rowData.Add(ATR.ToString(doubleStringFormatter));
@@ -118,5 +95,93 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             DIPlus = indicators.Entry.DM.DiPlus[0];
         }
         #endregion
+
+        #region ICSVDataSource implementation
+        private static readonly List<string> _columnNames = new List<string>
+        {
+            "VWAP",
+            "VWAPSlope5",
+            "DistanceFromVWAP",
+            "EMAFast",
+            "EMASlow",
+            "EMASpread",
+            "EMASpreadSlope5",
+            "ATR",
+            "ADX",
+            "ADXSlope",
+            "DIMinus",
+            "DIPlus"
+        };
+
+        // we need to return a cloned list of column names
+        // before the object has been instantiated, so we
+        // can't always use the instance method GetColumnNames()
+        public static List<string> ColumnNameList(List<string> columns)
+        {
+            // first get for base class
+            List<string> columnNames = TelemetryBarBase.ColumnNameList(columns);
+
+            // then this derived class
+            columnNames.AddRange(_columnNames);
+
+            return columnNames;
+        }
+
+        public int dataRowIndexOPNDRV = 0;
+
+        public override void Rewind()
+        {
+            base.Rewind();
+            dataRowIndexOPNDRV = 0;
+        }
+
+        public override List<string> NextDataRow(List<string> data)
+        {
+            List<string> dataRow = null;
+
+            dataRowIndexOPNDRV++;
+            // this data source only has one row of data,
+            // so return null after the first row is returned
+            if (dataRowIndexOPNDRV == 1)
+            {
+                dataRow = base.NextDataRow(data);
+
+                if (dataRow != null)
+                {
+                    string doubleStringFormatter = "F2";
+
+                    dataRow.Add(VWAP.ToString(doubleStringFormatter));
+                    dataRow.Add(VWAPSlope.ToString(doubleStringFormatter));
+                    dataRow.Add(DistanceFromVWAP.ToString(doubleStringFormatter));
+                    dataRow.Add(EMAFast.ToString(doubleStringFormatter));
+                    dataRow.Add(EMASlow.ToString(doubleStringFormatter));
+                    dataRow.Add(EMASpread.ToString(doubleStringFormatter));
+                    dataRow.Add(EMASpreadSlope.ToString(doubleStringFormatter));
+                    dataRow.Add(ATR.ToString(doubleStringFormatter));
+                    dataRow.Add(ADX.ToString(doubleStringFormatter));
+                    dataRow.Add(ADXSlope.ToString(doubleStringFormatter));
+                    dataRow.Add(DIMinus.ToString(doubleStringFormatter));
+                    dataRow.Add(DIPlus.ToString(doubleStringFormatter));
+                }
+                else
+                {
+                    Strategy.Logs.Warn("base class did not return a row.");
+                }
+            }
+            return dataRow;
+        }
+
+        public override List<string> GetColumnNames(List<string> columns)
+        {
+            // get the base names first
+            List<string> columnNames = base.GetColumnNames(columns);
+
+            // then add the names for this class
+            columnNames.AddRange(_columnNames);
+
+            return columnNames;
+        }
+        #endregion
+
     }
 }

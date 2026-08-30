@@ -47,6 +47,8 @@ namespace NinjaTrader.Custom.DAustin.Common
     {
         #region Properties
         public StrategyLogging Logs { get; set; }
+        public virtual string TradeCSVSchemaVersion => "1.0.0";
+        public virtual string TelemetryCSVSchemaVersion => "1.0.0";
         private bool isLoadedFromXml;
         bool _fullyInitialized = false;
 
@@ -554,8 +556,8 @@ namespace NinjaTrader.Custom.DAustin.Common
         public void SetNLogGDC()
         {
             // this is global and will be the same for all strats
-            GlobalDiagnosticsContext.Set("TradeCSVSchemaVersion", CompletedTradeReportGenerator.TradeCSVSchemaVersion);
-            GlobalDiagnosticsContext.Set("TradeBarsCSVSchemaVersion", CompletedTradeBarsReportGenerator.TradeCSVSchemaVersion);
+            GlobalDiagnosticsContext.Set("TradeCSVSchemaVersion", TradeCSVSchemaVersion);
+            GlobalDiagnosticsContext.Set("TradeBarsCSVSchemaVersion", TelemetryCSVSchemaVersion);
         }
         #endregion
 

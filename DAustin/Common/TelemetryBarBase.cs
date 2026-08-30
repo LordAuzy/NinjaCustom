@@ -14,32 +14,8 @@ using static NinjaTrader.Custom.DAustin.Common.OptimizationParametersBase;
 
 namespace NinjaTrader.Custom.DAustin.Common
 {
-    public class TelemetryBarBase : ITelemetryBar
+    public class TelemetryBarBase : ITelemetryBar, ICSVDataSource
     {
-        #region static members
-        private static List<string> s_columnNames { get; } = 
-        [
-            "StrategyVersion",
-            "TradeId",
-            "BarsSinceEntry",
-            "Time",
-            "Open",
-            "High",
-            "Low",
-            "Close",
-            "Volume",
-            "MarketPosition",
-            "EntryPrice",
-            "Quantity",
-            "CurrentStop",
-            "InitialRisk",
-            "CurrentR",
-            "OpenPnL",
-            "MFE",
-            "MAE"
-        ];
-        #endregion
-
         #region Properties
         [XmlIgnore]
         public StratBase Strategy { get; set; }
@@ -78,7 +54,7 @@ namespace NinjaTrader.Custom.DAustin.Common
 
         public virtual List<string> GetColumnNames()
         {
-            List<string> clonedColNames = new List<string>(s_columnNames);
+            List<string> clonedColNames = new List<string>(_columnNames);
             return clonedColNames;
         }
 
@@ -163,6 +139,119 @@ namespace NinjaTrader.Custom.DAustin.Common
                 return "Short";
             else
                 return "None";
+        }
+        #endregion
+
+        #region ICSVDataSource implementation
+        private static readonly List<string> _columnNames = new List<string>
+        {
+            "StrategyVersion",
+            "TradeId",
+            "BarsSinceEntry",
+            "Time",
+            "Open",
+            "High",
+            "Low",
+            "Close",
+            "Volume",
+            "MarketPosition",
+            "EntryPrice",
+            "Quantity",
+            "CurrentStop",
+            "InitialRisk",
+            "CurrentR",
+            "OpenPnL",
+            "MFE",
+            "MAE"
+        };
+
+        // we need to return a cloned list of column names
+        // before the object has been instantiated, so we
+        // can't always use the instance method GetColumnNames()
+        public static List<string> ColumnNameList(List<string> columns)
+        {
+            List<string> columnNames = columns;
+
+            if (columnNames == null)
+            {   // if list wasn't passed in, create a new list to return
+                columnNames = new List<string>();
+            }
+
+            columnNames.AddRange(_columnNames);
+            return columnNames;
+        }
+
+        public int dataRowIndex = 0;
+
+        public virtual void Rewind()
+        {
+            dataRowIndex = 0;
+        }
+
+        public virtual List<string> NextDataRow(List<string> data)
+        {
+            List<string> dataRow = null;
+
+            dataRowIndex++;
+            // this data source only has one row of data,
+            // so return null after the first row is returned
+            if (dataRowIndex == 1)
+            {
+                dataRow = data;
+
+                if (dataRow == null)
+                {   // if list wasn't passed in, create a new list to return
+                    dataRow = new List<string>();
+                }
+
+                string doubleStringFormatter = "F2";
+                double currentR = 0;
+                double unrealizedPnL = 0;
+
+                if (IsLong())
+                {
+                    unrealizedPnL = Close - EntryPrice;
+                    currentR = (InitialRisk != 0) ? (Close - EntryPrice) / InitialRisk : 0;
+                }
+                else if (IsShort())
+                {
+                    unrealizedPnL = EntryPrice - Close;
+                    currentR = (InitialRisk != 0) ? (EntryPrice - Close) / InitialRisk : 0;
+                }
+
+                dataRow.Add(StrategyVersion);
+                dataRow.Add(TradeId);
+                dataRow.Add(BarsSinceEntry.ToString());
+                dataRow.Add(Time.ToString());
+                dataRow.Add(Open.ToString(doubleStringFormatter));
+                dataRow.Add(High.ToString(doubleStringFormatter));
+                dataRow.Add(Low.ToString(doubleStringFormatter));
+                dataRow.Add(Close.ToString(doubleStringFormatter));
+                dataRow.Add(Volume.ToString("F0"));
+                dataRow.Add(Direction());
+                dataRow.Add(EntryPrice.ToString(doubleStringFormatter));
+                dataRow.Add(Quantity.ToString("F0"));
+                dataRow.Add(CurrentStop.ToString(doubleStringFormatter));
+                dataRow.Add(InitialRisk.ToString(doubleStringFormatter));
+                dataRow.Add(currentR.ToString(doubleStringFormatter));
+                dataRow.Add(unrealizedPnL.ToString(doubleStringFormatter));
+                dataRow.Add(MFE.ToString(doubleStringFormatter));
+                dataRow.Add(MAE.ToString(doubleStringFormatter));
+            }
+            return dataRow;
+        }
+
+        public virtual List<string> GetColumnNames(List<string> columns)
+        {
+            List<string> columnNames = columns;
+
+            if (columnNames == null)
+            {   // if list wasn't passed in, create a new list to return
+                columnNames = new List<string>();
+            }
+
+            columnNames.AddRange(_columnNames);
+            return columnNames;
         }
         #endregion
     }

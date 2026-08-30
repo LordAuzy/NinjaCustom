@@ -709,7 +709,7 @@ namespace NinjaTrader.Custom.DAustin.Logging
             DateTime logTime,
             string header)
         {
-            if (!Options.EnableTradeCSV)
+            if (!Options.EnableTelemetryCSV)
                 return;
 
             string filePath = GetTelemetryCSVFilePath(logTime);

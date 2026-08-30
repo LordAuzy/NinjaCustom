@@ -9,7 +9,7 @@ namespace NinjaTrader.Custom.DAustin.Interfaces
     public interface ICSVDataSource
     {
         List<string> GetColumnNames(List<string> columns);
-        List<string> FirstDataRow(List<string> data);
+        void Rewind();
         List<string> NextDataRow(List<string> data);
     }
 }

@@ -633,8 +633,8 @@ When it happens: The strategy is disabled by you, the workspace is closed, or th
                     instrumentName: Instrument.FullName,
                     accountName: Account != null ? Account.Name : "Backtest",
                     options: logOptions,
-                    tradeCSVSchemaVersion: CompletedTradeReportGenerator.TradeCSVSchemaVersion,
-                    telemetryCSVSchemaVersion: CompletedTradeBarsReportGenerator.TradeCSVSchemaVersion);
+                    tradeCSVSchemaVersion: TradeCSVSchemaVersion,
+                    telemetryCSVSchemaVersion: TelemetryCSVSchemaVersion);
 
                 // initialize indicators
                 NinjaTrader.Custom.Strategies.DAustin.VWAPPB.Indicators_VWAPPB indicators = GetIndicators("IDC-" + stratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPPB.Indicators_VWAPPB;

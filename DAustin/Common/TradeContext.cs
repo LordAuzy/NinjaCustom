@@ -92,7 +92,19 @@ namespace NinjaTrader.Custom.DAustin.Common
             set { roundTripTradeData = value; }
         }
 
-        public List<ITelemetryBar> TradeBars { get; set; } = new List<ITelemetryBar>();
+        private TelemetryBarCollection _tradeBars = null;
+        public TelemetryBarCollection TradeBars
+        {
+            get
+            {
+                if (_tradeBars == null)
+                {
+                    _tradeBars = new TelemetryBarCollection();
+                }
+                return _tradeBars;
+            }
+            set { _tradeBars = value; }
+        }
 
         // Tracks how many R-multiples of profit have been locked in via step trailing.
         // 0 = at break-even, 1 = 1R locked, 2 = 2R locked, etc.
@@ -328,6 +340,15 @@ namespace NinjaTrader.Custom.DAustin.Common
             if (roundTripTradeData != null)
             {
                 csvw.AddDataSource(roundTripTradeData);
+            }
+        }
+
+        public virtual void AddDataSources(TelemetryCSVWriter csvw)
+        {
+            if (TradeBars != null && TradeBars.Count > 0)
+            {   // clone so  in case the TradeBars collection is cleared or modified later,
+                // the CSVWriter still has a copy of the data
+                csvw.AddDataSource(TradeBars.ShallowClone());
             }
         }
 
