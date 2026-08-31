@@ -11,7 +11,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
 {
     public class TradeContext_OPNDRV : TradeContext
     {
-        public DriveSetup DriveSetup { get; set; } = null;
+        public DrvPullbackState PullbackState { get; set; } = null;
 
         #region Constructors
         public TradeContext_OPNDRV() : base()
@@ -31,9 +31,9 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             // first add the base data sources (trade context)
             base.AddDataSources(csvw);
 
-            if (DriveSetup != null) 
+            if (PullbackState != null) 
             {
-                csvw.AddDataSource(DriveSetup);
+                csvw.AddDataSource(PullbackState);
             }
         }
         #endregion

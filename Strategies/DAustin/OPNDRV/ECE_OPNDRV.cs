@@ -54,20 +54,8 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
         public OptimizationParameters_OPNDRV OptParamsOPNDRV { get { return OptParams as OptimizationParameters_OPNDRV; } }
         public ECE_OPNDRV_DataCollector DataCollector { get; private set; } = new ECE_OPNDRV_DataCollector();
         public OpeningDriveState DriveState { get; private set; }
-        private DrvPullbackState _pullbackState = null;
-        public DrvPullbackState PullbackState 
-        { 
-            get 
-            { 
-                if (_pullbackState == null)
-                {
-                    _pullbackState = new DrvPullbackState(DriveSetup);
-                }
-                return _pullbackState;
-            } 
-            set { _pullbackState = value; }
-        }
         public DriveSetup DriveSetup { get; private set; } = null;
+        public DrvPullbackState PullbackState { get; private set; } = null;
         #endregion
 
         #region constructors
@@ -114,6 +102,11 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
                     return null;
                 }
                 EvaluateOpeningDrive();
+
+                // EvaluateOpeningDrive either rejected the drive or created
+                // DriveSetup/PullbackState. Do not treat the drive-completion
+                // bar as a pullback bar.
+                return null;
             }
 
             if (DriveState == OpeningDriveState.DoneForSession)
@@ -122,25 +115,50 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             }
 
             // -----------------------------------
-            // Bars elapsed since drive completion
+            // Must be actively evaluating pullback
             // -----------------------------------
-            int barsAfterDrive = Strategy.CurrentBar - DriveSetup.DriveCompletedBar;
-            if (barsAfterDrive < EntryOptParams.PullbackMinBars)
+            if (DriveState != OpeningDriveState.WaitingForPullback)
             {
-                // haven't hit minimum pullback bars yet,
-                // so just update the pullback extremes.
-                if (DriveSetup.Direction == MarketPosition.Long)
-                {
-                    PullbackState.UpdateLow(Strategy.Low[0]);
-                }
-                else if (DriveSetup.Direction == MarketPosition.Short)
-                {
-                    PullbackState.UpdateHigh(Strategy.High[0]);
-                }
                 return null;
             }
 
-            else if (barsAfterDrive > EntryOptParams.PullbackMaxBars)
+            // -----------------------------------
+            // Bars elapsed since drive completion
+            // -----------------------------------
+            int barsAfterDrive = Strategy.CurrentBar - DriveSetup.DriveCompletedBar;
+            if (barsAfterDrive <= 0)
+            {   // shouldn't happen, but just in case
+                return null;
+            }
+
+            // -----------------------------------
+            // Update evolving pullback state
+            // -----------------------------------
+            PullbackState.IncrementBars();
+            double barRange = Strategy.High[0] - Strategy.Low[0];
+            PullbackState.UpdateBarRange(barRange, atr);
+
+            double vwap = VWAP[0];
+
+            if (DriveSetup.Direction == MarketPosition.Long)
+            {
+                PullbackState.UpdateLow(Strategy.Low[0]);
+                double vwapPenetration = Math.Max(0, vwap - Strategy.Low[0]);
+                PullbackState.UpdateVWAPPenetration(vwapPenetration);
+            }
+            else if (DriveSetup.Direction == MarketPosition.Short)
+            {
+                PullbackState.UpdateHigh(Strategy.High[0]);
+                double vwapPenetration = Math.Max(0, Strategy.High[0] - vwap);
+                PullbackState.UpdateVWAPPenetration(vwapPenetration);
+            }
+
+            if (barsAfterDrive < EntryOptParams.PullbackMinBars)
+            {
+                return null;
+            }
+
+            if (barsAfterDrive > EntryOptParams.PullbackMaxBars)
             {
                 DriveState = OpeningDriveState.DoneForSession;
                 return null;
@@ -151,15 +169,6 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             // ===================================
             if (DriveSetup.Direction == MarketPosition.Long)
             {
-                double vwap = VWAP[0];
-
-                // -----------------------------------------
-                // Update evolving pullback state
-                // -----------------------------------------
-                PullbackState.UpdateLow(Strategy.Low[0]);
-                double vwapPenetration = Math.Max(0, vwap - Strategy.Low[0]);
-                PullbackState.UpdateVWAPPenetration(vwapPenetration);
-
                 // -----------------------------------------
                 // Actual proposed stop-entry price
                 // -----------------------------------------
@@ -173,7 +182,6 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
                 bool retracementValid = rtp >= EntryOptParams.MinRetracementPct && rtp <= EntryOptParams.MaxRetracementPct;
                 bool vwapValid = PullbackState.MaxVWAPPenetration <= EntryOptParams.MaxVWAPPenetrationATR * atr;
                 bool trendValid = fastEMA[0] > slowEMA[0] && Strategy.Close[0] > vwap;
-                double barRange = Strategy.High[0] - Strategy.Low[0];
                 bool controlledBar = barRange <= EntryOptParams.MaxPullbackBarRangeATR * atr;
                 bool entryDistanceValid = (entryPrice - vwap) <= EntryOptParams.MaxEntryDistanceATR * atr;
 
@@ -213,20 +221,12 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
                         orderTicket.StopExpiryBars = EntryOptParams.OrderExpiryBars;
                     }
 
+                    PullbackState.SetEntrySnapshot(atr, entryPrice, vwap);
                     DriveState = OpeningDriveState.EntrySubmitted;
                 }
             }
             else if (DriveSetup.Direction == MarketPosition.Short)
             {
-                double vwap = VWAP[0];
-
-                // -----------------------------------------
-                // Update evolving pullback state
-                // -----------------------------------------
-                PullbackState.UpdateHigh(Strategy.High[0]);
-                double vwapPenetration = Math.Max(0, Strategy.High[0] - vwap);
-                PullbackState.UpdateVWAPPenetration(vwapPenetration);
-
                 // -----------------------------------------
                 // Actual proposed stop-entry price
                 // -----------------------------------------
@@ -240,7 +240,6 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
                 bool retracementValid = rtp >= EntryOptParams.MinRetracementPct && rtp <= EntryOptParams.MaxRetracementPct;
                 bool vwapValid = PullbackState.MaxVWAPPenetration <= EntryOptParams.MaxVWAPPenetrationATR * atr;
                 bool trendValid = fastEMA[0] < slowEMA[0] && Strategy.Close[0] < vwap;
-                double barRange = Strategy.High[0] - Strategy.Low[0];
                 bool controlledBar = barRange <= EntryOptParams.MaxPullbackBarRangeATR * atr;
                 bool entryDistanceValid = (vwap - entryPrice) <= EntryOptParams.MaxEntryDistanceATR * atr;
 
@@ -280,6 +279,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
                         orderTicket.StopExpiryBars = EntryOptParams.OrderExpiryBars;
                     }
 
+                    PullbackState.SetEntrySnapshot(atr, entryPrice, vwap);
                     DriveState = OpeningDriveState.EntrySubmitted;
                 }
             }
@@ -290,7 +290,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             if (orderTicket != null)
             {
                 TradeContext_OPNDRV tcOD = tradeContext as TradeContext_OPNDRV;
-                tcOD.DriveSetup = DriveSetup.Clone();
+                tcOD.PullbackState = PullbackState.Clone();
 
                 //double riskMultiplier = Indicators.SizingFilter.GetCurrentSizingMultiplier(Strategy.Time[0]);
                 double riskMultiplier = 1;
@@ -476,6 +476,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
                     CloseLocation = closeLocation
                 };
 
+                PullbackState = new DrvPullbackState(DriveSetup);
                 DriveState = OpeningDriveState.WaitingForPullback;
             }
             else
