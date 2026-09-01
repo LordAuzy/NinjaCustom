@@ -15,7 +15,7 @@ using System.Windows.Markup;
 
 namespace NinjaTrader.NinjaScript.Strategies
 { 
-    public class ORBStrategy : Strategy
+    public class ORBStrategy : StratBase
     {
         #region Properties
         private TimeWindowPriceRange _openingRange = null;

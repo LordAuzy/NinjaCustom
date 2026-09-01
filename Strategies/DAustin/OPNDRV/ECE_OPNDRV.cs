@@ -131,6 +131,14 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
                 return null;
             }
 
+            // Check this BEFORE updating PullbackState.
+            // Bar MaxBars+1 is outside the permitted pullback.
+            if (barsAfterDrive > EntryOptParams.PullbackMaxBars)
+            {
+                DriveState = OpeningDriveState.DoneForSession;
+                return null;
+            }
+
             // -----------------------------------
             // Update evolving pullback state
             // -----------------------------------
@@ -185,7 +193,6 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
                 bool controlledBar = barRange <= EntryOptParams.MaxPullbackBarRangeATR * atr;
                 bool entryDistanceValid = (entryPrice - vwap) <= EntryOptParams.MaxEntryDistanceATR * atr;
 
-                DataCollector.DriveSetupLongCount++;
                 if (retracementValid) { DataCollector.LongRetracementValidCount++; }
                 if (vwapValid) { DataCollector.LongVWAPValidCount++; }
                 if (trendValid) { DataCollector.LongTrendValidCount++; }
@@ -243,7 +250,6 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
                 bool controlledBar = barRange <= EntryOptParams.MaxPullbackBarRangeATR * atr;
                 bool entryDistanceValid = (vwap - entryPrice) <= EntryOptParams.MaxEntryDistanceATR * atr;
 
-                DataCollector.DriveSetupShortCount++;
                 if (retracementValid) { DataCollector.ShortRetracementValidCount++; }
                 if (vwapValid) { DataCollector.ShortVWAPValidCount++; }
                 if (trendValid) { DataCollector.ShortTrendValidCount++; }
@@ -405,7 +411,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             //
             bool longDisplacement = ds.NetMoveAtr >= p.MinNetMoveATR;
             bool shortDisplacement = ds.NetMoveAtr <= -p.MinNetMoveATR;
-            bool driveNotTooExtended = Math.Abs(ds.NetMoveAtr) <= p.MaxNetMoveATR;
+            bool driveNotTooExtended = p.MaxNetMoveATR <= 0 || Math.Abs(ds.NetMoveAtr) <= p.MaxNetMoveATR;
             bool efficient = ds.Efficiency >= p.MinDriveEfficiency;
 
             // --------------------------------------------
@@ -475,6 +481,15 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
                     EMASpreadATR = emaSpreadATR,
                     CloseLocation = closeLocation
                 };
+
+                if (driveDirection == MarketPosition.Short)
+                {
+                    DataCollector.DriveSetupShortCount++;
+                }
+                else if (driveDirection == MarketPosition.Long)
+                {
+                    DataCollector.DriveSetupLongCount++;
+                }
 
                 PullbackState = new DrvPullbackState(DriveSetup);
                 DriveState = OpeningDriveState.WaitingForPullback;

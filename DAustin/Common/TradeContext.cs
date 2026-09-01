@@ -112,6 +112,10 @@ namespace NinjaTrader.Custom.DAustin.Common
         public int TrailStepReached { get; set; } = 0;
 
         public List<TradeEvent> TradeEvents = new List<TradeEvent>();
+
+        public bool TelemetryStarted { get; set; } = false;
+        public int TelemetryEntryBar { get; set; } = -1;
+        public int LastTelemetryBar { get; set; } = -1;
         #endregion
 
         #region Constructors
@@ -382,7 +386,10 @@ namespace NinjaTrader.Custom.DAustin.Common
             PendingNextState = null;
             PendingStopPrice = 0;
             PendingStopSubmittedTime = DateTime.MinValue;
+            TelemetryStarted = false;
+            TelemetryEntryBar = -1;
+            LastTelemetryBar = -1;
         }
         #endregion
-}
+    }
 }

@@ -1,5 +1,8 @@
+using NinjaTrader.Custom.DAustin.Common;
+using NinjaTrader.Custom.DAustin.Logging;
 using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.NinjaScript.Strategies;
+using NLog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,17 +14,29 @@ using System.Windows.Markup;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Media3D;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
-using NLog;
-using NinjaTrader.Custom.DAustin.Common;
 
 namespace NinjaTrader.Custom.Strategies.DAustin.Common
 {
     public class TimeWindowPriceRange : TimeWindow
     {
-        public static Logger logger = LogManager.GetCurrentClassLogger();
-
         #region Properties
-        public Strategy Strategy { get; set; }
+        public StratBase Strategy { get; set; }
+        private StrategyLogging _logs = null;
+        public StrategyLogging Logs
+        {
+            get
+            {
+                if (_logs == null)
+                {
+                    if (Strategy != null && Strategy.Logs != null)
+                    {
+                        _logs = Strategy.Logs;
+                    }
+                }
+                return _logs;
+            }
+        }
+
         private ValueHistory _historyBuffer = null;  
         public ValueHistory HistoryBuffer 
         { 
@@ -87,7 +102,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.Common
 
         #region Constructors
         public TimeWindowPriceRange(
-            Strategy strategy,
+            StratBase strategy,
             string start, 
             int minutesDuration, 
             string timeZoneId) : base(start, minutesDuration, timeZoneId)
@@ -135,10 +150,10 @@ namespace NinjaTrader.Custom.Strategies.DAustin.Common
         {
             if (Strategy.Bars.IsFirstBarOfSession == true)
             {   // reset if we are starting a new session
-                logger.Info(String.Format("{0}  Resetting.", Strategy.Times[0][0]));
+                Logs.Info(String.Format("{0}  Resetting.", Strategy.Times[0][0]));
                 Reset();
-                RangeOpen = Strategy.Close[0];
-                return;
+                //RangeOpen = Strategy.Close[0];
+                //return;
             }
 
             if (RangeSet)
@@ -148,26 +163,40 @@ namespace NinjaTrader.Custom.Strategies.DAustin.Common
 
             if (Strategy == null)
             {
-                logger.Warn("TimeWindowPriceRange: Strategy is null. Returning.");
+                Logs.Warn("TimeWindowPriceRange: Strategy is null. Returning.");
                 return;
             }
 
             if (Strategy?.Bars?.TradingHours?.TimeZone == null ||
                 String.IsNullOrWhiteSpace(Strategy.Bars.TradingHours.TimeZone))
             {
-                logger.Warn("Strategy.Bars.TradingHours.TimeZone is empty. Returning.");
+                Logs.Warn("Strategy.Bars.TradingHours.TimeZone is empty. Returning.");
                 return;
             }
 
             DateTime currentSeriesDateTime = Strategy.Time[0];
             TimeSpan currentSeriesTimeOfDay = currentSeriesDateTime.TimeOfDay;
             // get the range in the timezone time the series is in
+            double currentBarOpen = Strategy.Open[0];
             double currentBarHigh = Strategy.High[0];
             double currentBarLow = Strategy.Low[0];
+            double currentBarClose = Strategy.Close[0];
+
 
             if (RangeStartTOD <= currentSeriesTimeOfDay && currentSeriesTimeOfDay <= RangeEndTOD)
             {
-                MovedInRange = true;
+                // -------------------------------------
+                // First bar belonging to the range
+                // -------------------------------------
+                if (!MovedInRange)
+                {
+                    MovedInRange = true;
+
+                    // This is the actual OPEN of the
+                    // opening-drive interval.
+                    RangeOpen = currentBarOpen;
+                }
+
                 // I use the >= because even if they are the same I want the
                 // time updated.
                 if (currentBarHigh >= RangeHigh)
@@ -180,13 +209,24 @@ namespace NinjaTrader.Custom.Strategies.DAustin.Common
                     RangeLowTOD = currentSeriesTimeOfDay;
                     RangeLow = currentBarLow;
                 }
+
+                // Always the close of the latest bar that ACTUALLY belongs to the range.
+                RangeClose = currentBarClose;
             }
 
             if (MovedInRange == true && currentSeriesTimeOfDay >= RangeEndTOD)
             {   // we've made the last update for the range
                 RangeSet = true;
-                RangeClose = Strategy.Close[0];
-                logger.Info(String.Format("{0}  OpeningRange Set:  High:{1}  Low:{2}", Strategy.Times[0][0], RangeHigh, RangeLow));
+
+                Logs.Info(
+                    String.Format(
+                        "{0} OpeningRange Set: High:{1} Low:{2} Open:{3} Close:{4}",
+                        Strategy.Times[0][0],
+                        RangeHigh,
+                        RangeLow,
+                        RangeOpen,
+                        RangeClose));
+
                 if (HistoryBuffer != null)
                 {
                     HistoryBuffer.Add(RangeHigh - RangeLow);

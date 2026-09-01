@@ -1,21 +1,26 @@
 ﻿using ActiproSoftware.Text.Tagging.Implementation;
 using NinjaTrader.Custom.DAustin.Interfaces;
 using NinjaTrader.Custom.Strategies.DAustin.Common;
+using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.Strategies;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Xml.Serialization;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Xml.Serialization;
 using static NinjaTrader.Custom.DAustin.Common.OptimizationParametersBase;
 
 namespace NinjaTrader.Custom.DAustin.Common
 {
     public class TelemetryBarBase : ITelemetryBar, ICSVDataSource
     {
+        #region Constants
+        const string DateTimeFormat = "yyyy-MM-dd HH:mm:ss";
+        #endregion
+
         #region Properties
         [XmlIgnore]
         public StratBase Strategy { get; set; }
@@ -27,9 +32,10 @@ namespace NinjaTrader.Custom.DAustin.Common
         public double InitialRisk { get; set; }
         public double CurrentStop { get; set; } = 0;
         public string StrategyVersion { get; set; } = "1.0";
-        public string TradeId { get; set; }
+        public string TransactionId { get; set; }
+        public string SignalName { get; set; }
         public int BarsSinceEntry { get; set; } = 0;
-        public DateTime Time { get; set; }
+        public DateTime DateTime { get; set; }
         public double Open { get; set; }
         public double High { get; set; }
         public double Low { get; set; }
@@ -77,9 +83,10 @@ namespace NinjaTrader.Custom.DAustin.Common
             }
 
             rowData.Add(StrategyVersion);
-            rowData.Add(TradeId);
+            rowData.Add(Strategy.Logs.RunId);
+            rowData.Add(SignalName);
             rowData.Add(BarsSinceEntry.ToString());
-            rowData.Add(Time.ToString());
+            rowData.Add(DateTime.ToString(DateTimeFormat));
             rowData.Add(Open.ToString(doubleStringFormatter));
             rowData.Add(High.ToString(doubleStringFormatter));
             rowData.Add(Low.ToString(doubleStringFormatter));
@@ -103,7 +110,7 @@ namespace NinjaTrader.Custom.DAustin.Common
         public virtual void CollectData()
         {
             StrategyVersion = Strategy.StrategyVersion;
-            Time = Strategy.Time[0];
+            DateTime = Strategy.Time[0];
             Open = Strategy.Open[0];
             High = Strategy.High[0];
             Low = Strategy.Low[0];
@@ -146,6 +153,7 @@ namespace NinjaTrader.Custom.DAustin.Common
         private static readonly List<string> _columnNames = new List<string>
         {
             "StrategyVersion",
+            "RunId",
             "TradeId",
             "BarsSinceEntry",
             "Time",
@@ -220,9 +228,10 @@ namespace NinjaTrader.Custom.DAustin.Common
                 }
 
                 dataRow.Add(StrategyVersion);
-                dataRow.Add(TradeId);
+                dataRow.Add(Strategy.Logs.RunId);
+                dataRow.Add(SignalName);
                 dataRow.Add(BarsSinceEntry.ToString());
-                dataRow.Add(Time.ToString());
+                dataRow.Add(DateTime.ToString(DateTimeFormat));
                 dataRow.Add(Open.ToString(doubleStringFormatter));
                 dataRow.Add(High.ToString(doubleStringFormatter));
                 dataRow.Add(Low.ToString(doubleStringFormatter));

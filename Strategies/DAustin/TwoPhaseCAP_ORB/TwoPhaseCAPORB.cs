@@ -39,7 +39,7 @@ Tertiary goal: Unlock higher R only when conditions justify it
 
 If a rule increases profit but worsens drawdown → it fails.
 ******************************************************************/
-	public class TwoPhaseCAPORB : Strategy
+	public class TwoPhaseCAPORB : StratBase
 	{
         #region Properties
         private TimeWindowPriceRange _openingRange = null;

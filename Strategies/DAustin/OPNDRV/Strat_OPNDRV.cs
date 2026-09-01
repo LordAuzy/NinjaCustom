@@ -376,7 +376,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     Description = "Maximum opening drive size",
                     Order = 5,
                     GroupName = StratPropertyGroups.Entry)]
-        public double EntryMaxNetMoveATR { get; set; } = 3.0;
+        public double EntryMaxNetMoveATR { get; set; } = 0.00;
 
         [NinjaScriptProperty]
         [Display(Name = "MinDriveEfficiency",

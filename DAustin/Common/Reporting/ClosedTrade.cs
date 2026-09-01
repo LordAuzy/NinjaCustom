@@ -35,10 +35,15 @@ namespace NinjaTrader.Custom.DAustin.Common.Reporting
 
     public class ClosedTrade : ICSVDataSource
     {
+        #region Constants
+        const string DateTimeFormat = "yyyy-MM-dd HH:mm:ss";
+        #endregion
+
         #region Properties
         public StratBase Strategy { get; private set; }
         public string StrategyVersion { get; set; }
-        public string TradeId { get; set; }
+        public string TransactionId { get; set; }
+        public string SignalName { get; set; }
         public int SessionTradeNumber { get; set; }
         public Instrument Instrument { get; set; } = null;
         public Cbi.Account Account { get; set; } = null;
@@ -134,7 +139,7 @@ namespace NinjaTrader.Custom.DAustin.Common.Reporting
                 {   // now we are ready to populate the data row with trade information
                     dataRow.Add(StrategyVersion);
                     dataRow.Add(Strategy.Logs.RunId.ToString());
-                    dataRow.Add(TradeId);
+                    dataRow.Add(SignalName);
                     dataRow.Add(Entry.DateTime.ToString("yyyy-MM-dd"));
                     dataRow.Add(SessionTradeNumber.ToString());
                     dataRow.Add(Instrument?.FullName ?? "");
@@ -145,8 +150,8 @@ namespace NinjaTrader.Custom.DAustin.Common.Reporting
                     dataRow.Add(Entry.FillPrice.ToString("F2"));
                     dataRow.Add(Exit.SignalPrice.ToString("F2"));
                     dataRow.Add(Exit.FillPrice.ToString("F2"));
-                    dataRow.Add(Entry.DateTime.ToString("yyyy-MM-dd HH:mm:ss.fff"));
-                    dataRow.Add(Exit.DateTime.ToString("yyyy-MM-dd HH:mm:ss.fff"));
+                    dataRow.Add(Entry.DateTime.ToString(DateTimeFormat));
+                    dataRow.Add(Exit.DateTime.ToString(DateTimeFormat));
                     dataRow.Add(Exit.Quantity.ToString());
                     dataRow.Add(Exit.Reason ?? "");
                     dataRow.Add(Metrics.GrossProfit.ToString("F2"));

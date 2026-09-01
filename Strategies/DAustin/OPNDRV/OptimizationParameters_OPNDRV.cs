@@ -26,7 +26,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
         public double MinNetMoveATR { get; set; } = 1.00;
         // Maximum opening drive size.
         // Avoid entering after an already absurdly extended move.
-        public double MaxNetMoveATR { get; set; } = 3.00;
+        public double MaxNetMoveATR { get; set; } = 0.00;
         // Minimum directional efficiency:
         //
         // abs(Close - Open) / (High - Low)

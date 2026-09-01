@@ -204,6 +204,23 @@ namespace NinjaTrader.Custom.DAustin.Common
             }
         }
 
+        public virtual void WriteBarTelemetry(TradeContext tc)
+        {
+            TelemetryBarBase tbb = Strategy.CreateTelemetryBar() as TelemetryBarBase;
+            tbb.TransactionId = tc.OrderTicket.TransactionId;
+            tbb.SignalName = tc.OrderTicket.SignalName;
+            tbb.OrderType = tc.OrderTicket.Type;
+            tbb.EntryPrice = tc.OrderTicket.Price;
+            tbb.Quantity = tc.OrderTicket.Contracts;
+            tbb.InitialRisk = Math.Abs(tc.OrderTicket.Risk.Points);
+            tbb.CurrentStop = tc.StopOrder != null ? tc.StopOrder.StopPrice : 0;
+            tbb.HighestHighSinceEntry = tc.HighestHighSinceEntry;
+            tbb.LowestLowSinceEntry = tc.LowestLowSinceEntry;
+            tbb.BarsSinceEntry = tc.TradeBars.Count + 1;
+            tbb.CollectData();
+            tc.TradeBars.Add(tbb);
+        }
+
         public virtual void OnBarUpdate()
         {
             Logs.Trace(">"); ;
@@ -229,20 +246,19 @@ namespace NinjaTrader.Custom.DAustin.Common
                     // Update for all trades in position
                     tc.HighestHighSinceEntry = Math.Max(tc.HighestHighSinceEntry, Strategy.High[0]);
                     tc.LowestLowSinceEntry = Math.Min(tc.LowestLowSinceEntry, Strategy.Low[0]);
+                }
 
-                    // add telemetry bar data
-                    TelemetryBarBase tbb = Strategy.CreateTelemetryBar() as TelemetryBarBase;
-                    tbb.TradeId = tc.OrderTicket.SignalName;
-                    tbb.OrderType = tc.OrderTicket.Type;
-                    tbb.EntryPrice = tc.OrderTicket.Price;
-                    tbb.Quantity = tc.OrderTicket.Contracts;
-                    tbb.InitialRisk = Math.Abs(tc.OrderTicket.Risk.Points);
-                    tbb.CurrentStop = tc.StopOrder != null ? tc.StopOrder.StopPrice : 0;
-                    tbb.HighestHighSinceEntry = tc.HighestHighSinceEntry;
-                    tbb.LowestLowSinceEntry = tc.LowestLowSinceEntry;
-                    tbb.BarsSinceEntry = tc.TradeBars.Count + 1;
-                    tbb.CollectData();
-                    tc.TradeBars.Add(tbb);
+                if (tc.TelemetryStarted && tc.State != TradeState.Idle && tc.State != TradeState.Exited)
+                {
+                    if (tc.LastTelemetryBar != Strategy.CurrentBar)
+                    {
+                        if (tc.TradeBars.Count == 0)
+                        {
+                            tc.TelemetryEntryBar = Strategy.CurrentBar;
+                        }
+                        WriteBarTelemetry(tc);
+                        tc.LastTelemetryBar = Strategy.CurrentBar;
+                    }
                 }
             }
 
@@ -1404,6 +1420,25 @@ namespace NinjaTrader.Custom.DAustin.Common
                     tc.EntryOrder = execution.Order;
                     tc.EntryDateTime = time;
 
+                    // -------------------------------------------
+                    // First actual entry execution
+                    // -------------------------------------------
+                    if (!tc.TelemetryStarted)
+                    {
+                        // This should represent when market exposure actually began.
+                        tc.EntryDateTime = time;
+
+                        // Initialize trade excursion tracking at the fill.
+                        tc.HighestHighSinceEntry = execution.Price;
+                        tc.LowestLowSinceEntry = execution.Price;
+
+                        tc.TelemetryStarted = true;
+                        tc.TelemetryEntryBar = Strategy.CurrentBar;
+                        tc.LastTelemetryBar = Strategy.CurrentBar;
+
+                        Logs.Debug(simTime, "Telemetry collection started for TradeContext: {0}", tc.OrderTicket.SignalName);
+                    }
+
                     if (execution.Order.OrderState == OrderState.Filled)
                     {
                         Logs.Info(simTime, "ENTRY FILLED | Ticket: {0} | Instrument: {1} | Account: {2} | Direction: {3} | Fill Price: {4}",
@@ -1413,7 +1448,8 @@ namespace NinjaTrader.Custom.DAustin.Common
                         tc.TradesTakenThisSession++;
 
                         // FIX 3: Set TradeId to TransactionId so your persistent round-trip logs use a unique key
-                        tc.RoundTripData.TradeId = tc.OrderTicket.TransactionId;
+                        tc.RoundTripData.TransactionId = tc.OrderTicket.TransactionId;
+                        tc.RoundTripData.SignalName = tc.OrderTicket.SignalName;
                         tc.RoundTripData.Direction = execution.MarketPosition;
                         tc.RoundTripData.InitialRisk = tc.OrderTicket.Risk.Points;
                         tc.RoundTripData.Instrument = execution.Instrument;
