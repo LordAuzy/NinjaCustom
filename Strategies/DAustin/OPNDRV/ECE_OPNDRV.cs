@@ -151,14 +151,14 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             if (DriveSetup.Direction == MarketPosition.Long)
             {
                 PullbackState.UpdateLow(Strategy.Low[0]);
-                double vwapPenetration = Math.Max(0, vwap - Strategy.Low[0]);
-                PullbackState.UpdateVWAPPenetration(vwapPenetration);
+                double vwapPenetrationATR = atr > 0 ? Math.Max(0, vwap - Strategy.Low[0]) / atr : 0;
+                PullbackState.UpdateVWAPPenetrationATR(vwapPenetrationATR);
             }
             else if (DriveSetup.Direction == MarketPosition.Short)
             {
                 PullbackState.UpdateHigh(Strategy.High[0]);
-                double vwapPenetration = Math.Max(0, Strategy.High[0] - vwap);
-                PullbackState.UpdateVWAPPenetration(vwapPenetration);
+                double vwapPenetrationATR = atr > 0 ? Math.Max(0, Strategy.High[0] - vwap) / atr : 0;
+                PullbackState.UpdateVWAPPenetrationATR(vwapPenetrationATR);
             }
 
             if (barsAfterDrive < EntryOptParams.PullbackMinBars)
@@ -188,7 +188,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
                 double rtp = PullbackState.RetracementPct;
 
                 bool retracementValid = rtp >= EntryOptParams.MinRetracementPct && rtp <= EntryOptParams.MaxRetracementPct;
-                bool vwapValid = PullbackState.MaxVWAPPenetration <= EntryOptParams.MaxVWAPPenetrationATR * atr;
+                bool vwapValid = PullbackState.MaxVWAPPenetrationATR <= EntryOptParams.MaxVWAPPenetrationATR;
                 bool trendValid = fastEMA[0] > slowEMA[0] && Strategy.Close[0] > vwap;
                 bool controlledBar = barRange <= EntryOptParams.MaxPullbackBarRangeATR * atr;
                 bool entryDistanceValid = (entryPrice - vwap) <= EntryOptParams.MaxEntryDistanceATR * atr;
@@ -245,7 +245,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
                 double rtp = PullbackState.RetracementPct;
 
                 bool retracementValid = rtp >= EntryOptParams.MinRetracementPct && rtp <= EntryOptParams.MaxRetracementPct;
-                bool vwapValid = PullbackState.MaxVWAPPenetration <= EntryOptParams.MaxVWAPPenetrationATR * atr;
+                bool vwapValid = PullbackState.MaxVWAPPenetrationATR <= EntryOptParams.MaxVWAPPenetrationATR;
                 bool trendValid = fastEMA[0] < slowEMA[0] && Strategy.Close[0] < vwap;
                 bool controlledBar = barRange <= EntryOptParams.MaxPullbackBarRangeATR * atr;
                 bool entryDistanceValid = (vwap - entryPrice) <= EntryOptParams.MaxEntryDistanceATR * atr;

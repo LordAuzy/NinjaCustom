@@ -194,7 +194,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             Entry.DriveDuration = 15;
             Entry.ATRPeriod = 14;
             Entry.MinNetMoveATR = 1.00;
-            Entry.MaxNetMoveATR = 3.00;
+            Entry.MaxNetMoveATR = 0.00;
             Entry.MinDriveEfficiency = 0.60;
             Entry.MaxCloseFromExtremePct = 0.25;
             Entry.MinVWAPDistanceATR = 0.50;

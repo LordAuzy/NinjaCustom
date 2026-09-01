@@ -690,15 +690,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     OptimizationParameters_OPNDRV OptParams = GetOptimizationParameters("OP-" + stratIdentifier) as OptimizationParameters_OPNDRV;
 
-                    if (IsLoadedFromXml)
-                    {
-                        // By this point, all serialized property values from the
-                        // XML have overwritten your default values.
-                        // we want to use the optimization parameters that were serialized in the XML, not the default values.
-                        OptimizationParameters_OPNDRV OptPLoadedFromXml = OptimizationParameters as OptimizationParameters_OPNDRV;
-                        OptParams.CopyFrom(OptPLoadedFromXml);
-                        OptParams.UpdateStratParamValues();
-                    }
+                    //if (IsLoadedFromXml)
+                    //{
+                    //    // By this point, all serialized property values from the
+                    //    // XML have overwritten your default values.
+                    //    // we want to use the optimization parameters that were serialized in the XML, not the default values.
+                    //    OptimizationParameters_OPNDRV OptPLoadedFromXml = OptimizationParameters as OptimizationParameters_OPNDRV;
+                    //    OptParams.CopyFrom(OptPLoadedFromXml);
+                    //    OptParams.UpdateStratParamValues();
+                    //}
                     //update our optimization parameters from the strategy properties
                     OptParams.UpdateFromStrat();
                     //initialize logging

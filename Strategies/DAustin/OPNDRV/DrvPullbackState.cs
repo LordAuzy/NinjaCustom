@@ -23,7 +23,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
         // Long:  penetration = VWAP - Low
         // Short: penetration = High - VWAP
         // Stored as a positive point value.
-        public double MaxVWAPPenetration { get; private set; } = 0.0;
+        public double MaxVWAPPenetrationATR { get; private set; } = 0.0;
 
         // Maximum normalized bar range observed during the pullback.
         public double MaxPullbackBarRangeATR { get; private set; } = 0.0;
@@ -31,17 +31,6 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
         // Entry-time snapshot values.
         public double EntryATR { get; private set; } = 0.0;
         public double EntryDistanceVWAPATR { get; private set; } = 0.0;
-
-        public double MaxVWAPPenetrationATR
-        {
-            get
-            {
-                if (EntryATR <= 0)
-                    return 0.0;
-
-                return MaxVWAPPenetration / EntryATR;
-            }
-        }
 
         public double RetracementPct
         {
@@ -109,13 +98,12 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             PullbackLow = Math.Min(PullbackLow, low);
         }
 
-        public void UpdateVWAPPenetration(double penetration)
+        public void UpdateVWAPPenetrationATR(double penetrationATR)
         {
-            if (penetration <= 0)
+            if (penetrationATR <= 0)
                 return;
 
-            MaxVWAPPenetration =
-                Math.Max(MaxVWAPPenetration, penetration);
+            MaxVWAPPenetrationATR = Math.Max(MaxVWAPPenetrationATR, penetrationATR);
         }
 
         public void UpdateBarRange(double barRange, double atr)
@@ -154,7 +142,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
                 PullbackHigh = PullbackHigh,
                 PullbackLow = PullbackLow,
                 PullbackBars = PullbackBars,
-                MaxVWAPPenetration = MaxVWAPPenetration,
+                MaxVWAPPenetrationATR = MaxVWAPPenetrationATR,
                 MaxPullbackBarRangeATR = MaxPullbackBarRangeATR,
                 EntryATR = EntryATR,
                 EntryDistanceVWAPATR = EntryDistanceVWAPATR
@@ -166,7 +154,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             PullbackHigh = double.MinValue;
             PullbackLow = double.MaxValue;
             PullbackBars = 0;
-            MaxVWAPPenetration = 0.0;
+            MaxVWAPPenetrationATR = 0.0;
             MaxPullbackBarRangeATR = 0.0;
             EntryATR = 0.0;
             EntryDistanceVWAPATR = 0.0;
