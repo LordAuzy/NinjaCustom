@@ -321,7 +321,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 tc.StateList = stateList;
                 tc.SetState(TradeState.Idle);
                 tc.EntryConditionsEvaluator = ece;
-                TradeManager.FlattenTOD = new TimeConverter().ToDataTimeOfDay("2:55pm", "Eastern Standard Time");
+//                TradeManager.FlattenTOD = new TimeConverter().ToDataTimeOfDay("2:55pm", "Eastern Standard Time");
                 TradeManager.AddTradeContext(tc);
                 TradeManager.Indicators = indicators;
                 TradeManager.OptParams = OptParamsORB;
@@ -431,8 +431,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             sb.AppendFormat("  OppositeSideOpeningRangeLong = {0}", ece.DataCollector.SIPLongOppositeBreakCount).AppendLine();
             sb.AppendFormat("  OppositeSideOpeningRangeShort = {0}", ece.DataCollector.SIPShortOppositeBreakCount).AppendLine();
             sb.AppendLine("==TradeManager==");
-            sb.AppendFormat("  Flatten time set to {0:hh:mmtt}",
-                tc.FromDataTimeOfDayDate(TradeManager.FlattenTOD, EastTZI)).AppendLine();
+//            sb.AppendFormat("  Flatten time set to {0:hh:mmtt}",
+//                tc.FromDataTimeOfDayDate(TradeManager.FlattenTOD, EastTZI)).AppendLine();
             sb.AppendFormat("  FlattenCountLong = {0}", TradeManager.TradeData.FlattenCountLong).AppendLine();
             sb.AppendFormat("  FlattenCountShort = {0}", TradeManager.TradeData.FlattenCountShort).AppendLine();
             if (optParamsORB.MaxMinutesInTrade == 0)

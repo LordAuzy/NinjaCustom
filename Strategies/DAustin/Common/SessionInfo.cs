@@ -54,6 +54,26 @@ namespace NinjaTrader.Custom.Strategies.DAustin.Common
             UpdateFlattenTime();
             Strategy.Logs.Debug(time, "SessionStart={0}  SessionEnd={1}  Flatten={2}", StartTime, EndTime, FlattenTime);
         }
+
+        public bool IsInFlattenTimeWindow(DateTime time)
+        {
+            bool inFlattenWindow = false;
+            if (FlattenTime > DateTime.MinValue && EndTime > DateTime.MinValue)
+            {
+                inFlattenWindow = (time >= FlattenTime && time <= EndTime);
+            }
+            return inFlattenWindow;
+        }
+
+        public bool IsInSession(DateTime time)
+        {
+            bool inSession = false;
+            if (StartTime > DateTime.MinValue && EndTime > DateTime.MinValue)
+            {
+                inSession = (time >= StartTime && time <= EndTime);
+            }
+            return inSession;
+        }
         #endregion
 
         #region Private Methods

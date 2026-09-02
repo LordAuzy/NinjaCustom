@@ -90,7 +90,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OptimizationParameters
 
             // Time parameters
             Time.TimeZone = TimeWindowTimeZone.Eastern;
-            Time.FlattenTOD = "3:55pm";
+            Time.B4SesssionEndFlattenMin = 5;
             Time.MaxMinutesInTrade = 0;
             Time.TWAnchorTime = "9:30am";
             Time.TWOffset1 = 6;
@@ -160,7 +160,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OptimizationParameters
             strat.SLTrailingMode = SLTrailingMode;
 
             strat.TI_TimeZone = Time.TimeZone;
-            strat.TI_FlattenTOD = Time.FlattenTOD;
+            strat.TI_B4SessionEndFlattenMin = Time.B4SesssionEndFlattenMin;
             strat.TI_MaxMinutesInTrade = Time.MaxMinutesInTrade;
             strat.TI_TWAnchorTime = Time.TWAnchorTime;
             strat.TI_TWOffset1 = Time.TWOffset1;
@@ -227,7 +227,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OptimizationParameters
             SLTrailingMode = strat.SLTrailingMode;
 
             Time.TimeZone = strat.TI_TimeZone;
-            Time.FlattenTOD = strat.TI_FlattenTOD;
+            Time.B4SesssionEndFlattenMin = strat.TI_B4SessionEndFlattenMin;
             Time.MaxMinutesInTrade = strat.TI_MaxMinutesInTrade;
             Time.TWAnchorTime = strat.TI_TWAnchorTime;
             Time.TWOffset1 = strat.TI_TWOffset1;

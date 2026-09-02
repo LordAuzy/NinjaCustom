@@ -65,7 +65,7 @@ namespace NinjaTrader.Custom.DAustin.Common
         public class TimeParameters
         {
             public TimeWindowTimeZone TimeZone { get; set; }
-            public string FlattenTOD { get; set; }
+            public int B4SesssionEndFlattenMin { get; set; }
             public int MaxMinutesInTrade { get; set; }
             public string TWAnchorTime { get; set; }
             public int TWOffset1 { get; set; }

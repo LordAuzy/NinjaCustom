@@ -247,7 +247,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     };
                 tc.SetState(TradeState.Idle);
                 tc.EntryConditionsEvaluator = ece;
-                TradeManager.FlattenTOD = new TimeConverter().ToDataTimeOfDay("3:55pm", "Eastern Standard Time");
+//                TradeManager.FlattenTOD = new TimeConverter().ToDataTimeOfDay("3:55pm", "Eastern Standard Time");
                 TradeManager.AddTradeContext(tc);
                 TradeManager.Indicators = indicators;
             }

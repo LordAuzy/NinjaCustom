@@ -62,7 +62,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OptimizationParameters
 
             // Time parameters
             Time.TimeZone = TimeWindowTimeZone.Eastern;
-            Time.FlattenTOD = "3:55pm";
+            Time.B4SesssionEndFlattenMin = 5;
             Time.MaxMinutesInTrade = 0;
             Time.TWAnchorTime = "9:30am";
             Time.TWOffset1 = 6;
@@ -99,7 +99,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OptimizationParameters
             strat.SLTrailingMode = SLTrailingMode;
 
             strat.TI_TimeZone = Time.TimeZone;
-            strat.TI_FlattenTOD = Time.FlattenTOD;
+            strat.TI_B4SessionEndFlattenMin = Time.B4SesssionEndFlattenMin;
             strat.TI_MaxMinutesInTrade = Time.MaxMinutesInTrade;
             strat.TI_TWAnchorTime = Time.TWAnchorTime;
             strat.TI_TWOffset1 = Time.TWOffset1;
@@ -135,7 +135,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OptimizationParameters
             SLTrailingMode = strat.SLTrailingMode;
 
             Time.TimeZone = strat.TI_TimeZone;
-            Time.FlattenTOD = strat.TI_FlattenTOD;
+            Time.B4SesssionEndFlattenMin = strat.TI_B4SessionEndFlattenMin;
             Time.MaxMinutesInTrade = strat.TI_MaxMinutesInTrade;
             Time.TWAnchorTime = strat.TI_TWAnchorTime;
             Time.TWOffset1 = strat.TI_TWOffset1;
@@ -171,7 +171,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OptimizationParameters
             sb.AppendFormat("StopLoss trailing mode={0}", SLTrailingMode).AppendLine();
             sb.AppendLine("==Time Parameters===");
             sb.AppendFormat("  TimeZone={0}", Time.TimeZone).AppendLine();
-            sb.AppendFormat("  FlattenTOD={0}", Time.FlattenTOD).AppendLine();
+            sb.AppendFormat("  B4SesssionEndFlattenMin={0}", Time.B4SesssionEndFlattenMin).AppendLine();
             sb.AppendFormat("  MaxMinutesInTrade={0}", Time.MaxMinutesInTrade).AppendLine();
             sb.AppendFormat("  TWAnchorTime={0}", Time.TWAnchorTime).AppendLine();
             sb.AppendFormat("  TWOffset1={0}", Time.TWOffset1).AppendLine();

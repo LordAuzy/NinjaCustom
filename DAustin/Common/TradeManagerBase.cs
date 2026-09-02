@@ -59,9 +59,9 @@ namespace NinjaTrader.Custom.DAustin.Common
         public IndicatorsBase Indicators { get; set; }
         public OptimizationParametersBase OptParams { get; set; }
         public List<TradeContext> TradeContexts { get; private set; } = new List<TradeContext>();
-        public TimeSpan FlattenTOD { get; set; } = TimeSpan.Zero;
         public TradeManagerDataCollection TradeData { get; private set; } = new TradeManagerDataCollection();
         public ATRRegimeFilter ATRRegimeFilter { get; private set; }
+        public bool FlattenIssued { get; set; } = false;
         #endregion
 
         #region Constructors
@@ -111,41 +111,6 @@ namespace NinjaTrader.Custom.DAustin.Common
                 entryPlaced = ot.PlaceEntry(tc) != null;
             }
             return entryPlaced || SLTPPlaced;
-        }
-
-        public DateTime GetFlattenTODForDisplay()
-        {
-            //TODO: convert to data timezone;
-            DateTime flattenDT = DateTime.Today.Add(FlattenTOD);
-            return flattenDT;
-        }
-
-        private bool IsInFlattenTimeWindow(DateTime time)
-        {
-            bool IsInFlattenWindow = false;
-            SessionIterator si = Strategy.SessionIterator;
-
-            if (si.IsInSession(Strategy.Time[0], true, true))
-            {   // we need to be in a session to possibly be in the
-                // flatten timewindow
-                // Calculate the current trading day
-                si.GetNextSession(time, true);
-                // Get the Actual Session Times
-                DateTime sessionBegin = si.ActualSessionBegin;
-                DateTime sessionEnd = si.ActualSessionEnd;
-                DateTime flattenWindowStart = DateTime.MinValue;
-
-                if (FlattenTOD == TimeSpan.Zero)
-                {   // if this is zero the flatten window start defaults to 5 min before the session ends
-                    flattenWindowStart = sessionEnd.AddMinutes(-5);
-                }
-                else
-                {   // flatten window starts at the FlattenTOD and goes until the end of the session
-                    flattenWindowStart = sessionEnd.Date + FlattenTOD;
-                }
-                IsInFlattenWindow = time >= flattenWindowStart && time <= sessionEnd;
-            }
-            return IsInFlattenWindow;
         }
 
         private void EnforceMaxTradeMinutes()
@@ -231,6 +196,7 @@ namespace NinjaTrader.Custom.DAustin.Common
 
             if (Strategy?.Bars?.IsFirstBarOfSession == true)
             {
+                FlattenIssued = false;
                 foreach (TradeContext tc in TradeContexts)
                 {
                     tc.SessionReset();
@@ -262,16 +228,20 @@ namespace NinjaTrader.Custom.DAustin.Common
                 }
             }
 
-            if (IsInFlattenTimeWindow(Strategy.Time[0]))
-            {   // all trades get exited
+            if (!FlattenIssued && Strategy.SessionInfo.IsInFlattenTimeWindow(Strategy.Time[0]))
+            {
+                Logs.Info("Flattening positions due to flatten time window.");
                 FlattenStrategyPositions();
+                FlattenIssued = true;
             }
-            else
+
+            if (!FlattenIssued)
             {   // check for timeInTrade > MaxTradeMinutes
                 EnforceMaxTradeMinutes();
             }
 
-            if (Strategy.SessionIterator.IsInSession(Strategy.Time[0], true, true) && !IsInFlattenTimeWindow(Strategy.Time[0]))
+            if (    Strategy.SessionInfo.IsInSession(Strategy.Time[0]) == true &&
+                    Strategy.SessionInfo.IsInFlattenTimeWindow(Strategy.Time[0]) == false)
             {
                 foreach (TradeContext tc in TradeContexts)
                 {

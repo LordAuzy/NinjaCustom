@@ -73,11 +73,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                     Order = 1,
                     GroupName = StratPropertyGroups.TimeParams)]
         public TimeWindowTimeZone TI_TimeZone { get; set; }
-        [Display(Name = "FlattenTOD",
-                    Description = "Time to close all trades",
+        [Display(Name = "B4SessionEndFlattenMin",
+                    Description = "Minutes before session end to close all trades",
                     Order = 2,
                     GroupName = StratPropertyGroups.TimeParams)]
-        public string TI_FlattenTOD { get; set; }
+        public int TI_B4SessionEndFlattenMin { get; set; }
 
         [NinjaScriptProperty]
         [Display(Name = "MaxTimeInTrade",
@@ -331,12 +331,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 tc.StateList = stateList;
                 tc.SetState(TradeState.Idle);
                 tc.EntryConditionsEvaluator = ece;
-                if (OptParams.Time.TimeZone != TimeWindowTimeZone.None && !String.IsNullOrEmpty(OptParams.Time.FlattenTOD))
-                {
-                    TradeManager.FlattenTOD = new TimeConverter().ToDataTimeOfDay(
-                        OptParams.Time.FlattenTOD, 
-                        OptParams.Time.TimeZone.GetDisplayName());
-                }
+                //if (OptParams.Time.TimeZone != TimeWindowTimeZone.None && !String.IsNullOrEmpty(OptParams.Time.FlattenTOD))
+                //{
+                //    TradeManager.FlattenTOD = new TimeConverter().ToDataTimeOfDay(
+                //        OptParams.Time.FlattenTOD, 
+                //        OptParams.Time.TimeZone.GetDisplayName());
+                //}
                 TradeManager.AddTradeContext(tc);
                 TradeManager.Indicators = indicators;
                 TradeManager.OptParams = OptParams;

@@ -396,6 +396,7 @@
     <Compile Include="DAustin\Common\ScheduleFilter\BiasFilter.cs" />
     <Compile Include="DAustin\Common\ScheduleFilter\ScheduleFilterBase.cs" />
     <Compile Include="DAustin\Common\ScheduleFilter\SizingFilter.cs" />
+    <Compile Include="Strategies\DAustin\Common\SessionInfo.cs" />
     <Compile Include="Strategies\DAustin\OPNDRV\DriveSetup.cs" />
     <Compile Include="Strategies\DAustin\OPNDRV\DriveState.cs" />
     <Compile Include="Strategies\DAustin\Common\StopLossIndicators.cs" />

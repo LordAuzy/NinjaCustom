@@ -6,6 +6,7 @@ using NinjaTrader.Custom.DAustin.Common;
 using NinjaTrader.Custom.DAustin.Common.Reporting;
 using NinjaTrader.Custom.DAustin.Interfaces;
 using NinjaTrader.Custom.DAustin.Logging;
+using NinjaTrader.Custom.Strategies.DAustin.Common;
 using NinjaTrader.Custom.Strategies.DAustin.TradeManagers;
 using NinjaTrader.Custom.Strategies.DAustin.VWAPPB;
 using NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1;
@@ -117,11 +118,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                     Order = 1,
                     GroupName = StratPropertyGroups.TimeParams)]
         public TimeWindowTimeZone TI_TimeZone { get; set; }
-        [Display(Name = "FlattenTOD",
-                    Description = "Time to close all trades",
+        [Display(Name = "B4SessionEndFlattenMin",
+                    Description = "Minutes before session end to close all trades",
                     Order = 2,
                     GroupName = StratPropertyGroups.TimeParams)]
-        public string TI_FlattenTOD { get; set; }
+        public int TI_B4SessionEndFlattenMin { get; set; }
 
         [NinjaScriptProperty]
         [Display(Name = "MaxTimeInTrade",
@@ -636,6 +637,9 @@ When it happens: The strategy is disabled by you, the workspace is closed, or th
                     tradeCSVSchemaVersion: TradeCSVSchemaVersion,
                     telemetryCSVSchemaVersion: TelemetryCSVSchemaVersion);
 
+                SessionInfo = new SessionInfo(this);
+                SessionInfo.FlattenOnSessionCloseMinutes = OptParamsVWAPPB.Time.B4SesssionEndFlattenMin;
+
                 // initialize indicators
                 NinjaTrader.Custom.Strategies.DAustin.VWAPPB.Indicators_VWAPPB indicators = GetIndicators("IDC-" + stratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPPB.Indicators_VWAPPB;
                 indicators.OptParams = OptParamsVWAPPB;
@@ -713,12 +717,12 @@ When it happens: The strategy is disabled by you, the workspace is closed, or th
 
                 tc.StateList = stateList;
                 tc.SetState(TradeState.Idle);
-                if (OptParamsVWAPPB.Time.TimeZone != TimeWindowTimeZone.None && !String.IsNullOrEmpty(OptParamsVWAPPB.Time.FlattenTOD))
-                {
-                    TradeManager.FlattenTOD = new TimeConverter().ToDataTimeOfDay(
-                        OptParamsVWAPPB.Time.FlattenTOD, 
-                        OptParamsVWAPPB.Time.TimeZone.GetDisplayName());
-                }
+                //if (OptParamsVWAPPB.Time.TimeZone != TimeWindowTimeZone.None && !String.IsNullOrEmpty(OptParamsVWAPPB.Time.FlattenTOD))
+                //{
+                //    TradeManager.FlattenTOD = new TimeConverter().ToDataTimeOfDay(
+                //        OptParamsVWAPPB.Time.FlattenTOD, 
+                //        OptParamsVWAPPB.Time.TimeZone.GetDisplayName());
+                //}
                 TradeManager.AddTradeContext(tc);
                 TradeManager.Indicators = indicators;
                 TradeManager.OptParams = OptParamsVWAPPB;
