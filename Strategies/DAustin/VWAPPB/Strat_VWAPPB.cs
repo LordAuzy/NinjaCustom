@@ -600,7 +600,7 @@ When it happens: The strategy is disabled by you, the workspace is closed, or th
                 Calculate = Calculate.OnBarClose;
                 EntriesPerDirection = 1;
                 EntryHandling = EntryHandling.AllEntries;
-                IsExitOnSessionCloseStrategy = false;  // Or true if you want auto-exit at session close
+                IsExitOnSessionCloseStrategy = true;  // emergency fallback
                 ExitOnSessionCloseSeconds = 30;
                 IsFillLimitOnTouch = false;
                 MaximumBarsLookBack = MaximumBarsLookBack.TwoHundredFiftySix;  // Standard safe default

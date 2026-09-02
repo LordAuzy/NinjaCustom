@@ -1,6 +1,7 @@
 ﻿#region Using declarations
 using ActiproSoftware.Text.Languages.DotNet.Ast.Implementation;
 using ActiproSoftware.Text.Parsing.LLParser.Implementation;
+using Newtonsoft.Json.Linq;
 using NinjaTrader.Cbi;
 using NinjaTrader.Core.FloatingPoint;
 using NinjaTrader.CQG.ProtoBuf;
@@ -89,6 +90,7 @@ namespace NinjaTrader.Custom.DAustin.Common
             }
         }
 
+        public SessionInfo SessionInfo { get; set; } = null;
         protected TradeManagerBase _tmb = null;
         [Browsable(false)]
         public virtual TradeManagerBase TradeManager
@@ -170,6 +172,11 @@ namespace NinjaTrader.Custom.DAustin.Common
         protected override void OnBarUpdate()
         {
             Logs.Trace(">");
+
+            if (Bars.IsFirstBarOfSession)
+            {
+                SessionInfo.UpdateSession(Time[0]);
+            }
 
             //if (isCloneTestInstance)
             //{

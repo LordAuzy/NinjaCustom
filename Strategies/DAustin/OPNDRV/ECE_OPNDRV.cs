@@ -177,6 +177,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             // ===================================
             if (DriveSetup.Direction == MarketPosition.Long)
             {
+                DataCollector.DriveSetupLongCandidateBars++;
                 // -----------------------------------------
                 // Actual proposed stop-entry price
                 // -----------------------------------------
@@ -234,6 +235,8 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             }
             else if (DriveSetup.Direction == MarketPosition.Short)
             {
+                DataCollector.DriveSetupShortCandidateBars++;
+
                 // -----------------------------------------
                 // Actual proposed stop-entry price
                 // -----------------------------------------

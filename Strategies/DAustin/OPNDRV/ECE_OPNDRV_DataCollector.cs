@@ -15,6 +15,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
     public class ECE_OPNDRV_DataCollector
     {
         public int DriveSetupLongCount { get; set; } = 0;
+        public int DriveSetupLongCandidateBars { get; set; } = 0;
         public int LongRetracementValidCount { get; set; } = 0;
         public int LongVWAPValidCount { get; set; } = 0;
         public int LongTrendValidCount { get; set; } = 0;
@@ -23,6 +24,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
         public int DriveSetupLongTriggeredCount { get; set; } = 0;
 
         public int DriveSetupShortCount { get; set; } = 0;
+        public int DriveSetupShortCandidateBars { get; set; } = 0;
         public int ShortRetracementValidCount { get; set; } = 0;
         public int ShortVWAPValidCount { get; set; } = 0;
         public int ShortTrendValidCount { get; set; } = 0;
@@ -35,20 +37,24 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             sb.AppendLine("==Entry Trigger Data==");
             sb.AppendLine("  ==Long==");
             sb.AppendLine($"  DriveSetupLongCount: {DriveSetupLongCount}");
-            sb.AppendLine($"  LongRetracementValidCount: {LongRetracementValidCount}");
-            sb.AppendLine($"  LongVWAPValidCount: {LongVWAPValidCount}");
-            sb.AppendLine($"  LongTrendValidCount: {LongTrendValidCount}");
-            sb.AppendLine($"  LongControlledBarCount: {LongControlledBarCount}");
-            sb.AppendLine($"  LongEntryDistanceValidCount: {LongEntryDistanceValidCount}");
+            sb.AppendLine($"  DriveSetupLongCandidateBars: {DriveSetupLongCandidateBars}");
             sb.AppendLine($"  DriveSetupLongTriggeredCount: {DriveSetupLongTriggeredCount}");
+            sb.AppendLine("  ==Independent candidate tests==");
+            sb.AppendLine($"    LongRetracementValidCount: {LongRetracementValidCount}");
+            sb.AppendLine($"    LongVWAPValidCount: {LongVWAPValidCount}");
+            sb.AppendLine($"    LongTrendValidCount: {LongTrendValidCount}");
+            sb.AppendLine($"    LongControlledBarCount: {LongControlledBarCount}");
+            sb.AppendLine($"    LongEntryDistanceValidCount: {LongEntryDistanceValidCount}");
             sb.AppendLine("  ==Short==");
             sb.AppendLine($"  DriveSetupShortCount: {DriveSetupShortCount}");
-            sb.AppendLine($"  ShortRetracementValidCount: {ShortRetracementValidCount}");
-            sb.AppendLine($"  ShortVWAPValidCount: {ShortVWAPValidCount}");
-            sb.AppendLine($"  ShortTrendValidCount: {ShortTrendValidCount}");
-            sb.AppendLine($"  ShortControlledBarCount: {ShortControlledBarCount}");
-            sb.AppendLine($"  ShortEntryDistanceValidCount: {ShortEntryDistanceValidCount}");
+            sb.AppendLine($"  DriveSetupShortCandidateBars: {DriveSetupShortCandidateBars}");
             sb.AppendLine($"  DriveSetupShortTriggeredCount: {DriveSetupShortTriggeredCount}");
+            sb.AppendLine("  ==Independent candidate tests==");
+            sb.AppendLine($"    ShortRetracementValidCount: {ShortRetracementValidCount}");
+            sb.AppendLine($"    ShortVWAPValidCount: {ShortVWAPValidCount}");
+            sb.AppendLine($"    ShortTrendValidCount: {ShortTrendValidCount}");
+            sb.AppendLine($"    ShortControlledBarCount: {ShortControlledBarCount}");
+            sb.AppendLine($"    ShortEntryDistanceValidCount: {ShortEntryDistanceValidCount}");
         }
     }
 }
