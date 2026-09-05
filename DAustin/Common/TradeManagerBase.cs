@@ -146,25 +146,53 @@ namespace NinjaTrader.Custom.DAustin.Common
             }
         }
 
+        private void CancelWorkingEntryOrders()
+        {
+            foreach (TradeContext tc in TradeContexts)
+            {
+                Cbi.Order order = tc.EntryOrder;
+
+                if (order == null)
+                    continue;
+
+                switch (order.OrderState)
+                {
+                    case OrderState.Submitted:
+                    case OrderState.Accepted:
+                    case OrderState.Working:
+                    case OrderState.TriggerPending:
+                    case OrderState.PartFilled:
+
+                        Logs.Info(
+                            "Cancelling working entry order {0}. State={1}, Filled={2}/{3}",
+                            order.Name,
+                            order.OrderState,
+                            order.Filled,
+                            order.Quantity);
+
+                        Strategy.CancelOrder(order);
+                        break;
+                }
+            }
+        }
+
         private void FlattenStrategyPositions()
         {
-            // if we are in the flatten time window then we want to cancel any pending orders
-            if (Strategy.Position.MarketPosition != MarketPosition.Flat)
+            if (Strategy.Position.MarketPosition == MarketPosition.Flat)
+                return;
+
+            foreach (TradeContext tc in TradeContexts)
             {
-                Logs.Info("Flattening positions due to flatten time window.");
-                foreach (TradeContext tc in TradeContexts)
+                if (tc.EntryOrder == null)
+                    continue;
+
+                if (tc.EntryOrder.IsLong)
                 {
-                    if (tc.EntryOrder != null)
-                    {
-                        if (tc.EntryOrder.IsLong)
-                        {
-                            Strategy.ExitLong("FlattenStrategyPositionsLong", tc.EntryOrder.Name);
-                        }
-                        else if (tc.EntryOrder.IsShort)
-                        {
-                            Strategy.ExitShort("FlattenStrategyPositionsShort", tc.EntryOrder.Name);
-                        }
-                    }
+                    Strategy.ExitLong("FlattenStrategyPositionsLong", tc.EntryOrder.Name);
+                }
+                else if (tc.EntryOrder.IsShort)
+                {
+                    Strategy.ExitShort("FlattenStrategyPositionsShort", tc.EntryOrder.Name);
                 }
             }
         }
@@ -234,6 +262,7 @@ namespace NinjaTrader.Custom.DAustin.Common
             {
                 FlattenIssued = true;
                 Logs.Info("Flattening positions due to flatten time window.");
+                CancelWorkingEntryOrders();
                 FlattenStrategyPositions();
             }
 
@@ -1274,6 +1303,7 @@ namespace NinjaTrader.Custom.DAustin.Common
                     : order.FromEntrySignal;
 
                 TradeContext tc = TradeContexts.Find(x =>
+                    x.OrderTicket != null &&
                     x.OrderTicket.SignalName == signalName);
 
                 if (tc == null)
@@ -1318,6 +1348,26 @@ namespace NinjaTrader.Custom.DAustin.Common
                         Logs.Debug(simTime, "Mapping Limit Order onto TradeContext for Entry: {0} [OrderId: {1}]", tc.OrderTicket.SignalName, order.OrderId);
                         tc.LimitOrder = order;
                     }
+                }
+
+                // -----------------------------------------
+                // REJECTION PROCESSING
+                // -----------------------------------------
+                if (orderState == Cbi.OrderState.Rejected)
+                {
+                    HandleRejectedOrder(
+                        tc,
+                        order,
+                        IsEntryOrder,
+                        IsExitOrder,
+                        filled,
+                        stopPrice,
+                        limitPrice,
+                        time,
+                        error,
+                        comment);
+
+                    return;
                 }
             }
             catch (Exception ex)
@@ -1370,6 +1420,7 @@ namespace NinjaTrader.Custom.DAustin.Common
                     : execution.Order.FromEntrySignal;
 
                 TradeContext tc = TradeContexts.Find(x =>
+                    x.OrderTicket != null &&
                     x.OrderTicket.SignalName == signalName);
 
                 if (tc == null)
@@ -1441,6 +1492,17 @@ namespace NinjaTrader.Custom.DAustin.Common
                     {
                         Logs.Debug(simTime, "Entry Order State Changed | Ticket: {0} | Current State: {1}",
                             tc.OrderTicket.SignalName, execution.Order.OrderState);
+                    }
+
+                    if (FlattenIssued)
+                    {
+                        Logs.Warn(simTime,
+                            "Entry fill occurred while flatten in progress. " +
+                            "Reissuing flatten. Signal={0}, Qty={1}",
+                            execution.Order.Name,
+                            execution.Quantity);
+
+                        FlattenStrategyPositions();
                     }
                 }
                 // --- SECTION 2: EXIT FILL PROCESSING (SL or TP) ---
@@ -1534,6 +1596,101 @@ namespace NinjaTrader.Custom.DAustin.Common
                             executionId ?? "UNKNOWN", orderId ?? "UNKNOWN");
             }
             Logs.Trace(simTime, "<");
+        }
+
+        private void HandleRejectedOrder(
+            TradeContext tc,
+            Cbi.Order order,
+            bool isEntryOrder,
+            bool isExitOrder,
+            int filled,
+            double stopPrice,
+            double limitPrice,
+            DateTime time,
+            Cbi.ErrorCode error,
+            string comment)
+        {
+            var simTime = Strategy.GetDataTimeForLogger();
+
+            if (isEntryOrder)
+            {
+                Logs.Warn(simTime,
+                    "ENTRY ORDER REJECTED | Signal={0} | OrderId={1} | " +
+                    "Filled={2} | Error={3} | Comment={4}",
+                    order.Name,
+                    order.OrderId,
+                    filled,
+                    error,
+                    comment ?? "None");
+
+                tc.EntrySet = false;
+
+                if (filled == 0)
+                {
+                    // No exposure was created. Abandon this trade setup
+                    // and let the normal Exited state clean it up.
+                    tc.SetState(TradeState.Exited);
+                    return;
+                }
+
+                // This is materially different: some quantity actually filled.
+                Logs.Error(simTime,
+                    "CRITICAL: Entry order rejected after partial fill. " +
+                    "Filled={0}. Flattening strategy position.",
+                    filled);
+
+                FlattenStrategyPositions();
+                return;
+            }
+
+            if (isExitOrder)
+            {
+                if (stopPrice != 0)
+                {
+                    Logs.Error(simTime,
+                        "CRITICAL: STOP ORDER REJECTED | Signal={0} | " +
+                        "OrderId={1} | Error={2} | Comment={3}. " +
+                        "Flattening position.",
+                        tc.OrderTicket.SignalName,
+                        order.OrderId,
+                        error,
+                        comment ?? "None");
+                }
+                else if (limitPrice != 0)
+                {
+                    Logs.Error(simTime,
+                        "PROFIT TARGET REJECTED | Signal={0} | " +
+                        "OrderId={1} | Error={2} | Comment={3}. " +
+                        "Flattening position.",
+                        tc.OrderTicket.SignalName,
+                        order.OrderId,
+                        error,
+                        comment ?? "None");
+                }
+                else
+                {
+                    Logs.Error(simTime,
+                        "EXIT ORDER REJECTED | Signal={0} | " +
+                        "OrderId={1} | Error={2} | Comment={3}. " +
+                        "Flattening position.",
+                        tc.OrderTicket.SignalName,
+                        order.OrderId,
+                        error,
+                        comment ?? "None");
+                }
+
+                // Once we tell NinjaTrader to ignore rejected orders,
+                // we are responsible for protecting existing exposure.
+                FlattenStrategyPositions();
+                return;
+            }
+
+            Logs.Error(simTime,
+                "Rejected order could not be classified. " +
+                "Name={0} FromEntrySignal={1} OrderId={2}",
+                order.Name,
+                order.FromEntrySignal,
+                order.OrderId);
         }
 
         private string AnalyticsSummaryLogString(

@@ -158,52 +158,118 @@ namespace NinjaTrader.Custom.DAustin.Common.Orders
             int riskWholeTicks = Risk.ToTicksInt();
             Order order = null;
 
-            if (Contracts > 0 && riskWholeTicks > 0 && Type != DAOrderType.None)
+            if (Contracts <= 0 || riskWholeTicks <= 0 || Type == DAOrderType.None)
+                return null;
+
+            if (Type == DAOrderType.Short)
             {
                 BarIndexEntered = Strategy.CurrentBar;
-                if (Type == DAOrderType.Short)
+                tc.EntrySet = true;
+
+                order = Strategy.EnterShort(
+                    Contracts,
+                    SignalName);
+            }
+            else if (Type == DAOrderType.Long)
+            {
+                BarIndexEntered = Strategy.CurrentBar;
+                tc.EntrySet = true;
+
+                order = Strategy.EnterLong(
+                    Contracts,
+                    SignalName);
+            }
+            else if (Type == DAOrderType.LongStopMarket && Price > 0)
+            {
+                // -------------------------------------------------
+                // Realtime guard:
+                // A buy stop must be ABOVE the current ask.
+                // If price has already traded through the trigger,
+                // skip the entry rather than submitting an invalid
+                // order and having NinjaTrader reject it.
+                // -------------------------------------------------
+                if (Strategy.State == State.Realtime)
                 {
-                    tc.EntrySet = true;
-                    order = Strategy.EnterShort(Contracts, SignalName);
+                    double ask = Strategy.GetCurrentAsk();
+
+                    if (ask > 0 && Price <= ask)
+                    {
+                        Strategy.Logs.Info(
+                            Strategy.Time[0],
+                            "Skipping LongStopMarket entry {0}. StopPrice={1} is not above Ask={2}.",
+                            SignalName,
+                            Price,
+                            ask);
+
+                        return null;
+                    }
                 }
-                else if (Type == DAOrderType.Long)
+
+                BarIndexEntered = Strategy.CurrentBar;
+                tc.EntrySet = true;
+
+                if (StopExpiryBars > 0)
                 {
-                    tc.EntrySet = true;
-                    order = Strategy.EnterLong(Contracts, SignalName);
+                    // manually call CancelOrder
+                    order = Strategy.EnterLongStopMarket(
+                        barsInProgressIndex: 0,
+                        isLiveUntilCancelled: true,
+                        quantity: Contracts,
+                        stopPrice: Price,
+                        signalName: SignalName);
                 }
-                else if (Type == DAOrderType.LongStopMarket && Price > 0)
+                else
                 {
-                    tc.EntrySet = true;
-                    if (StopExpiryBars > 0)
-                    {   // manually call CancelOrder
-                        order = Strategy.EnterLongStopMarket(
-                            barsInProgressIndex: 0,
-                            isLiveUntilCancelled: true,
-                            quantity: Contracts,
-                            stopPrice: Price, 
-                            signalName: SignalName);
-                    }
-                    else
-                    {   // this expires after 1 bar
-                        order = Strategy.EnterLongStopMarket(Contracts, Price, SignalName);
+                    // expires after 1 bar
+                    order = Strategy.EnterLongStopMarket(
+                        Contracts,
+                        Price,
+                        SignalName);
+                }
+            }
+            else if (Type == DAOrderType.ShortStopMarket && Price > 0)
+            {
+                // -------------------------------------------------
+                // Realtime guard:
+                // A sell stop must be BELOW the current bid.
+                // -------------------------------------------------
+                if (Strategy.State == State.Realtime)
+                {
+                    double bid = Strategy.GetCurrentBid();
+
+                    if (bid > 0 && Price >= bid)
+                    {
+                        Strategy.Logs.Info(
+                            Strategy.Time[0],
+                            "Skipping ShortStopMarket entry {0}. StopPrice={1} is not below Bid={2}.",
+                            SignalName,
+                            Price,
+                            bid);
+
+                        return null;
                     }
                 }
-                else if (Type == DAOrderType.ShortStopMarket && Price > 0)
+
+                BarIndexEntered = Strategy.CurrentBar;
+                tc.EntrySet = true;
+
+                if (StopExpiryBars > 0)
                 {
-                    tc.EntrySet = true;
-                    if (StopExpiryBars > 0)
-                    {   // manually call CancelOrder
-                        order = Strategy.EnterShortStopMarket(
-                            barsInProgressIndex: 0,
-                            isLiveUntilCancelled: true,
-                            quantity: Contracts,
-                            stopPrice: Price,
-                            signalName: SignalName);
-                    }
-                    else
-                    {   // this expires after 1 bar
-                        order = Strategy.EnterShortStopMarket(Contracts, Price, SignalName);
-                    }
+                    // manually call CancelOrder
+                    order = Strategy.EnterShortStopMarket(
+                        barsInProgressIndex: 0,
+                        isLiveUntilCancelled: true,
+                        quantity: Contracts,
+                        stopPrice: Price,
+                        signalName: SignalName);
+                }
+                else
+                {
+                    // expires after 1 bar
+                    order = Strategy.EnterShortStopMarket(
+                        Contracts,
+                        Price,
+                        SignalName);
                 }
             }
             return order;
