@@ -330,6 +330,11 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             GeneralParameters GenOptParams = OptParamsOPNDRV.General;
             double atr = IndicatorsOPNDRV.Entry.ATR[0];
 
+            if (Strategy.SessionInfo.IsInFlattenTimeWindow(Strategy.Time[0]))
+            {
+                Logs.Trace("In flatten time window. New entries not allowed.");
+                return true;
+            }
 
             if (FOMCCalendar.IsFOMCDay(Strategy.Time[0]))
             {

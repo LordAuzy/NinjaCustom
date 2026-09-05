@@ -228,11 +228,13 @@ namespace NinjaTrader.Custom.DAustin.Common
                 }
             }
 
-            if (!FlattenIssued && Strategy.SessionInfo.IsInFlattenTimeWindow(Strategy.Time[0]))
+            bool inSession = Strategy.SessionInfo.IsInSession(Strategy.Time[0]);
+            bool inFlattenWindow = Strategy.SessionInfo.IsInFlattenTimeWindow(Strategy.Time[0]);
+            if (!FlattenIssued && inFlattenWindow)
             {
+                FlattenIssued = true;
                 Logs.Info("Flattening positions due to flatten time window.");
                 FlattenStrategyPositions();
-                FlattenIssued = true;
             }
 
             if (!FlattenIssued)
@@ -240,8 +242,7 @@ namespace NinjaTrader.Custom.DAustin.Common
                 EnforceMaxTradeMinutes();
             }
 
-            if (    Strategy.SessionInfo.IsInSession(Strategy.Time[0]) == true &&
-                    Strategy.SessionInfo.IsInFlattenTimeWindow(Strategy.Time[0]) == false)
+            if (inSession)
             {
                 foreach (TradeContext tc in TradeContexts)
                 {
@@ -355,11 +356,14 @@ namespace NinjaTrader.Custom.DAustin.Common
                 tc.OrderTicket = tc.EntryConditionsEvaluator.Evaluate(tc);
                 if (tc.OrderTicket != null)
                 {
-                    tc.AdvanceToNextState();
                     tc.OrderTicket.PlaceStopsAndTargets(tc);
                     Cbi.Order order = tc.OrderTicket.PlaceEntry(tc);
 
-                    if (order == null)
+                    if (order != null)
+                    {
+                        tc.AdvanceToNextState();
+                    }
+                    else
                     {
                         tc.SetState(TradeState.Exited);
                     }

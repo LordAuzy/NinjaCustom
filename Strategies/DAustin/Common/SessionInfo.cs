@@ -46,7 +46,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.Common
         {
             SessionIterator si = Strategy.SessionIterator;
 
-            si.CalculateTradingDay(time, true);
+            si.GetNextSession(time, true);
             // for futures the sessionStart is the previous day
             // but a latter time than the sessionEnd;
             StartTime = si.ActualSessionBegin;

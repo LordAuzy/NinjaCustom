@@ -82,6 +82,12 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB
             double atrValue = Indicators.Entry.ATR[0];
             BiasFilter biasFilter = Indicators.BiasFilter;
 
+            if (Strategy.SessionInfo.IsInFlattenTimeWindow(Strategy.Time[0]))
+            {
+                Logs.Trace("In flatten time window. New entries not allowed.");
+                return null;
+            }
+
             if (FOMCCalendar.IsFOMCDay(Strategy.Time[0]))
             {
                 Logs.Trace("Is FOMC Day");
