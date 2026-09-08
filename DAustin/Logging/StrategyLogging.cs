@@ -1,7 +1,8 @@
-﻿using NLog;
+﻿using NinjaTrader.Custom.DAustin.Common;
+using NLog;
 using System;
 using System.IO;
-using NinjaTrader.Custom.DAustin.Common;
+using System.Security.Principal;
 
 namespace NinjaTrader.Custom.DAustin.Logging
 {
@@ -9,7 +10,7 @@ namespace NinjaTrader.Custom.DAustin.Logging
     {
         #region Properties
 
-        public StrategyLogIdentity Identity { get; }
+        public StrategyLogIdentity Identity { get; private set; }
 
         public StrategyLoggingOptions Options { get; }
 
@@ -19,11 +20,11 @@ namespace NinjaTrader.Custom.DAustin.Logging
         #endregion
 
         #region Private Fields
-        private readonly Logger diagnosticLogger;
-        private readonly Logger tradeLogger;
-        private readonly Logger tradeCSVLogger;
-        private readonly Logger telemetryCSVLogger;
-        private readonly Logger runSummaryLogger;
+        private Logger diagnosticLogger;
+        private Logger tradeLogger;
+        private Logger tradeCSVLogger;
+        private Logger telemetryCSVLogger;
+        private Logger runSummaryLogger;
         #endregion
 
         #region Constructors
@@ -73,6 +74,26 @@ namespace NinjaTrader.Custom.DAustin.Logging
                 options,
                 tradeCSVSchemaVersion,
                 telemetryCSVSchemaVersion);
+        }
+
+        public void SetTradingContext(
+            string instrumentName,
+            string accountName)
+        {
+            if (Identity.InstrumentName != instrumentName ||
+                Identity.AccountName != accountName)
+            {
+                Identity = new StrategyLogIdentity(
+                    Identity.StrategyName,
+                    instrumentName,
+                    accountName);
+
+                diagnosticLogger = CreateLogger("Strategy", Identity, RunId);
+                tradeLogger = CreateLogger("TradeExecution", Identity, RunId);
+                tradeCSVLogger = CreateLogger("TradeExecutionCSV", Identity, RunId);
+                telemetryCSVLogger = CreateLogger("TelemetryTradeExecutionCSV", Identity, RunId);
+                runSummaryLogger = CreateLogger("RunSummary", Identity, RunId);
+            }
         }
 
         #endregion

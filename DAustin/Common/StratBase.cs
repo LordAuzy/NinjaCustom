@@ -48,6 +48,7 @@ namespace NinjaTrader.Custom.DAustin.Common
     {
         #region Properties
         public StrategyLogging Logs { get; set; }
+        public virtual string StratIdentifier => "STRATBASE";
         public virtual string TradeCSVSchemaVersion => "1.0.0";
         public virtual string TelemetryCSVSchemaVersion => "1.0.0";
         private bool isLoadedFromXml;
@@ -124,6 +125,7 @@ namespace NinjaTrader.Custom.DAustin.Common
             
         [Browsable(false)]
         public OptimizationParametersBase OptimizationParameters { get; set; } = null;
+        public DataCollectorBase DataCollector { get; set; } = null;
 
         private StratInputParams _sip = null;
         [Browsable(false)]
@@ -145,6 +147,8 @@ namespace NinjaTrader.Custom.DAustin.Common
         private Dictionary<string, IEntryConditionsEvaluator> EntryConditionsEvaluatortList { get; } = new Dictionary<string, IEntryConditionsEvaluator>();
         [Browsable(false)]
         private Dictionary<string, IOptimizationParameters> OptimizationParameterList { get; } = new Dictionary<string, IOptimizationParameters>();
+        [Browsable(false)]
+        private Dictionary<string, IDataCollector> DataCollectorList { get; } = new Dictionary<string, IDataCollector>();
         [Browsable(false)]
         private Dictionary<string, IIndicators> IndicatorsList { get; } = new Dictionary<string, IIndicators>();
         #endregion
@@ -440,6 +444,60 @@ namespace NinjaTrader.Custom.DAustin.Common
                 Print($"GetOptimizationParameters - no optimization parameters type found with Id '{key}'");
             }
             return optParams;
+        }
+
+        public IDataCollector GetDataCollector(string key)
+        {
+            IDataCollector dataCollector = DataCollectorList.ContainsKey(key) ? DataCollectorList[key] : null;
+
+            if (dataCollector == null)
+            {   // scan all loaded assemblies for a class decorated with [StrategyComponentId(key)]
+                try
+                {
+                    Assembly assy = Assembly.GetExecutingAssembly();
+                    var types = assy.GetTypes().Where(type => typeof(IDataCollector).IsAssignableFrom(type) &&
+                            !type.IsAbstract && !type.IsAbstract);
+
+                    foreach (var type in types)
+                    {
+                        StrategyComponentIdAttribute attr = (StrategyComponentIdAttribute)System.Attribute.GetCustomAttribute(type, typeof(StrategyComponentIdAttribute));
+
+                        if (attr != null && attr.Id == key)
+                        {
+                            try
+                            {
+                                dataCollector = (IDataCollector)Activator.CreateInstance(type, this);
+                            }
+                            catch (Exception ex)
+                            {
+                                Print("Try to create a default instance of IDataCollector to avoid null reference.");
+                                try
+                                {
+                                    dataCollector = (IDataCollector)Activator.CreateInstance(type);
+                                }
+                                catch (Exception innerEx)
+                                {
+                                    Print("Error creating default instance of IDataCollector");
+                                    throw; // rethrow the original exception
+                                }
+                            }
+                            DataCollectorList[key] = dataCollector;
+                            break;
+                        }
+                    }
+                }
+
+                catch (Exception ex)
+                {
+                    Print(ex);
+                }
+            }
+
+            if (dataCollector == null)
+            {
+                Print($"GetDataCollector - no data collector type found with Id '{key}'");
+            }
+            return dataCollector;
         }
 
         public IIndicators GetIndicators(string key)

@@ -77,6 +77,7 @@
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DAustin\Common\DataCollectorBase.cs" />
     <Compile Include="DAustin\Common\Orders\TradeEvent.cs" />
     <Compile Include="DAustin\Common\Reporting\BaseCSVWriter.cs" />
     <Compile Include="DAustin\Common\Reporting\CompletedTradeBarsReportGenerator.cs" />
@@ -88,6 +89,7 @@
     <Compile Include="DAustin\Common\TelemetryBarCollection.cs" />
     <Compile Include="DAustin\Extensions\TradeExtensions.cs" />
     <Compile Include="DAustin\Interfaces\ICSVDataSource.cs" />
+    <Compile Include="DAustin\Interfaces\IDataCollector.cs" />
     <Compile Include="DAustin\Interfaces\ITelemetryBar.cs" />
     <Compile Include="DAustin\Logging\StrategyLogging.cs" />
     <Compile Include="DAustin\Logging\StrategyLoggingOptions.cs" />
@@ -421,7 +423,7 @@
     <Compile Include="DAustin\Common\Reporting\ClosedTrade.cs" />
     <Compile Include="Strategies\DAustin\OPNDRV\DrvPullbackState.cs" />
     <Compile Include="Strategies\DAustin\OPNDRV\ECE_OPNDRV.cs" />
-    <Compile Include="Strategies\DAustin\OPNDRV\ECE_OPNDRV_DataCollector.cs" />
+    <Compile Include="Strategies\DAustin\OPNDRV\DataCollector_OPNDRV.cs" />
     <Compile Include="Strategies\DAustin\OPNDRV\Indicators_OPNDRV.cs" />
     <Compile Include="Strategies\DAustin\OPNDRV\OptimizationParameters_OPNDRV.cs" />
     <Compile Include="Strategies\DAustin\OPNDRV\Strat_OPNDRV.cs" />

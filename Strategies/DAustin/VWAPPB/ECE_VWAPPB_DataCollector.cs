@@ -1,4 +1,5 @@
-﻿using NinjaTrader.Custom.Strategies.DAustin.Common;
+﻿using NinjaTrader.Custom.DAustin.Common;
+using NinjaTrader.Custom.Strategies.DAustin.Common;
 using NinjaTrader.NinjaScript.MarketAnalyzerColumns;
 using NinjaTrader.NinjaScript.Strategies;
 using System;
@@ -9,8 +10,10 @@ using System.Threading.Tasks;
 
 namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB
 {
-    public class ECE_VWAPPB_DataCollector
+    [StrategyComponentId("DC-VWAPPB")]
+    public class ECE_VWAPPB_DataCollector : DataCollectorBase
     {
+        #region Properties
         // EvaluateGeminiNoChop counters
         public int BiasLongCount { get; set; } = 0;
         public int BiasShortCount { get; set; } = 0;
@@ -36,5 +39,13 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB
         public int BearishTriggerCount { get; set; } = 0;
         public int LongEntryTriggeredCount { get; set; } = 0; 
         public int ShortEntryTriggeredCount { get; set; } = 0;
+        #endregion
+
+        #region Constructors
+        public ECE_VWAPPB_DataCollector(StratBase strat) : base(strat)
+        {
+
+        }
+        #endregion
     }
 }

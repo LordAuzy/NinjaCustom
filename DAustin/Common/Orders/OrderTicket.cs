@@ -155,6 +155,7 @@ namespace NinjaTrader.Custom.DAustin.Common.Orders
 
         public Order PlaceEntry(TradeContext tc)
         {
+            DataCollectorBase dc = Strategy.DataCollector;
             int riskWholeTicks = Risk.ToTicksInt();
             Order order = null;
 

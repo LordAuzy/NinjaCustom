@@ -1,4 +1,6 @@
 ﻿using NinjaTrader.Cbi;
+using NinjaTrader.Custom.DAustin.Common;
+using NinjaTrader.Custom.DAustin.Interfaces;
 using NinjaTrader.Custom.Strategies.DAustin.Common;
 using NinjaTrader.Custom.Strategies.DAustin.OPNDRV;
 using NinjaTrader.NinjaScript.Indicators;
@@ -12,8 +14,10 @@ using System.Threading.Tasks;
 
 namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
 {
-    public class ECE_OPNDRV_DataCollector
+    [StrategyComponentId("DC-OPNDRV")]
+    public class DataCollector_OPNDRV : DataCollectorBase
     {
+        #region Properties
         public int DriveSetupLongCount { get; set; } = 0;
         public int DriveSetupLongCandidateBars { get; set; } = 0;
         public int LongRetracementValidCount { get; set; } = 0;
@@ -31,8 +35,21 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
         public int ShortControlledBarCount { get; set; } = 0;
         public int ShortEntryDistanceValidCount { get; set; } = 0;
         public int DriveSetupShortTriggeredCount { get; set; } = 0;
+        #endregion
 
-        public void ToStringBuilder(StringBuilder sb)
+        #region constructors
+        public DataCollector_OPNDRV(StratBase strat) : base(strat)
+        {
+
+        }
+
+        public DataCollector_OPNDRV() : base()
+        {
+
+        }
+        #endregion
+
+        public override void ToStringBuilder(StringBuilder sb)
         {
             sb.AppendLine("==Entry Trigger Data==");
             sb.AppendLine("  ==Long==");
@@ -45,6 +62,9 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             sb.AppendLine($"    LongTrendValidCount: {LongTrendValidCount}");
             sb.AppendLine($"    LongControlledBarCount: {LongControlledBarCount}");
             sb.AppendLine($"    LongEntryDistanceValidCount: {LongEntryDistanceValidCount}");
+            sb.AppendLine($"  LongEntryOrderSubmittedCount: {Orders.LongMarketOrderSubmittedCount + Orders.LongStopMarketOrderSubmittedCount}");
+            sb.AppendLine($"    LongMarketOrderSubmittedCount: {Orders.LongMarketOrderSubmittedCount}");
+            sb.AppendLine($"    LongStopMarketOrderSubmittedCount: {Orders.LongStopMarketOrderSubmittedCount}");
             sb.AppendLine("  ==Short==");
             sb.AppendLine($"  DriveSetupShortCount: {DriveSetupShortCount}");
             sb.AppendLine($"  DriveSetupShortCandidateBars: {DriveSetupShortCandidateBars}");
@@ -55,6 +75,10 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
             sb.AppendLine($"    ShortTrendValidCount: {ShortTrendValidCount}");
             sb.AppendLine($"    ShortControlledBarCount: {ShortControlledBarCount}");
             sb.AppendLine($"    ShortEntryDistanceValidCount: {ShortEntryDistanceValidCount}");
+            sb.AppendLine($"  ShortEntryOrderSubmittedCount: {Orders.ShortMarketOrderSubmittedCount + Orders.ShortStopMarketOrderSubmittedCount}");
+            sb.AppendLine($"    ShortMarketOrderSubmittedCount: {Orders.ShortMarketOrderSubmittedCount}");
+            sb.AppendLine($"    ShortStopMarketOrderSubmittedCount: {Orders.ShortStopMarketOrderSubmittedCount}");
+
         }
     }
 }

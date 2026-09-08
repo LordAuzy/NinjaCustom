@@ -4,14 +4,21 @@ using ActiproSoftware.Windows.Controls;
 using Infragistics.Windows.DataPresenter;
 using NinjaTrader.Cbi;
 using NinjaTrader.CQG.ProtoBuf;
-using NinjaTrader.Custom.Strategies.DAustin.Common;
+using NinjaTrader.Custom.DAustin.Common;
+using NinjaTrader.Custom.DAustin.Common.Calendars;
+using NinjaTrader.Custom.DAustin.Common.Orders;
+using NinjaTrader.Custom.DAustin.Common.ScheduleFilter;
 using NinjaTrader.Custom.DAustin.Interfaces;
+using NinjaTrader.Custom.Strategies.DAustin.Common;
+using NinjaTrader.Custom.Strategies.DAustin.OPNDRV;
 using NinjaTrader.Gui.PropertiesTest;
 using NinjaTrader.Gui.Tools;
 using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.NinjaScript.Indicators;
+using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.MarketAnalyzerColumns;
 using NinjaTrader.NinjaScript.SuperDomColumns;
+using NLog;
 using NTRes.NinjaTrader.Gui.Tools.Account;
 using Rules1;
 using SharpDX.Direct2D1;
@@ -35,12 +42,6 @@ using static NinjaTrader.Custom.DAustin.Common.OptimizationParametersBase;
 using static System.Windows.Forms.AxHost;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrackBar;
-using NLog;
-using NinjaTrader.NinjaScript.Indicators;
-using NinjaTrader.Custom.DAustin.Common.ScheduleFilter;
-using NinjaTrader.Custom.DAustin.Common;
-using NinjaTrader.Custom.DAustin.Common.Calendars;
-using NinjaTrader.Custom.DAustin.Common.Orders;
 
 namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
 {
@@ -50,7 +51,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
         #region Properties
         public Indicators_VWAPPB_V1 IndicatorsVWAPPB { get { return Indicators as Indicators_VWAPPB_V1; } }
         public OptimizationParameters_VWAPPB_V1 OptParamsVWAPPB { get { return OptParams as OptimizationParameters_VWAPPB_V1; } }
-        public ECE_VWAPPB_V1_DataCollector DataCollector { get; private set; } = new ECE_VWAPPB_V1_DataCollector();
+        public ECE_VWAPPB_V1_DataCollector DataCollector { get; private set; } = null;
 
         // Break-and-retest state (reset each session)
         private bool _breakoutLongOccurred = false;
@@ -64,6 +65,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
         public ECE_VWAPPB_V1(StratBase strat)
         {
             Strategy = strat;
+            DataCollector = Strategy.GetDataCollector("DC-" + Strategy.StratIdentifier) as ECE_VWAPPB_V1_DataCollector;
             Initialize();
         }
         #endregion

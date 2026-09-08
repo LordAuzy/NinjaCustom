@@ -1,4 +1,5 @@
-﻿using NinjaTrader.Custom.Strategies.DAustin.Common;
+﻿using NinjaTrader.Custom.DAustin.Common;
+using NinjaTrader.Custom.Strategies.DAustin.Common;
 using NinjaTrader.NinjaScript.MarketAnalyzerColumns;
 using NinjaTrader.NinjaScript.Strategies;
 using System;
@@ -9,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace NinjaTrader.Custom.Strategies.DAustin.VWAPMR
 {
+    [StrategyComponentId("DC-VWAPMR")]
     public class ECE_VWAPMR_DataCollector
     {
         public int CheckForEntryCount { get; set; }

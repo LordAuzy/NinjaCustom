@@ -590,7 +590,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         #region Properties
         [Browsable(false)]
-        public string stratIdentifier { get; set; } = StratIdentifiers.OPNDRV;
+        public override string StratIdentifier => StratIdentifiers.OPNDRV;
         public override string TradeCSVSchemaVersion => "1.0.0";
         public override string TelemetryCSVSchemaVersion => "1.0.0";
 
@@ -658,7 +658,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (State == State.SetDefaults)
                 {
                     Description = @"Opening Drive";
-                    Name = "DA--" + stratIdentifier;
+                    Name = "DA--" + StratIdentifier;
                     Calculate = Calculate.OnBarClose;
                     EntriesPerDirection = 1;
                     EntryHandling = EntryHandling.AllEntries;
@@ -680,7 +680,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // initially set in the optimization parameters class and transferred to here
                     // when we are initializing this strategy. The OptimizationParameters_VWAPPB class
                     // may be used outsisde this strategy.
-                    OptimizationParameters_OPNDRV OptParams = GetOptimizationParameters("OP-" + stratIdentifier) as OptimizationParameters_OPNDRV;
+                    OptimizationParameters_OPNDRV OptParams = GetOptimizationParameters("OP-" + StratIdentifier) as OptimizationParameters_OPNDRV;
                     OptParams.SetDefaultValues();
                     OptParams.UpdateStratParamValues();
                     // set on the strat so it will be serialized in the XML
@@ -689,7 +689,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else if (State == State.Configure)
                 {
-                    OptimizationParameters_OPNDRV OptParams = GetOptimizationParameters("OP-" + stratIdentifier) as OptimizationParameters_OPNDRV;
+                    OptimizationParameters_OPNDRV OptParams = GetOptimizationParameters("OP-" + StratIdentifier) as OptimizationParameters_OPNDRV;
+                    DataCollector = GetDataCollector("DC-" + StratIdentifier) as DataCollectorBase;
 
                     //if (IsLoadedFromXml)
                     //{
@@ -706,7 +707,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     StrategyLoggingOptions logOptions = StrategyLoggingOptions.FromMode(OptParams.General.LoggingMode);
                     Logs = StrategyLogging.Create(
                         strategyName: Name,
-                        instrumentName: Instrument.FullName,
+                        instrumentName: Instrument?.FullName,
                         accountName: Account != null ? Account.Name : "Backtest",
                         options: logOptions,
                         tradeCSVSchemaVersion: TradeCSVSchemaVersion,
@@ -716,13 +717,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                     SessionInfo.FlattenOnSessionCloseMinutes = OptParams.Time.B4SesssionEndFlattenMin;
 
                     // initialize indicators
-                    Indicators_OPNDRV indicators = GetIndicators("IDC-" + stratIdentifier) as Indicators_OPNDRV;
+                    Indicators_OPNDRV indicators = GetIndicators("IDC-" + StratIdentifier) as Indicators_OPNDRV;
                     indicators.OptParams = OptParams;
                     indicators.Initialize();
 
                     // now we can initialize the entry conditions evaluator and trade context
-                    IEntryConditionsEvaluator ece = GetEntryConditionsEvaluator("ECE-" + stratIdentifier);
-                    ece.OrderIdPrefix = "DA" + stratIdentifier;
+                    IEntryConditionsEvaluator ece = GetEntryConditionsEvaluator("ECE-" + StratIdentifier);
+                    ece.OrderIdPrefix = "DA" + StratIdentifier;
                     ece.Reset();
                     ece.Indicators = indicators;
                     ece.OptParams = OptParams;
@@ -773,8 +774,16 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else if (State == State.DataLoaded)
                 {
-                    Indicators_OPNDRV indicators = GetIndicators("IDC-" + stratIdentifier) as Indicators_OPNDRV;
+                    Logs.SetTradingContext(
+                        instrumentName: Instrument.FullName,
+                        accountName: Account != null  ? Account.Name : "Backtest");
 
+                    Logs.Debug("Trading context initialized. Instrument={0}, Account={1}",
+                        Instrument.FullName,
+                        Account != null ? Account.Name : "Backtest");
+
+                    Indicators_OPNDRV indicators = GetIndicators("IDC-" + StratIdentifier) as Indicators_OPNDRV;
+ 
                     // add chart indicators for this strategy.
                     // This is done here so that the indicators are only added once.
                     Indicators_OPNDRV.EntryIndicators entryIndicators = indicators.Entry;
@@ -826,7 +835,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         public override ITelemetryBar CreateTelemetryBar()
         {
-            Indicators_OPNDRV indicators = GetIndicators("IDC-" + stratIdentifier) as Indicators_OPNDRV;
+            Indicators_OPNDRV indicators = GetIndicators("IDC-" + StratIdentifier) as Indicators_OPNDRV;
             return new TelemetryBar_OPNDRV(this, indicators);
         }
 
@@ -837,7 +846,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void OnBacktestComplete()
         {   //do whatever you need to do at the end of a backtest here. Logging final results, etc.
-            ECE_OPNDRV ece = GetEntryConditionsEvaluator("ECE-" + stratIdentifier) as ECE_OPNDRV;
+            ECE_OPNDRV ece = GetEntryConditionsEvaluator("ECE-" + StratIdentifier) as ECE_OPNDRV;
             OptimizationParameters_OPNDRV optParams = ece.OptParamsOPNDRV;
             Indicators_OPNDRV indicators = ece.IndicatorsOPNDRV;
             TimeConverter tc = new TimeConverter();

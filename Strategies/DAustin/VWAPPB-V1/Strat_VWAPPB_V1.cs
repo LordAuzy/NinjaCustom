@@ -533,7 +533,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         #region Properties
         [Browsable(false)]
-        public string stratIdentifier { get; set; } = StratIdentifiers.VWAPPB_V1;
+        public override string StratIdentifier => StratIdentifiers.VWAPPB_V1;
         #endregion
         /*
         The Standard Lifecycle Order
@@ -598,7 +598,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (State == State.SetDefaults)
                 {
                     Description = @"VWAP Pullback";
-                    Name = "DA--" + stratIdentifier;
+                    Name = "DA--" + StratIdentifier;
                     Calculate = Calculate.OnBarClose;
                     EntriesPerDirection = 1;
                     EntryHandling = EntryHandling.AllEntries;
@@ -620,7 +620,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // initially set in the optimization parameters class and transferred to here
                     // when we are initializing this strategy. The OptimizationParameters_VWAPPB class
                     // may be used outsisde this strategy.
-                    OptimizationParameters_VWAPPB_V1 OptParams = GetOptimizationParameters("OP-" + stratIdentifier) as OptimizationParameters_VWAPPB_V1;
+                    OptimizationParameters_VWAPPB_V1 OptParams = GetOptimizationParameters("OP-" + StratIdentifier) as OptimizationParameters_VWAPPB_V1;
                     OptParams.SetDefaultValues();
                     OptParams.UpdateStratParamValues();
                     // set on the strat so it will be serialized in the XML
@@ -629,7 +629,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else if (State == State.Configure)
                 {
-                    OptimizationParameters_VWAPPB_V1 OptParams = GetOptimizationParameters("OP-" + stratIdentifier) as OptimizationParameters_VWAPPB_V1;
+                    OptimizationParameters_VWAPPB_V1 OptParams = GetOptimizationParameters("OP-" + StratIdentifier) as OptimizationParameters_VWAPPB_V1;
 
                     if (IsLoadedFromXml)
                     {
@@ -646,7 +646,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     StrategyLoggingOptions logOptions = StrategyLoggingOptions.FromMode(OptParams.General.LoggingMode);
                     Logs = StrategyLogging.Create(
                         strategyName: Name,
-                        instrumentName: Instrument.FullName,
+                        instrumentName: Instrument?.FullName,
                         accountName: Account != null ? Account.Name : "Backtest",
                         options: logOptions,
                         tradeCSVSchemaVersion: TradeCSVSchemaVersion,
@@ -656,13 +656,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                     SessionInfo.FlattenOnSessionCloseMinutes = OptParams.Time.B4SesssionEndFlattenMin;
 
                     // initialize indicators
-                    Indicators_VWAPPB_V1 indicators = GetIndicators("IDC-" + stratIdentifier) as Indicators_VWAPPB_V1;
+                    Indicators_VWAPPB_V1 indicators = GetIndicators("IDC-" + StratIdentifier) as Indicators_VWAPPB_V1;
                     indicators.OptParams = OptParams;
                     indicators.Initialize();
+                    DataCollector = GetDataCollector("DC-" + StratIdentifier) as DataCollectorBase;
 
                     // now we can initialize the entry conditions evaluator and trade context
-                    IEntryConditionsEvaluator ece = GetEntryConditionsEvaluator("ECE-" + stratIdentifier);
-                    ece.OrderIdPrefix = "DA" + stratIdentifier;
+                    IEntryConditionsEvaluator ece = GetEntryConditionsEvaluator("ECE-" + StratIdentifier);
+                    ece.OrderIdPrefix = "DA" + StratIdentifier;
                     ece.Reset();
                     ece.Indicators = indicators;
                     ece.OptParams = OptParams;
@@ -715,7 +716,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else if (State == State.DataLoaded)
                 {
-                    Indicators_VWAPPB_V1 indicators = GetIndicators("IDC-" + stratIdentifier) as Indicators_VWAPPB_V1;
+                    Logs.SetTradingContext(
+                        instrumentName: Instrument.FullName,
+                        accountName: Account != null ? Account.Name : "Backtest");
+
+                    Indicators_VWAPPB_V1 indicators = GetIndicators("IDC-" + StratIdentifier) as Indicators_VWAPPB_V1;
 
                     // add chart indicators for this strategy.
                     // This is done here so that the indicators are only added once.
@@ -764,13 +769,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         public override ITelemetryBar CreateTelemetryBar()
         {
-            Indicators_VWAPPB_V1 indicators = GetIndicators("IDC-" + stratIdentifier) as Indicators_VWAPPB_V1;
+            Indicators_VWAPPB_V1 indicators = GetIndicators("IDC-" + StratIdentifier) as Indicators_VWAPPB_V1;
             return new TelemetryBar_VWAPPB_V1(this, indicators);
         }
 
         protected override void OnBacktestComplete()
         {   //do whatever you need to do at the end of a backtest here. Logging final results, etc.
-            ECE_VWAPPB_V1 ece = GetEntryConditionsEvaluator("ECE-" + stratIdentifier) as ECE_VWAPPB_V1;
+            ECE_VWAPPB_V1 ece = GetEntryConditionsEvaluator("ECE-" + StratIdentifier) as ECE_VWAPPB_V1;
             OptimizationParameters_VWAPPB_V1 optParamsVWAPPB = ece.OptParamsVWAPPB;
             Indicators_VWAPPB_V1 indicatorsVWAPPB = ece.IndicatorsVWAPPB;
             TimeConverter tc = new TimeConverter();

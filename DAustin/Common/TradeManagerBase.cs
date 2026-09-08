@@ -1,6 +1,7 @@
 ﻿using ActiproSoftware.Windows;
 using NinjaTrader.Cbi;
 using NinjaTrader.CQG.ProtoBuf;
+using NinjaTrader.Custom.DAustin.Common;
 using NinjaTrader.Custom.DAustin.Common.Orders;
 using NinjaTrader.Custom.DAustin.Common.Reporting;
 using NinjaTrader.Custom.DAustin.Extensions;
@@ -1143,109 +1144,6 @@ namespace NinjaTrader.Custom.DAustin.Common
             return exitTriggered;
         }
 
-        public void OnOrderUpdateLatestDave(
-            Cbi.Order order,
-            double limitPrice,
-            double stopPrice,
-            int quantity,
-            int filled,
-            double averageFillPrice,
-            Cbi.OrderState orderState,
-            DateTime time,
-            Cbi.ErrorCode error,
-            string comment)
-        {
-            var simTime = Strategy.GetDataTimeForLogger();
-
-            string paramsLogString = String.Format("Id: {0} | Name: {1} | State: {2} | Filled: {3}/{4} | Limit: {5} | Stop: {6} | AvgPrice: {7} | Error: {8} | Comment: {9} | UpdateTime: {10}",
-                order.Id, order.Name, orderState, filled, quantity, limitPrice, stopPrice, averageFillPrice, error, comment ?? "None", time);
-
-            // 1. DYNAMICALLY CHOOSE LOG LEVEL BASED ON ORDER STATE AND ERROR CODES
-            if (orderState == Cbi.OrderState.Rejected)
-            {
-                Logs.Warn(simTime, "CRITICAL: Order REJECTED by Broker/Engine! | " + paramsLogString);
-            }
-            else if (error != Cbi.ErrorCode.NoError)
-            {
-                Logs.Warn(simTime, "Order Error Detected | " + paramsLogString);
-            }
-            else
-            {
-                Logs.Debug(simTime, "Order Update Received | " + paramsLogString);
-            }
-
-            try
-            {
-                // Fail-safe check to prevent NullReferenceExceptions on the collection lookup
-                if (order == null)
-                {
-                    Logs.Warn(simTime, "Received a null order object.");
-                }
-                else 
-                {
-                    TradeContext tc = TradeContexts.Find(x =>
-                        x.OrderTicket != null && (
-                            // 1. Post-Bound: If a unique broker ID string exists, match it exactly
-                            (!string.IsNullOrEmpty(x.OrderTicket.TransactionId) && x.OrderTicket.TransactionId == order.OrderId) ||
-                            // 2. Pre-Bound: First flight fallback matching the custom signal name string
-                            (string.IsNullOrEmpty(x.OrderTicket.TransactionId) && x.OrderTicket.SignalName == order.Name) ||
-                            // 3. Exit Phase: Match brackets back to their parent entry signal string
-                            (x.OrderTicket.SignalName == order.FromEntrySignal)
-                        ));
-
-                    if (tc == null)
-                    {
-                        // we can hit here when orders that aren't our SL or TP are executed. For example
-                        // if we call exitlong or exitshort.
-                        // Added order details to make this warning actually useful for debugging.
-                        Logs.Info(simTime, "Order '{0}' (FromEntry: '{1}' not found in TradeContext List. External exit or system order assumed.",
-                            order.Name, order.FromEntrySignal);
-                    }
-                    else
-                    {
-                        // --- SECTION 1: ENTRY ORDER PROCESSING ---
-                        if (tc.OrderTicket.SignalName == order.Name)
-                        {
-                            // ASYNC BRIDGE: If this is the first time we are seeing this order, 
-                            // grab the unique engine transaction ID and lock it into our context!
-                            if (String.IsNullOrEmpty(tc.OrderTicket.TransactionId))
-                            {
-                                // ninjatrader docs say not to use order.orderId for tracking but
-                                // we're going to do it anyways. They will change on us when data
-                                // switches from historic to realtime so for us that's OK.
-                                tc.OrderTicket.TransactionId = order.OrderId;
-
-                                Logs.Info(simTime, "Async ID Bound | Signal '{0}' has been bound to Transaction ID: {1}",
-                                    tc.OrderTicket.SignalName, order.OrderId);
-                            }
-
-                            Logs.Debug(simTime, "Mapping Entry Order onto TradeContext: {0}", tc.OrderTicket.SignalName);
-                            tc.EntryOrder = order; 
-                        }
-                        // --- SECTION 2: EXIT ORDER PROCESSING (SL or TP) ---
-                        else if (tc.OrderTicket.SignalName == order.FromEntrySignal)
-                        {
-                            if (stopPrice != 0)
-                            {
-                                Logs.Debug(simTime, "Mapping Stop Order onto TradeContext: {0}", tc.OrderTicket.SignalName);
-                                tc.StopOrder = order;
-                            }
-                            else if (limitPrice != 0)
-                            {
-                                Logs.Debug(simTime, "Mapping Limit Order onto TradeContext: {0}", tc.OrderTicket.SignalName);
-                                tc.LimitOrder = order;
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // Pass the exception along with context so you know exactly which order broke the code
-                Logs.Error(simTime, ex, "Exception occurred during OnOrderUpdate processing for Order: {0}", order?.Name ?? "UNKNOWN");
-            }
-        }
-
         public virtual void OnOrderUpdate(
             Cbi.Order order,
             double limitPrice,
@@ -1258,6 +1156,7 @@ namespace NinjaTrader.Custom.DAustin.Common
             Cbi.ErrorCode error,
             string comment)
         {
+            DataCollectorBase dc = Strategy.DataCollector;
             // Setup logger with SimTime baked in so all logs from here on will have it
             var simTime = Strategy.GetDataTimeForLogger();
 
@@ -1327,6 +1226,7 @@ namespace NinjaTrader.Custom.DAustin.Common
                     if (string.IsNullOrEmpty(tc.OrderTicket.TransactionId))
                     {
                         tc.OrderTicket.TransactionId = order.OrderId;
+                        dc.Orders.EntryOrderSubmittedCount(tc.OrderTicket.Type, 1);
 
                         Logs.Info(simTime, "Async ID Bound | Signal '{0}' has been bound to Transaction ID: {1}",
                             tc.OrderTicket.SignalName, order.OrderId);
@@ -1422,7 +1322,7 @@ namespace NinjaTrader.Custom.DAustin.Common
                 TradeContext tc = TradeContexts.Find(x =>
                     x.OrderTicket != null &&
                     x.OrderTicket.SignalName == signalName);
-
+ 
                 if (tc == null)
                 {
                     Logs.Info(simTime, "Execution '{0}' (OrderId: '{1}' | FromEntry: '{2}') not found in TradeContext List. External exit assumed.",

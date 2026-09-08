@@ -52,7 +52,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
         #region Properties
         public Indicators_OPNDRV IndicatorsOPNDRV { get { return Indicators as Indicators_OPNDRV; } }
         public OptimizationParameters_OPNDRV OptParamsOPNDRV { get { return OptParams as OptimizationParameters_OPNDRV; } }
-        public ECE_OPNDRV_DataCollector DataCollector { get; private set; } = new ECE_OPNDRV_DataCollector();
+        public DataCollector_OPNDRV DataCollector { get; private set; }
         public OpeningDriveState DriveState { get; private set; }
         public DriveSetup DriveSetup { get; private set; } = null;
         public DrvPullbackState PullbackState { get; private set; } = null;
@@ -62,6 +62,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OPNDRV
         public ECE_OPNDRV(StratBase strat)
         {
             Strategy = strat;
+            DataCollector = Strategy.GetDataCollector("DC-" + Strategy.StratIdentifier) as DataCollector_OPNDRV;
             Initialize();
         }
         #endregion

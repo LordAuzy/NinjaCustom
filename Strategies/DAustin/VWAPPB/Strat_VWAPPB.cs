@@ -534,7 +534,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         #region Properties
         [Browsable(false)]
-        public string stratIdentifier { get; set; } = StratIdentifiers.VWAPPB;
+        public override string StratIdentifier => StratIdentifiers.VWAPPB;
         #endregion
 /*
 The Standard Lifecycle Order
@@ -580,7 +580,7 @@ When it happens: The strategy is disabled by you, the workspace is closed, or th
         {
             if (State == State.DataLoaded)
             {   // this part needs to be executed before the base OnStateChange DataLoaded.
-                OptimizationParameters_VWAPPB OptParamsVWAPPB = GetOptimizationParameters("OP-" + stratIdentifier) as OptimizationParameters_VWAPPB;
+                OptimizationParameters_VWAPPB OptParamsVWAPPB = GetOptimizationParameters("OP-" + StratIdentifier) as OptimizationParameters_VWAPPB;
                 OptParamsVWAPPB.UpdateFromStrat();
                 OptimizationParameters = OptParamsVWAPPB;
             }
@@ -597,7 +597,7 @@ When it happens: The strategy is disabled by you, the workspace is closed, or th
             if (State == State.SetDefaults)
             {
                 Description = @"VWAP Pullback";
-                Name = "DA--" + stratIdentifier;
+                Name = "DA--" + StratIdentifier;
                 Calculate = Calculate.OnBarClose;
                 EntriesPerDirection = 1;
                 EntryHandling = EntryHandling.AllEntries;
@@ -618,20 +618,20 @@ When it happens: The strategy is disabled by you, the workspace is closed, or th
                 // initially set in the optimization parameters class and transferred to here
                 // when we are initializing this strategy. The OptimizationParameters_VWAPPB class
                 // may be used outsisde this strategy.
-                NinjaTrader.Custom.Strategies.DAustin.VWAPPB.OptimizationParameters_VWAPPB OptParamsVWAPPB = GetOptimizationParameters("OP-" + stratIdentifier) as OptimizationParameters_VWAPPB;
+                NinjaTrader.Custom.Strategies.DAustin.VWAPPB.OptimizationParameters_VWAPPB OptParamsVWAPPB = GetOptimizationParameters("OP-" + StratIdentifier) as OptimizationParameters_VWAPPB;
                 OptParamsVWAPPB.SetDefaultValues();
                 OptParamsVWAPPB.UpdateStratParamValues();
             }
             else if (State == State.Configure)
             {
                 //update our optimization parameters from the strategy properties
-                NinjaTrader.Custom.Strategies.DAustin.VWAPPB.OptimizationParameters_VWAPPB OptParamsVWAPPB = GetOptimizationParameters("OP-" + stratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPPB.OptimizationParameters_VWAPPB;
+                NinjaTrader.Custom.Strategies.DAustin.VWAPPB.OptimizationParameters_VWAPPB OptParamsVWAPPB = GetOptimizationParameters("OP-" + StratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPPB.OptimizationParameters_VWAPPB;
                 OptParamsVWAPPB.UpdateFromStrat();
                 //initialize logging
                 StrategyLoggingOptions logOptions = StrategyLoggingOptions.FromMode(OptParamsVWAPPB.General.LoggingMode);
                 Logs = StrategyLogging.Create(
                     strategyName: Name,
-                    instrumentName: Instrument.FullName,
+                    instrumentName: Instrument?.FullName,
                     accountName: Account != null ? Account.Name : "Backtest",
                     options: logOptions,
                     tradeCSVSchemaVersion: TradeCSVSchemaVersion,
@@ -641,18 +641,23 @@ When it happens: The strategy is disabled by you, the workspace is closed, or th
                 SessionInfo.FlattenOnSessionCloseMinutes = OptParamsVWAPPB.Time.B4SesssionEndFlattenMin;
 
                 // initialize indicators
-                NinjaTrader.Custom.Strategies.DAustin.VWAPPB.Indicators_VWAPPB indicators = GetIndicators("IDC-" + stratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPPB.Indicators_VWAPPB;
+                NinjaTrader.Custom.Strategies.DAustin.VWAPPB.Indicators_VWAPPB indicators = GetIndicators("IDC-" + StratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPPB.Indicators_VWAPPB;
                 indicators.OptParams = OptParamsVWAPPB;
                 indicators.Initialize();
+                DataCollector = GetDataCollector("DC-" + StratIdentifier) as DataCollectorBase;
             }
             else if (State == State.DataLoaded)
             {
-                NinjaTrader.Custom.Strategies.DAustin.VWAPPB.OptimizationParameters_VWAPPB OptParamsVWAPPB = GetOptimizationParameters("OP-" + stratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPPB.OptimizationParameters_VWAPPB;
-                NinjaTrader.Custom.Strategies.DAustin.VWAPPB.Indicators_VWAPPB indicators = GetIndicators("IDC-" + stratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPPB.Indicators_VWAPPB;
+                Logs.SetTradingContext(
+                    instrumentName: Instrument.FullName,
+                    accountName: Account != null ? Account.Name : "Backtest");
+
+                NinjaTrader.Custom.Strategies.DAustin.VWAPPB.OptimizationParameters_VWAPPB OptParamsVWAPPB = GetOptimizationParameters("OP-" + StratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPPB.OptimizationParameters_VWAPPB;
+                NinjaTrader.Custom.Strategies.DAustin.VWAPPB.Indicators_VWAPPB indicators = GetIndicators("IDC-" + StratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPPB.Indicators_VWAPPB;
 
                 // now we can initialize the entry conditions evaluator and trade context
-                IEntryConditionsEvaluator ece = GetEntryConditionsEvaluator("ECE-" + stratIdentifier);
-                ece.OrderIdPrefix = "DA" + stratIdentifier;
+                IEntryConditionsEvaluator ece = GetEntryConditionsEvaluator("ECE-" + StratIdentifier);
+                ece.OrderIdPrefix = "DA" + StratIdentifier;
                 ece.Reset();
                 ece.Indicators = indicators;
                 ece.OptParams = OptParamsVWAPPB;
@@ -740,13 +745,13 @@ When it happens: The strategy is disabled by you, the workspace is closed, or th
 
         public override ITelemetryBar CreateTelemetryBar()
         {
-            Indicators_VWAPPB indicators = GetIndicators("IDC-" + stratIdentifier) as Indicators_VWAPPB;
+            Indicators_VWAPPB indicators = GetIndicators("IDC-" + StratIdentifier) as Indicators_VWAPPB;
             return new TelemetryBar_VWAPPB(this, indicators);
         }
 
         protected override void OnBacktestComplete()
         {   //do whatever you need to do at the end of a backtest here. Logging final results, etc.
-            ECE_VWAPPB ece = GetEntryConditionsEvaluator("ECE-" + stratIdentifier) as ECE_VWAPPB;
+            ECE_VWAPPB ece = GetEntryConditionsEvaluator("ECE-" + StratIdentifier) as ECE_VWAPPB;
             OptimizationParameters_VWAPPB optParamsVWAPPB = ece.OptParamsVWAPPB;
             Indicators_VWAPPB indicatorsVWAPPB = ece.IndicatorsVWAPPB;
             TimeConverter tc = new TimeConverter();
