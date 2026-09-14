@@ -643,7 +643,6 @@ When it happens: The strategy is disabled by you, the workspace is closed, or th
                 // initialize indicators
                 NinjaTrader.Custom.Strategies.DAustin.VWAPPB.Indicators_VWAPPB indicators = GetIndicators("IDC-" + StratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPPB.Indicators_VWAPPB;
                 indicators.OptParams = OptParamsVWAPPB;
-                indicators.Initialize();
                 DataCollector = GetDataCollector("DC-" + StratIdentifier) as DataCollectorBase;
             }
             else if (State == State.DataLoaded)
@@ -654,6 +653,7 @@ When it happens: The strategy is disabled by you, the workspace is closed, or th
 
                 NinjaTrader.Custom.Strategies.DAustin.VWAPPB.OptimizationParameters_VWAPPB OptParamsVWAPPB = GetOptimizationParameters("OP-" + StratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPPB.OptimizationParameters_VWAPPB;
                 NinjaTrader.Custom.Strategies.DAustin.VWAPPB.Indicators_VWAPPB indicators = GetIndicators("IDC-" + StratIdentifier) as NinjaTrader.Custom.Strategies.DAustin.VWAPPB.Indicators_VWAPPB;
+                indicators.Initialize();
 
                 // now we can initialize the entry conditions evaluator and trade context
                 IEntryConditionsEvaluator ece = GetEntryConditionsEvaluator("ECE-" + StratIdentifier);

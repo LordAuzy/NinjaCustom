@@ -658,7 +658,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // initialize indicators
                     Indicators_VWAPPB_V1 indicators = GetIndicators("IDC-" + StratIdentifier) as Indicators_VWAPPB_V1;
                     indicators.OptParams = OptParams;
-                    indicators.Initialize();
                     DataCollector = GetDataCollector("DC-" + StratIdentifier) as DataCollectorBase;
 
                     // now we can initialize the entry conditions evaluator and trade context
@@ -721,6 +720,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                         accountName: Account != null ? Account.Name : "Backtest");
 
                     Indicators_VWAPPB_V1 indicators = GetIndicators("IDC-" + StratIdentifier) as Indicators_VWAPPB_V1;
+                    // indicators should be instantiated and initialized in the DataLoaded state.
+                    indicators.Initialize();
 
                     // add chart indicators for this strategy.
                     // This is done here so that the indicators are only added once.

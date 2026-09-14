@@ -35,6 +35,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
         public TrendStructuralTrailingIndicators TrendStructuralIndicators { get; set; } = new TrendStructuralTrailingIndicators();
         public BiasFilter BiasFilter { get; set; }
         public SizingFilter SizingFilter { get; set; }
+        public DAMNQRegimeFilter RegimeFilter { get; set; }
         #endregion
 
         public Indicators_VWAPPB_V1(StratBase strat) : base(strat)
@@ -78,6 +79,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
                 OptParamsVWAPPB.General.TWAnchorTime,
                 OptParamsVWAPPB.ScheduleSizingFilters
             );
+
         }
 
         public override ChandelierGuardIndicators GetChandelierGuardIndicators() { return ChandelierGuard; }

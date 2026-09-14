@@ -94,6 +94,7 @@
     <Compile Include="DAustin\Logging\StrategyLogging.cs" />
     <Compile Include="DAustin\Logging\StrategyLoggingOptions.cs" />
     <Compile Include="DAustin\Logging\StrategyLogIdentity.cs" />
+    <Compile Include="Indicators\DAustin\DAMNQRegimeFilter.cs" />
     <Compile Include="Indicators\DAustin\DAVWAPIndicator.cs" />
     <Compile Include="Resource.Designer.cs">
       <DesignTime>True</DesignTime>
@@ -491,6 +492,17 @@
     <Compile Include="Strategies\DAustin\TwoPhaseCAP_ORB\TwoPhaseCAPORB.cs" />
     <Compile Include="Strategies\DAustin\Common\DAOrder.cs" />
     <Compile Include="Strategies\DAustin\Mom_9_21_Cross\Mom921CrossStrat.cs" />
+    <Compile Include="Indicators\%40BollingerBandWidth.cs" />
+    <Compile Include="Indicators\%40DetrendedPriceOscillator.cs" />
+    <Compile Include="Indicators\%40ForceIndex.cs" />
+    <Compile Include="Indicators\%40MassIndex.cs" />
+    <Compile Include="Indicators\%40PercentB.cs" />
+    <Compile Include="Indicators\%40Performance.cs" />
+    <Compile Include="Indicators\%40PriceVolumeTrend.cs" />
+    <Compile Include="MarketAnalyzerColumns\%40GapDown.cs" />
+    <Compile Include="MarketAnalyzerColumns\%40GapDownPercent.cs" />
+    <Compile Include="MarketAnalyzerColumns\%40GapUp.cs" />
+    <Compile Include="MarketAnalyzerColumns\%40GapUpPercent.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resource.resx">
@@ -551,5 +563,5 @@
     <Message Importance="High" Text="TARGET DIR IS:  $(TargetDir)" />
     <Message Importance="High" Text="OUTPUT PATH IS: $(OutputPath)" />
     <Message Importance="High" Text="========================================" />
-  </Target>  
+  </Target>
 </Project>
