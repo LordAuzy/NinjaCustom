@@ -23,6 +23,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
             public EMA SlowEMA { get; set; }
             public DAVWAPIndicator AnchoredVWAP { get; set; }
             public DM DM { get; set; } = null;
+            public DAMNQRegimeFilter RegimeFilter { get; set; }
         }
         #endregion
 
@@ -80,6 +81,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
                 OptParamsVWAPPB.ScheduleSizingFilters
             );
 
+            RegimeFilter = Strategy.DAMNQRegimeFilter(3, 8.0);
         }
 
         public override ChandelierGuardIndicators GetChandelierGuardIndicators() { return ChandelierGuard; }

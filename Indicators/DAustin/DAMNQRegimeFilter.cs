@@ -1,4 +1,4 @@
-﻿#region Namespaces
+#region Namespaces
 using NinjaTrader.Cbi;
 using NinjaTrader.Data;
 using NinjaTrader.Gui;
@@ -164,3 +164,60 @@ namespace NinjaTrader.NinjaScript.Indicators
         }
     }
 }
+
+#region NinjaScript generated code. Neither change nor remove.
+
+namespace NinjaTrader.NinjaScript.Indicators
+{
+	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
+	{
+		private DAMNQRegimeFilter[] cacheDAMNQRegimeFilter;
+		public DAMNQRegimeFilter DAMNQRegimeFilter(int lookbackDays, double maxSlopeTicks)
+		{
+			return DAMNQRegimeFilter(Input, lookbackDays, maxSlopeTicks);
+		}
+
+		public DAMNQRegimeFilter DAMNQRegimeFilter(ISeries<double> input, int lookbackDays, double maxSlopeTicks)
+		{
+			if (cacheDAMNQRegimeFilter != null)
+				for (int idx = 0; idx < cacheDAMNQRegimeFilter.Length; idx++)
+					if (cacheDAMNQRegimeFilter[idx] != null && cacheDAMNQRegimeFilter[idx].LookbackDays == lookbackDays && cacheDAMNQRegimeFilter[idx].MaxSlopeTicks == maxSlopeTicks && cacheDAMNQRegimeFilter[idx].EqualsInput(input))
+						return cacheDAMNQRegimeFilter[idx];
+			return CacheIndicator<DAMNQRegimeFilter>(new DAMNQRegimeFilter(){ LookbackDays = lookbackDays, MaxSlopeTicks = maxSlopeTicks }, input, ref cacheDAMNQRegimeFilter);
+		}
+	}
+}
+
+namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
+{
+	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
+	{
+		public Indicators.DAMNQRegimeFilter DAMNQRegimeFilter(int lookbackDays, double maxSlopeTicks)
+		{
+			return indicator.DAMNQRegimeFilter(Input, lookbackDays, maxSlopeTicks);
+		}
+
+		public Indicators.DAMNQRegimeFilter DAMNQRegimeFilter(ISeries<double> input , int lookbackDays, double maxSlopeTicks)
+		{
+			return indicator.DAMNQRegimeFilter(input, lookbackDays, maxSlopeTicks);
+		}
+	}
+}
+
+namespace NinjaTrader.NinjaScript.Strategies
+{
+	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
+	{
+		public Indicators.DAMNQRegimeFilter DAMNQRegimeFilter(int lookbackDays, double maxSlopeTicks)
+		{
+			return indicator.DAMNQRegimeFilter(Input, lookbackDays, maxSlopeTicks);
+		}
+
+		public Indicators.DAMNQRegimeFilter DAMNQRegimeFilter(ISeries<double> input , int lookbackDays, double maxSlopeTicks)
+		{
+			return indicator.DAMNQRegimeFilter(input, lookbackDays, maxSlopeTicks);
+		}
+	}
+}
+
+#endregion
