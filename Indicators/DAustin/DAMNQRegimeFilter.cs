@@ -104,7 +104,11 @@ namespace NinjaTrader.NinjaScript.Indicators
             double vwapSlopeTicks = Math.Abs(currentVWAP - sessionVWAP.VWAP[10]) / TickSize;
 
             // Check if price is inside or outside the multi-day bracket
-            bool openInsideMultiDayRange = Opens[0][0] < multiDayHigh && Opens[0][0] > multiDayLow;
+            // Use the current DAILY bar open, not the current 1-minute bar open.
+            // The multi-day boundaries above intentionally use completed daily bars [1..LookbackDays],
+            // while [0] is the current daily bar.
+            double currentDayOpen = Opens[1][0];
+            bool openInsideMultiDayRange = currentDayOpen < multiDayHigh && currentDayOpen > multiDayLow;
             bool priceAboveVWAP = Close[0] > currentVWAP;
             bool priceBelowVWAP = Close[0] < currentVWAP;
 
