@@ -20,6 +20,7 @@ namespace NinjaTrader.Custom.DAustin.Common
         public const string TrendCHATGPT = "TrendChatGPT";
         public const string ScheduleBiasFilter = "Schedule Bias Filter";
         public const string ScheduleSizingFilter = "Schedule Sizing Filter";
+        public const string OrderFlowRegimeFilter = "Order Flow Regime Filter";
 
         // Risk Management
         public const string BreakEven = "BreakEven";

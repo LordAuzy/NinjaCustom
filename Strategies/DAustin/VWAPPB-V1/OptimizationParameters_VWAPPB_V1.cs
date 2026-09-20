@@ -49,6 +49,10 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
         public TrendStructuralTrailingStopParameters TrendStructuralTrailingStop { get; set; } = new TrendStructuralTrailingStopParameters();
         public List<ScheduleBiasFilterParameters> ScheduleBiasFilters { get; set; } = new List<ScheduleBiasFilterParameters>();
         public List<ScheduleSizingFilterParameters> ScheduleSizingFilters { get; set; } = new List<ScheduleSizingFilterParameters>();
+        // --- OrderFlowRegimeFilter ---
+        public bool OFRF_Enabled { get; set; }
+        public int OFRF_LookbackDays { get; set; }
+        public double OFRF_MaxSlopeTicks { get; set; }
         #endregion
 
         #region constructors
@@ -81,6 +85,11 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
         public override void SetDefaultValues()
         {
             base.SetDefaultValues();
+
+            // OrderFlowRegimeFilter Parameters
+            OFRF_Enabled = true;
+            OFRF_LookbackDays = 3;
+            OFRF_MaxSlopeTicks = 10.0;
 
             // General Parameters
             General.EquityRiskPercent = 2.0;
@@ -195,6 +204,10 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
 
             Strat_VWAPPB_V1 strat = Strategy as Strat_VWAPPB_V1;
 
+            strat.OFRF_Enabled = OFRF_Enabled;
+            strat.OFRF_LookbackDays = OFRF_LookbackDays;
+            strat.OFRF_MaxSlopeTicks = OFRF_MaxSlopeTicks;
+
             strat.GEN_EquityRiskPct = General.EquityRiskPercent;
             strat.GEN_SLTrailingMode = General.SLTrailingMode;
             strat.GEN_TimeWindowTimeZone = General.TimeWindowTimeZone;
@@ -289,6 +302,10 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
 
             Strat_VWAPPB_V1 strat = Strategy as Strat_VWAPPB_V1;
 
+            OFRF_Enabled = strat.OFRF_Enabled;
+            OFRF_LookbackDays = strat.OFRF_LookbackDays;
+            OFRF_MaxSlopeTicks = strat.OFRF_MaxSlopeTicks;
+
             General.EquityRiskPercent = strat.GEN_EquityRiskPct;
             General.SLTrailingMode = strat.GEN_SLTrailingMode;
             General.TimeWindowTimeZone = strat.GEN_TimeWindowTimeZone;
@@ -380,7 +397,12 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
         public override void CopyFrom(OptimizationParametersBase opf)
         {
             base.CopyFrom(opf);
+
             OptimizationParameters_VWAPPB_V1 opFrom = opf as OptimizationParameters_VWAPPB_V1;
+
+            OFRF_Enabled = opFrom.OFRF_Enabled;
+            OFRF_LookbackDays = opFrom.OFRF_LookbackDays;
+            OFRF_MaxSlopeTicks = opFrom.OFRF_MaxSlopeTicks;
 
             General.EquityRiskPercent = opFrom.General.EquityRiskPercent;
             General.SLTrailingMode = opFrom.General.SLTrailingMode;
@@ -500,6 +522,10 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
             sb.AppendFormat("  TWDuration1={0}", Time.TWDuration1).AppendLine();
             sb.AppendFormat("  TWOffset2={0}", Time.TWOffset2).AppendLine();
             sb.AppendFormat("  TWDuration2={0}", Time.TWDuration2).AppendLine();
+            sb.AppendLine("==OrderFlow RegimeFilter Parameters===");
+            sb.AppendFormat("  Enabled={0}", OFRF_Enabled).AppendLine();
+            sb.AppendFormat("  LookbackDays={0}", OFRF_LookbackDays).AppendLine();
+            sb.AppendFormat("  MaxSlopeTicks={0}", OFRF_MaxSlopeTicks).AppendLine();
             if (ScheduleBiasFilters[0].Duration > 0)
             {
                 sb.AppendLine("==Schedule Bias Filter 1===");

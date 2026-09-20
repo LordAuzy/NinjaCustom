@@ -630,6 +630,7 @@ When it happens: The strategy is disabled by you, the workspace is closed, or th
                 //initialize logging
                 StrategyLoggingOptions logOptions = StrategyLoggingOptions.FromMode(OptParamsVWAPPB.General.LoggingMode);
                 Logs = StrategyLogging.Create(
+                    RunId,
                     strategyName: Name,
                     instrumentName: Instrument?.FullName,
                     accountName: Account != null ? Account.Name : "Backtest",

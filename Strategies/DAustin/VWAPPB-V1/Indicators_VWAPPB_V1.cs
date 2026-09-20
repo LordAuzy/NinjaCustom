@@ -81,7 +81,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
                 OptParamsVWAPPB.ScheduleSizingFilters
             );
 
-            RegimeFilter = Strategy.DAMNQRegimeFilter(3, 8.0);
+            RegimeFilter = Strategy.DAMNQRegimeFilter(OptParamsVWAPPB.OFRF_LookbackDays, OptParamsVWAPPB.OFRF_MaxSlopeTicks);
         }
 
         public override ChandelierGuardIndicators GetChandelierGuardIndicators() { return ChandelierGuard; }

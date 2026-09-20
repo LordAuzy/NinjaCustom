@@ -56,13 +56,14 @@ namespace NinjaTrader.NinjaScript.Strategies
     #region CategoryValues
     [Gui.CategoryOrder(StratPropertyGroups.GeneralParameters, 1), Gui.CategoryExpanded(StratPropertyGroups.GeneralParameters, true)]
     [Gui.CategoryOrder(StratPropertyGroups.TimeParams, 2), Gui.CategoryExpanded(StratPropertyGroups.TimeParams, false)]
-    [Gui.CategoryOrder(StratPropertyGroups.ScheduleBiasFilter, 3), Gui.CategoryExpanded(StratPropertyGroups.ScheduleBiasFilter, false)]
-    [Gui.CategoryOrder(StratPropertyGroups.ScheduleSizingFilter, 4), Gui.CategoryExpanded(StratPropertyGroups.ScheduleSizingFilter, false)]
-    [Gui.CategoryOrder(StratPropertyGroups.BreakEven, 5), Gui.CategoryExpanded(StratPropertyGroups.BreakEven, false)]
-    [Gui.CategoryOrder(StratPropertyGroups.Entry, 6), Gui.CategoryExpanded(StratPropertyGroups.Entry, false)]
-    [Gui.CategoryOrder(StratPropertyGroups.TrendStructureTrail, 7), Gui.CategoryExpanded(StratPropertyGroups.TrendStructureTrail, false)]
-    [Gui.CategoryOrder(StratPropertyGroups.ChandelierGuardStop, 8), Gui.CategoryExpanded(StratPropertyGroups.ChandelierGuardStop, false)]
-    [Gui.CategoryOrder(StratPropertyGroups.AdaptiveTrailingStop, 9), Gui.CategoryExpanded(StratPropertyGroups.AdaptiveTrailingStop, false)]
+    [Gui.CategoryOrder(StratPropertyGroups.OrderFlowRegimeFilter, 3), Gui.CategoryExpanded(StratPropertyGroups.OrderFlowRegimeFilter, false)]
+    [Gui.CategoryOrder(StratPropertyGroups.ScheduleBiasFilter, 4), Gui.CategoryExpanded(StratPropertyGroups.ScheduleBiasFilter, false)]
+    [Gui.CategoryOrder(StratPropertyGroups.ScheduleSizingFilter, 5), Gui.CategoryExpanded(StratPropertyGroups.ScheduleSizingFilter, false)]
+    [Gui.CategoryOrder(StratPropertyGroups.BreakEven, 6), Gui.CategoryExpanded(StratPropertyGroups.BreakEven, false)]
+    [Gui.CategoryOrder(StratPropertyGroups.Entry, 7), Gui.CategoryExpanded(StratPropertyGroups.Entry, false)]
+    [Gui.CategoryOrder(StratPropertyGroups.TrendStructureTrail, 8), Gui.CategoryExpanded(StratPropertyGroups.TrendStructureTrail, false)]
+    [Gui.CategoryOrder(StratPropertyGroups.ChandelierGuardStop, 9), Gui.CategoryExpanded(StratPropertyGroups.ChandelierGuardStop, false)]
+    [Gui.CategoryOrder(StratPropertyGroups.AdaptiveTrailingStop, 10), Gui.CategoryExpanded(StratPropertyGroups.AdaptiveTrailingStop, false)]
     #endregion
     public class Strat_VWAPPB_V1 : StratBase
     {
@@ -108,6 +109,27 @@ namespace NinjaTrader.NinjaScript.Strategies
                     Order = 6,
                     GroupName = StratPropertyGroups.GeneralParameters)]
         public LoggingMode GEN_LoggingMode { get; set; }
+        #endregion
+
+        #region RegimeFilter[NinjaScriptProperty]
+        [NinjaScriptProperty]
+        [Display(   Name = "Enabled",
+                    Order = 1,
+                    GroupName = StratPropertyGroups.OrderFlowRegimeFilter)]
+        public bool OFRF_Enabled { get; set; }
+        [NinjaScriptProperty]
+        [Range(1, 10)]
+        [Display(   Name = "Multi-Day Lookback (Days)",
+                    Order = 2,
+                    GroupName = StratPropertyGroups.OrderFlowRegimeFilter)]
+        public int OFRF_LookbackDays { get; set; }
+        [NinjaScriptProperty]
+        [Range(1.0, 20.0)]
+        [Display(   Name = "Max Slope Ticks",
+                    Description = "ChopFilter - Max Slope Ticks (Chop Threshold)",
+                    Order = 3,
+                    GroupName = StratPropertyGroups.OrderFlowRegimeFilter)]
+        public double OFRF_MaxSlopeTicks { get; set; }
         #endregion
 
         #region TradingTimeWindow[NinjaScriptProperty]
@@ -629,6 +651,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else if (State == State.Configure)
                 {
+                    // Primary series already exists.
+                    // Add only secondary/additional series here.
+                    AddDataSeries(BarsPeriodType.Day, 1);
+
                     OptimizationParameters_VWAPPB_V1 OptParams = GetOptimizationParameters("OP-" + StratIdentifier) as OptimizationParameters_VWAPPB_V1;
 
                     if (IsLoadedFromXml)
@@ -645,6 +671,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     //initialize logging
                     StrategyLoggingOptions logOptions = StrategyLoggingOptions.FromMode(OptParams.General.LoggingMode);
                     Logs = StrategyLogging.Create(
+                        RunId,
                         strategyName: Name,
                         instrumentName: Instrument?.FullName,
                         accountName: Account != null ? Account.Name : "Backtest",
@@ -715,9 +742,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else if (State == State.DataLoaded)
                 {
+                    OptimizationParameters_VWAPPB_V1 OptParams = GetOptimizationParameters("OP-" + StratIdentifier) as OptimizationParameters_VWAPPB_V1;
+                    StrategyLoggingOptions logOptions = StrategyLoggingOptions.FromMode(OptParams.General.LoggingMode);
                     Logs.SetTradingContext(
                         instrumentName: Instrument.FullName,
-                        accountName: Account != null ? Account.Name : "Backtest");
+                        accountName: Account != null ? Account.Name : "Backtest",
+                        options: logOptions);
 
                     Indicators_VWAPPB_V1 indicators = GetIndicators("IDC-" + StratIdentifier) as Indicators_VWAPPB_V1;
                     // indicators should be instantiated and initialized in the DataLoaded state.

@@ -29,7 +29,16 @@ namespace NinjaTrader.NinjaScript.Indicators
     {
         #region DAProps
         private OrderFlowVWAP sessionVWAP;
-        public DA.NinjaTrader.Types.MarketRegime CurrentRegime { get; private set; }
+
+        private DA.NinjaTrader.Types.MarketRegime _currentRegime;
+        public DA.NinjaTrader.Types.MarketRegime CurrentRegime 
+        { 
+            get
+            {
+                Update();
+                return _currentRegime;
+            }
+        }
         #endregion
 
         #region Ninjascript Properties
@@ -55,7 +64,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
                 LookbackDays = 3;   // 3-day rolling window
                 MaxSlopeTicks = 8.0; // VWAP slope within 8 ticks = Chop
-                CurrentRegime = DA.NinjaTrader.Types.MarketRegime.Transitioning;
+                _currentRegime = DA.NinjaTrader.Types.MarketRegime.Transitioning;
             }
             else if (State == State.Configure)
             {
@@ -106,21 +115,21 @@ namespace NinjaTrader.NinjaScript.Indicators
             // CHOP CONDITION: Opened inside prior value AND VWAP is flat
             if (openInsideMultiDayRange && vwapSlopeTicks <= MaxSlopeTicks)
             {
-                CurrentRegime = DA.NinjaTrader.Types.MarketRegime.RotationalChop;
+                _currentRegime = DA.NinjaTrader.Types.MarketRegime.RotationalChop;
             }
             // BULLISH TREND CONDITION: Price trading above VWAP with steep positive slope
             else if (priceAboveVWAP && (currentVWAP > sessionVWAP.VWAP[10]) && vwapSlopeTicks > MaxSlopeTicks)
             {
-                CurrentRegime = DA.NinjaTrader.Types.MarketRegime.BullishTrend;
+                _currentRegime = DA.NinjaTrader.Types.MarketRegime.BullishTrend;
             }
             // BEARISH TREND CONDITION: Price trading below VWAP with steep negative slope
             else if (priceBelowVWAP && (currentVWAP < sessionVWAP.VWAP[10]) && vwapSlopeTicks > MaxSlopeTicks)
             {
-                CurrentRegime = DA.NinjaTrader.Types.MarketRegime.BearishTrend;
+                _currentRegime = DA.NinjaTrader.Types.MarketRegime.BearishTrend;
             }
             else
             {
-                CurrentRegime = DA.NinjaTrader.Types.MarketRegime.Transitioning;
+                _currentRegime = DA.NinjaTrader.Types.MarketRegime.Transitioning;
             }
 
             // -------------------------------------------------------------
@@ -131,10 +140,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         private void UpdateHUD()
         {
-            string labelText = string.Format("REGIME: {0}", CurrentRegime.ToString().ToUpper());
+            string labelText = string.Format("REGIME: {0}", _currentRegime.ToString().ToUpper());
             Brush bgBrush = Brushes.DimGray;
 
-            switch (CurrentRegime)
+            switch (_currentRegime)
             {
                 case DA.NinjaTrader.Types.MarketRegime.BullishTrend:
                     bgBrush = Brushes.DarkGreen;

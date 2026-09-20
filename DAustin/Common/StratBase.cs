@@ -30,6 +30,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
+using System.Security.Principal;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -47,6 +48,19 @@ namespace NinjaTrader.Custom.DAustin.Common
     public class StratBase : Strategy
     {
         #region Properties
+        // RunId belongs to the strategy
+        private string _runId = null;
+        public string RunId
+        {
+            get
+            {
+                if (_runId == null)
+                {
+                    _runId = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                }
+                return _runId;
+            }
+        }
         public StrategyLogging Logs { get; set; }
         public virtual string StratIdentifier => "STRATBASE";
         public virtual string TradeCSVSchemaVersion => "1.0.0";

@@ -12,7 +12,7 @@ namespace NinjaTrader.Custom.DAustin.Logging
 
         public StrategyLogIdentity Identity { get; private set; }
 
-        public StrategyLoggingOptions Options { get; }
+        public StrategyLoggingOptions Options { get; set; }
 
         public string TradeCSVSchemaVersion { get; private set; }
         public string TelemetryCSVSchemaVersion { get; private set; }
@@ -32,6 +32,7 @@ namespace NinjaTrader.Custom.DAustin.Logging
         private StrategyLogging(
             StrategyLogIdentity identity,
             StrategyLoggingOptions options,
+            string runId,
             string tradeCSVSchemaVersion,
             string telemetryCSVSchemaVersion)
         {
@@ -39,7 +40,7 @@ namespace NinjaTrader.Custom.DAustin.Logging
             Options = options;
             TradeCSVSchemaVersion = tradeCSVSchemaVersion;
             TelemetryCSVSchemaVersion = telemetryCSVSchemaVersion;
-            RunId = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            RunId = runId;
             //
             // NLog.config decides what files/targets receive
             // the various logger names and levels.
@@ -55,6 +56,7 @@ namespace NinjaTrader.Custom.DAustin.Logging
 
         #region Factory
         public static StrategyLogging Create(
+            string runId,
             string strategyName,
             string instrumentName,
             string accountName,
@@ -68,18 +70,25 @@ namespace NinjaTrader.Custom.DAustin.Logging
                     instrumentName,
                     accountName);
 
-            options = options ?? new StrategyLoggingOptions();
+            options = options ?? StrategyLoggingOptions.FromMode(LoggingMode.Diagnostic);
             return new StrategyLogging(
                 identity,
                 options,
+                runId,
                 tradeCSVSchemaVersion,
                 telemetryCSVSchemaVersion);
         }
 
         public void SetTradingContext(
             string instrumentName,
-            string accountName)
+            string accountName,
+            StrategyLoggingOptions options = null)
         {
+            if (options != null)
+            {
+                Options = options;
+            }
+
             if (Identity.InstrumentName != instrumentName ||
                 Identity.AccountName != accountName)
             {

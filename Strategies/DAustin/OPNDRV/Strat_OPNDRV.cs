@@ -706,6 +706,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     //initialize logging
                     StrategyLoggingOptions logOptions = StrategyLoggingOptions.FromMode(OptParams.General.LoggingMode);
                     Logs = StrategyLogging.Create(
+                        RunId,
                         strategyName: Name,
                         instrumentName: Instrument?.FullName,
                         accountName: Account != null ? Account.Name : "Backtest",

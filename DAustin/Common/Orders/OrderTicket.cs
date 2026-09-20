@@ -113,16 +113,19 @@ namespace NinjaTrader.Custom.DAustin.Common.Orders
         #region PublicMethods
         public  string BuildSummaryTradeString()
         {
+            DateTime dataTime = Strategy.GetDataTimeForLogger();
             string summaryTradeString = "";
 
             try
             {
                 summaryTradeString = String.Format(
-                    "Trade: {0}    Direction: {1}    Qty: {2}    Instrument: {3}",
+                    "Trade: {0}    Direction: {1}    Qty: {2}    Instrument: {3}    Date: {4}    RunId: {5}",
                     SignalName,
                     IsLong ? "Long" : "Short",
                     _contracts,
-                    Strategy?.Instrument?.MasterInstrument.Name);
+                    Strategy?.Instrument?.MasterInstrument.Name,
+                    dataTime.ToString("d"),
+                    Strategy.RunId);
             }
 
             catch (Exception ex)
