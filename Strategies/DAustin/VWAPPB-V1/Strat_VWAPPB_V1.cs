@@ -653,7 +653,17 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     // Primary series already exists.
                     // Add only secondary/additional series here.
-                    AddDataSeries(BarsPeriodType.Day, 1);
+                    // This series main purpose is for the regime filter
+                    AddDataSeries(
+                        null,
+                        new BarsPeriod
+                        {
+                            BarsPeriodType = BarsPeriodType.Day,
+                            Value = 1
+                        },
+                        20,     // historical daily bars to load
+                        null,   // trading-hours template
+                        null);  // use primary reset setting
 
                     OptimizationParameters_VWAPPB_V1 OptParams = GetOptimizationParameters("OP-" + StratIdentifier) as OptimizationParameters_VWAPPB_V1;
 
@@ -761,6 +771,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                     AddChartIndicator(entryIndicators.SlowEMA);
                     AddChartIndicator(entryIndicators.FastEMA);
 
+                    if (indicators.RegimeFilter == null)
+                        throw new Exception("RegimeFilter was not initialized.");
+
+                    if (indicators.RegimeFilter.SessionVWAP == null)
+                        throw new Exception("RegimeFilter.SessionVWAP was not initialized.");
+
+                    AddChartIndicator(indicators.RegimeFilter);
+                    AddChartIndicator(indicators.SessionVWAP);
+
                     // customizse the chart indicators for this strategy
                     entryIndicators.FastEMA.Plots[0].Brush = System.Windows.Media.Brushes.LimeGreen;
                     entryIndicators.FastEMA.Plots[0].Width = 1;
@@ -796,6 +815,33 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 throw;
             }
+        }
+
+        protected override void OnBarUpdate()
+        {
+            Logs.Trace(">");
+
+            // This strategy's trading logic only runs from the primary series.
+            if (BarsInProgress != 0)
+                return;
+
+            // Primary series must exist before touching any primary-series values.
+            if (CurrentBars[0] < 0)
+                return;
+
+            // Secondary daily series required by regime filter must exist.
+            if (CurrentBars.Length < 2 || CurrentBars[1] < 0)
+                return;
+
+            // ---------------------------------------------------------
+            // ALWAYS UPDATE MARKET REGIME FIRST SO The regimefilter state
+            // will be rendered on the chart.
+            // ---------------------------------------------------------
+            Indicators_VWAPPB_V1 indicators = GetIndicators("IDC-" + StratIdentifier) as Indicators_VWAPPB_V1;
+            DA.NinjaTrader.Types.MarketRegime currentRegime = indicators.RegimeFilter.CurrentRegime;
+
+            base.OnBarUpdate();
+            Logs.Trace("<");
         }
 
         public override ITelemetryBar CreateTelemetryBar()

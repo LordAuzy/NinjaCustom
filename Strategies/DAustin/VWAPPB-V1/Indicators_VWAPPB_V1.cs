@@ -1,6 +1,7 @@
 ﻿using NinjaTrader.Custom.DAustin.Common;
 using NinjaTrader.Custom.DAustin.Common.ScheduleFilter;
 using NinjaTrader.Custom.Strategies.DAustin.Common;
+using NinjaTrader.Data;
 using NinjaTrader.NinjaScript.Indicators;
 using System;
 using System.Collections.Generic;
@@ -23,7 +24,6 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
             public EMA SlowEMA { get; set; }
             public DAVWAPIndicator AnchoredVWAP { get; set; }
             public DM DM { get; set; } = null;
-            public DAMNQRegimeFilter RegimeFilter { get; set; }
         }
         #endregion
 
@@ -36,6 +36,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
         public TrendStructuralTrailingIndicators TrendStructuralIndicators { get; set; } = new TrendStructuralTrailingIndicators();
         public BiasFilter BiasFilter { get; set; }
         public SizingFilter SizingFilter { get; set; }
+        public OrderFlowVWAP SessionVWAP { get; set; }
         public DAMNQRegimeFilter RegimeFilter { get; set; }
         #endregion
 
@@ -81,7 +82,13 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
                 OptParamsVWAPPB.ScheduleSizingFilters
             );
 
+
+            SessionVWAP = Strategy.OrderFlowVWAP(
+                VWAPResolution.Standard,
+                TradingHours.String2TradingHours("CME US Index Futures RTH"),
+                VWAPStandardDeviations.Three, 1.0, 2.0, 3.0);
             RegimeFilter = Strategy.DAMNQRegimeFilter(OptParamsVWAPPB.OFRF_LookbackDays, OptParamsVWAPPB.OFRF_MaxSlopeTicks);
+            RegimeFilter.SessionVWAP = SessionVWAP;
         }
 
         public override ChandelierGuardIndicators GetChandelierGuardIndicators() { return ChandelierGuard; }

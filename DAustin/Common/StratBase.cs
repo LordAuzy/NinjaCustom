@@ -61,6 +61,9 @@ namespace NinjaTrader.Custom.DAustin.Common
                 return _runId;
             }
         }
+
+        [Browsable(false)]
+        [XmlIgnore]
         public StrategyLogging Logs { get; set; }
         public virtual string StratIdentifier => "STRATBASE";
         public virtual string TradeCSVSchemaVersion => "1.0.0";
@@ -105,9 +108,10 @@ namespace NinjaTrader.Custom.DAustin.Common
             }
         }
 
+        [Browsable(false)]
+        [XmlIgnore]
         public SessionInfo SessionInfo { get; set; } = null;
         protected TradeManagerBase _tmb = null;
-        [Browsable(false)]
         public virtual TradeManagerBase TradeManager
         {
             get

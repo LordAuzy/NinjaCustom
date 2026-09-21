@@ -1,8 +1,10 @@
 #region Namespaces
+using DA.NinjaTrader.Types;
 using NinjaTrader.Cbi;
 using NinjaTrader.Data;
 using NinjaTrader.Gui;
 using NinjaTrader.Gui.Chart;
+using NinjaTrader.Gui.Tools;
 using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.NinjaScript.Indicators;
@@ -28,11 +30,21 @@ namespace NinjaTrader.NinjaScript.Indicators
     public class DAMNQRegimeFilter : Indicator
     {
         #region DAProps
-        private OrderFlowVWAP sessionVWAP;
+        public OrderFlowVWAP SessionVWAP {  get; set; }
+        private Series<int> regimeHistory;
+
+        // Historical regime ribbon colors. The ribbon is rendered in screen coordinates
+        // at the bottom of the price panel, so it does not interfere with VWAP bands.
+        private Brush bullishRibbonBrush = Brushes.LimeGreen;
+        private Brush bearishRibbonBrush = Brushes.OrangeRed;
+        private Brush chopRibbonBrush = Brushes.DodgerBlue;
+        private Brush transitioningRibbonBrush = Brushes.Goldenrod;
+
+        private const float RegimeRibbonHeight = 8.0f;
 
         private DA.NinjaTrader.Types.MarketRegime _currentRegime;
-        public DA.NinjaTrader.Types.MarketRegime CurrentRegime 
-        { 
+        public DA.NinjaTrader.Types.MarketRegime CurrentRegime
+        {
             get
             {
                 Update();
@@ -73,8 +85,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
             else if (State == State.DataLoaded)
             {
-                // Instantiate Order Flow VWAP on Primary 1-Min Series
-                sessionVWAP = OrderFlowVWAP(VWAPResolution.Standard, Bars.TradingHours, VWAPStandardDeviations.Three, 1.0, 2.0, 3.0);
+                regimeHistory = new Series<int>(this, MaximumBarsLookBack.Infinite);
             }
         }
 
@@ -82,7 +93,32 @@ namespace NinjaTrader.NinjaScript.Indicators
         {
             // Do not evaluate on the Daily BarsInProgress series directly
             if (BarsInProgress != 0) return;
-            if (CurrentBar < 20 || CurrentBars[1] < LookbackDays) return;
+
+            //Print(
+            //    $"{Time[0]}  " +
+            //    $"CB0={CurrentBars[0]}  " +
+            //    $"CB1={CurrentBars[1]}  " +
+            //    $"LookbackDays={LookbackDays}  " +
+            //    $"BarsArrayLength={BarsArray.Length}");
+
+            //if (CurrentBars[0] < 20)
+            //{
+            //    Print("REGIME: not enough PRIMARY data");
+            //    return;
+            //}
+
+            //if (CurrentBars[1] < LookbackDays)
+            //{
+            //    Print("REGIME: not enough DAILY data");
+            //    return;
+            //}
+
+            if (CurrentBar < 20 || CurrentBars[1] < LookbackDays)
+            {
+                _currentRegime = MarketRegime.Transitioning;
+                regimeHistory[0] = (int)_currentRegime;
+                return;
+            }
 
             // -------------------------------------------------------------
             // STEP 1: CALCULATE MULTI-DAY STRUCTURAL BOUNDARIES
@@ -100,8 +136,8 @@ namespace NinjaTrader.NinjaScript.Indicators
             // -------------------------------------------------------------
             // STEP 2: INTRADAY VWAP & SLOPE METRICS
             // -------------------------------------------------------------
-            double currentVWAP = sessionVWAP.VWAP[0];
-            double vwapSlopeTicks = Math.Abs(currentVWAP - sessionVWAP.VWAP[10]) / TickSize;
+            double currentVWAP = SessionVWAP.VWAP[0];
+            double vwapSlopeTicks = Math.Abs(currentVWAP - SessionVWAP.VWAP[10]) / TickSize;
 
             // Check if price is inside or outside the multi-day bracket
             // Use the current DAILY bar open, not the current 1-minute bar open.
@@ -122,12 +158,12 @@ namespace NinjaTrader.NinjaScript.Indicators
                 _currentRegime = DA.NinjaTrader.Types.MarketRegime.RotationalChop;
             }
             // BULLISH TREND CONDITION: Price trading above VWAP with steep positive slope
-            else if (priceAboveVWAP && (currentVWAP > sessionVWAP.VWAP[10]) && vwapSlopeTicks > MaxSlopeTicks)
+            else if (priceAboveVWAP && (currentVWAP > SessionVWAP.VWAP[10]) && vwapSlopeTicks > MaxSlopeTicks)
             {
                 _currentRegime = DA.NinjaTrader.Types.MarketRegime.BullishTrend;
             }
             // BEARISH TREND CONDITION: Price trading below VWAP with steep negative slope
-            else if (priceBelowVWAP && (currentVWAP < sessionVWAP.VWAP[10]) && vwapSlopeTicks > MaxSlopeTicks)
+            else if (priceBelowVWAP && (currentVWAP < SessionVWAP.VWAP[10]) && vwapSlopeTicks > MaxSlopeTicks)
             {
                 _currentRegime = DA.NinjaTrader.Types.MarketRegime.BearishTrend;
             }
@@ -136,10 +172,109 @@ namespace NinjaTrader.NinjaScript.Indicators
                 _currentRegime = DA.NinjaTrader.Types.MarketRegime.Transitioning;
             }
 
+            // Store the regime for this 1-minute bar so OnRender() can draw
+            // the historical regime ribbon for all visible bars.
+            regimeHistory[0] = (int)_currentRegime;
+
             // -------------------------------------------------------------
             // STEP 4: VISUAL HUD DASHBOARD DISPLAY
             // -------------------------------------------------------------
             UpdateHUD();
+        }
+
+
+        protected override void OnRender(ChartControl chartControl, ChartScale chartScale)
+        {
+            base.OnRender(chartControl, chartScale);
+
+            if (ChartBars == null || regimeHistory == null || RenderTarget == null)
+                return;
+
+            int fromIndex = Math.Max(ChartBars.FromIndex, 0);
+            int toIndex = Math.Min(ChartBars.ToIndex, Bars.Count - 1);
+
+            if (fromIndex > toIndex)
+                return;
+
+            float ribbonTop = (float)(ChartPanel.Y + ChartPanel.H - RegimeRibbonHeight);
+
+            using (SharpDX.Direct2D1.Brush bullishDx = bullishRibbonBrush.ToDxBrush(RenderTarget))
+            using (SharpDX.Direct2D1.Brush bearishDx = bearishRibbonBrush.ToDxBrush(RenderTarget))
+            using (SharpDX.Direct2D1.Brush chopDx = chopRibbonBrush.ToDxBrush(RenderTarget))
+            using (SharpDX.Direct2D1.Brush transitioningDx = transitioningRibbonBrush.ToDxBrush(RenderTarget))
+            {
+                for (int barIndex = fromIndex; barIndex <= toIndex; barIndex++)
+                {
+                    if (!regimeHistory.IsValidDataPointAt(barIndex))
+                        continue;
+
+                    DA.NinjaTrader.Types.MarketRegime regime =
+                        (DA.NinjaTrader.Types.MarketRegime)
+                            regimeHistory.GetValueAt(barIndex);
+
+                    SharpDX.Direct2D1.Brush dxBrush;
+
+                    switch (regime)
+                    {
+                        case DA.NinjaTrader.Types.MarketRegime.BullishTrend:
+                            dxBrush = bullishDx;
+                            break;
+
+                        case DA.NinjaTrader.Types.MarketRegime.BearishTrend:
+                            dxBrush = bearishDx;
+                            break;
+
+                        case DA.NinjaTrader.Types.MarketRegime.RotationalChop:
+                            dxBrush = chopDx;
+                            break;
+
+                        default:
+                            dxBrush = transitioningDx;
+                            break;
+                    }
+
+                    float xCenter =
+                        chartControl.GetXByBarIndex(ChartBars, barIndex);
+
+                    float left;
+                    float right;
+
+                    if (barIndex > fromIndex)
+                    {
+                        float previousX =
+                            chartControl.GetXByBarIndex(ChartBars, barIndex - 1);
+
+                        left = (previousX + xCenter) * 0.5f;
+                    }
+                    else
+                    {
+                        left = xCenter - (float)chartControl.BarWidth;
+                    }
+
+                    if (barIndex < toIndex)
+                    {
+                        float nextX =
+                            chartControl.GetXByBarIndex(ChartBars, barIndex + 1);
+
+                        right = (xCenter + nextX) * 0.5f;
+                    }
+                    else
+                    {
+                        right = xCenter + (float)chartControl.BarWidth;
+                    }
+
+                    if (right <= left)
+                        continue;
+
+                    RenderTarget.FillRectangle(
+                        new SharpDX.RectangleF(
+                            left,
+                            ribbonTop,
+                            right - left,
+                            RegimeRibbonHeight),
+                        dxBrush);
+                }
+            }
         }
 
         private void UpdateHUD()
