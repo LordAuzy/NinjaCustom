@@ -94,25 +94,6 @@ namespace NinjaTrader.NinjaScript.Indicators
             // Do not evaluate on the Daily BarsInProgress series directly
             if (BarsInProgress != 0) return;
 
-            //Print(
-            //    $"{Time[0]}  " +
-            //    $"CB0={CurrentBars[0]}  " +
-            //    $"CB1={CurrentBars[1]}  " +
-            //    $"LookbackDays={LookbackDays}  " +
-            //    $"BarsArrayLength={BarsArray.Length}");
-
-            //if (CurrentBars[0] < 20)
-            //{
-            //    Print("REGIME: not enough PRIMARY data");
-            //    return;
-            //}
-
-            //if (CurrentBars[1] < LookbackDays)
-            //{
-            //    Print("REGIME: not enough DAILY data");
-            //    return;
-            //}
-
             if (CurrentBar < 20 || CurrentBars[1] < LookbackDays)
             {
                 _currentRegime = MarketRegime.Transitioning;
@@ -175,11 +156,6 @@ namespace NinjaTrader.NinjaScript.Indicators
             // Store the regime for this 1-minute bar so OnRender() can draw
             // the historical regime ribbon for all visible bars.
             regimeHistory[0] = (int)_currentRegime;
-
-            // -------------------------------------------------------------
-            // STEP 4: VISUAL HUD DASHBOARD DISPLAY
-            // -------------------------------------------------------------
-            UpdateHUD();
         }
 
 
@@ -196,6 +172,16 @@ namespace NinjaTrader.NinjaScript.Indicators
             if (fromIndex > toIndex)
                 return;
 
+            DrawHistoricalRibbon(chartControl, chartScale, fromIndex, toIndex);
+            DrawRegimeHUD();
+        }
+
+        private void DrawHistoricalRibbon(
+            ChartControl chartControl, 
+            ChartScale chartScale,
+            int fromIndex = -1, 
+            int toIndex = -1)
+        {
             float ribbonTop = (float)(ChartPanel.Y + ChartPanel.H - RegimeRibbonHeight);
 
             using (SharpDX.Direct2D1.Brush bullishDx = bullishRibbonBrush.ToDxBrush(RenderTarget))
@@ -274,6 +260,77 @@ namespace NinjaTrader.NinjaScript.Indicators
                             RegimeRibbonHeight),
                         dxBrush);
                 }
+            }
+        }
+
+        private void DrawRegimeHUD()
+        {
+            string labelText = $"REGIME: {_currentRegime.ToString().ToUpper()}";
+
+            Brush bgBrush;
+
+            switch (_currentRegime)
+            {
+                case DA.NinjaTrader.Types.MarketRegime.BullishTrend:
+                    bgBrush = Brushes.DarkGreen;
+                    break;
+
+                case DA.NinjaTrader.Types.MarketRegime.BearishTrend:
+                    bgBrush = Brushes.DarkRed;
+                    break;
+
+                case DA.NinjaTrader.Types.MarketRegime.RotationalChop:
+                    bgBrush = Brushes.DarkGoldenrod;
+                    break;
+
+                default:
+                    bgBrush = Brushes.SlateGray;
+                    break;
+            }
+
+            const float width = 205.0f;
+            const float height = 24.0f;
+            const float margin = 8.0f;
+
+            // Bottom-right, immediately above the regime ribbon.
+            float x =
+                (float)(ChartPanel.X + ChartPanel.W)
+                - width
+                - margin;
+
+            float y =
+                (float)(ChartPanel.Y + ChartPanel.H)
+                - RegimeRibbonHeight
+                - height
+                - margin;
+
+            using (SharpDX.Direct2D1.Brush backgroundDx =
+                bgBrush.ToDxBrush(RenderTarget))
+            using (SharpDX.Direct2D1.Brush textDx =
+                Brushes.White.ToDxBrush(RenderTarget))
+            using (SharpDX.DirectWrite.TextFormat textFormat =
+                new SharpDX.DirectWrite.TextFormat(
+                    Core.Globals.DirectWriteFactory,
+                    "Consolas",
+                    12.0f))
+            {
+                RenderTarget.FillRectangle(
+                    new SharpDX.RectangleF(
+                        x,
+                        y,
+                        width,
+                        height),
+                    backgroundDx);
+
+                RenderTarget.DrawText(
+                    labelText,
+                    textFormat,
+                    new SharpDX.RectangleF(
+                        x + 6,
+                        y + 3,
+                        width - 12,
+                        height - 6),
+                    textDx);
             }
         }
 
