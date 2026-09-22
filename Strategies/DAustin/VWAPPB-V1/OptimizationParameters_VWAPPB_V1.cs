@@ -89,7 +89,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
             // OrderFlowRegimeFilter Parameters
             OFRF_Enabled = true;
             OFRF_LookbackDays = 3;
-            OFRF_MaxSlopeTicks = 10.0;
+            OFRF_MaxSlopeTicks = 3.0;
 
             // General Parameters
             General.EquityRiskPercent = 2.0;

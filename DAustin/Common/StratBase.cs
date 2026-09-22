@@ -350,7 +350,7 @@ namespace NinjaTrader.Custom.DAustin.Common
             // we just want to know if we are in a backtest or not
             // When in a backtest, Account.Name returns "Backtest".
             // In a live trading environment it returns the actual account name.
-            return Account.Name != "Backtest";
+            return Account?.Name != "Backtest";
         }
 
         public DateTime GetDataTimeForLogger()

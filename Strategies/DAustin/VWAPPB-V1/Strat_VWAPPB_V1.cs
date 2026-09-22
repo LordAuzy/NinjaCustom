@@ -651,19 +651,27 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else if (State == State.Configure)
                 {
-                    // Primary series already exists.
-                    // Add only secondary/additional series here.
-                    // This series main purpose is for the regime filter
-                    AddDataSeries(
-                        null,
-                        new BarsPeriod
-                        {
-                            BarsPeriodType = BarsPeriodType.Day,
-                            Value = 1
-                        },
-                        20,     // historical daily bars to load
-                        null,   // trading-hours template
-                        null);  // use primary reset setting
+                    if (TradingLiveAccount())
+                    {
+                        // Primary series already exists.
+                        // Add only secondary/additional series here.
+                        // This series main purpose is for the regime filter
+                        // we need to specify historical bars we need
+                        AddDataSeries(
+                            null,
+                            new BarsPeriod
+                            {
+                                BarsPeriodType = BarsPeriodType.Day,
+                                Value = 1
+                            },
+                            20,     // historical daily bars to load
+                            null,   // trading-hours template
+                            null);  // use primary reset setting
+                    }
+                    else
+                    {   // for backtesting we don't need to secify the historical bars to load
+                        AddDataSeries(BarsPeriodType.Day, 1);
+                    }
 
                     OptimizationParameters_VWAPPB_V1 OptParams = GetOptimizationParameters("OP-" + StratIdentifier) as OptimizationParameters_VWAPPB_V1;
 
