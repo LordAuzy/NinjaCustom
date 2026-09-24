@@ -1,6 +1,7 @@
 ﻿using ActiproSoftware.Text.Languages.DotNet.Ast.Implementation;
 using ActiproSoftware.Windows;
 using ActiproSoftware.Windows.Controls;
+using DA.NinjaTrader.Types;
 using Infragistics.Windows.DataPresenter;
 using NinjaTrader.Cbi;
 using NinjaTrader.CQG.ProtoBuf;
@@ -83,10 +84,11 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
             double VWAPValue = VWAP[0];
             double atrValue = Indicators.Entry.ATR[0];
             BiasFilter biasFilter = Indicators.BiasFilter;
+            DA.NinjaTrader.Types.MarketRegime currentRegime =  DA.NinjaTrader.Types.MarketRegime.Transitioning;
 
             if (OptParamsVWAPPB.OFRF_Enabled == true)
             {   // OrderFlowRegimeFilter is enabled, check if current regime allows entries
-                DA.NinjaTrader.Types.MarketRegime currentRegime = Indicators.RegimeFilter.CurrentRegime;
+                currentRegime = Indicators.RegimeFilter.CurrentRegime;
 
                 if (currentRegime != DA.NinjaTrader.Types.MarketRegime.BullishTrend &&
                     currentRegime != DA.NinjaTrader.Types.MarketRegime.BearishTrend)
@@ -222,6 +224,11 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
                         double swingLow = Strategy.MIN(Strategy.Low, pbLookback)[0];
                         double initialStop = swingLow - (EntryOptParams.InitialStopATRBuffer * atrValue);
 
+                        if (currentRegime == MarketRegime.BullishTrend)
+                            DataCollector.BullishTriggerBullishRegimeCount++;
+                        else if (currentRegime == MarketRegime.BearishTrend)
+                            DataCollector.BullishTriggerBearishRegimeCount++;
+
                         DataCollector.LongEntryTriggeredCount++;
                         // =========================
                         // ENTRY TYPE
@@ -305,6 +312,11 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
                     {
                         double swingHigh = Strategy.MAX(Strategy.High, pbLookback)[0];
                         double initialStop = swingHigh + (EntryOptParams.InitialStopATRBuffer * atrValue);
+
+                        if (currentRegime == MarketRegime.BullishTrend)
+                            DataCollector.BearishTriggerBullishRegimeCount++;
+                        else if (currentRegime == MarketRegime.BearishTrend)
+                            DataCollector.BearishTriggerBearishRegimeCount++;
 
                         DataCollector.ShortEntryTriggeredCount++;
 

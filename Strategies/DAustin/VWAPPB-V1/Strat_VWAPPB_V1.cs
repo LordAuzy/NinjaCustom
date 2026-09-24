@@ -664,7 +664,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                                 BarsPeriodType = BarsPeriodType.Day,
                                 Value = 1
                             },
-                            20,     // historical daily bars to load
+                            2500,   // historical daily bars to load
                             null,   // trading-hours template
                             null);  // use primary reset setting
                     }
@@ -871,19 +871,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             sb.AppendLine("==Backtest complete==");
             sb.AppendFormat("Backtest date range from {0:M/d/yy} to {1:M/d/yy}", Bars.GetTime(0), Bars.GetTime(Bars.Count - 1)).AppendLine();
             optParamsVWAPPB.ToStringBuilder(sb);
-            sb.AppendLine("==Entry Trigger Data==");
-            sb.AppendFormat("  AboveVWAPCount:{0}", ece.DataCollector.AboveVWAPCount).AppendLine();
-            sb.AppendFormat("  UpTrendCount:{0}", ece.DataCollector.UpTrendCount).AppendLine();
-            sb.AppendFormat("  UpTrendChopZoneCount:{0}", ece.DataCollector.UpTrendChopZoneCount).AppendLine();
-            sb.AppendFormat("  ValidPullbackLongCount:{0}", ece.DataCollector.ValidPullbackLongCount).AppendLine();
-            sb.AppendFormat("  BullishTriggerCount:{0}", ece.DataCollector.BullishTriggerCount).AppendLine();
-            sb.AppendFormat("  LongEntryTriggeredCount:{0}", ece.DataCollector.LongEntryTriggeredCount).AppendLine();
-            sb.AppendFormat("  BelowVWAPCount:{0}", ece.DataCollector.BelowVWAPCount).AppendLine();
-            sb.AppendFormat("  DownTrendCount:{0}", ece.DataCollector.DownTrendCount).AppendLine();
-            sb.AppendFormat("  DownTrendChopZoneCount:{0}", ece.DataCollector.DownTrendChopZoneCount).AppendLine();
-            sb.AppendFormat("  ValidPullShortCount:{0}", ece.DataCollector.ValidPullShortCount).AppendLine();
-            sb.AppendFormat("  BearishTriggerCount:{0}", ece.DataCollector.BearishTriggerCount).AppendLine();
-            sb.AppendFormat("  ShortEntryTriggeredCount:{0}", ece.DataCollector.ShortEntryTriggeredCount).AppendLine();
+            ece.DataCollector.ToStringBuilder(sb);
             Logs.WriteRunSummary(sb.ToString());
         }
         #endregion
