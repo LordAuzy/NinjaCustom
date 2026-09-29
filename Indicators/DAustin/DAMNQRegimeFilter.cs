@@ -42,13 +42,65 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         private const float RegimeRibbonHeight = 8.0f;
 
+        // Initial-cut regime hysteresis.
+        //
+        // A trend regime must remain valid for several consecutive 1-minute bars
+        // before trend trading is enabled. Non-trend states disable trend trading
+        // immediately. This is intentionally asymmetric: it is easy to turn the
+        // strategy OFF in uncertain conditions and harder to turn it back ON.
+        //
+        // Keep these as constants for the first validation pass so NinjaTrader's
+        // generated indicator factory signature does not change. If the idea proves
+        // useful, promote them to optimization parameters later.
+//        private const int TrendEntryConfirmationBars = 5;
+        private const int TrendEntryConfirmationBars = 3;
+        private const double InRangeTrendSlopeMultiplier = 1.50;
+
         private DA.NinjaTrader.Types.MarketRegime _currentRegime;
+        private DA.NinjaTrader.Types.MarketRegime _rawRegime;
+        private DA.NinjaTrader.Types.MarketRegime _pendingTrendRegime;
+        private int _pendingTrendBars;
+
         public DA.NinjaTrader.Types.MarketRegime CurrentRegime
         {
             get
             {
                 Update();
                 return _currentRegime;
+            }
+        }
+
+        // Raw one-bar classification before hysteresis is applied.
+        // Useful for logging/telemetry while validating the filter.
+        [Browsable(false)]
+        public DA.NinjaTrader.Types.MarketRegime RawRegime
+        {
+            get
+            {
+                Update();
+                return _rawRegime;
+            }
+        }
+
+        // This is the value the strategy should ultimately care about.
+        // Direction can continue to come from the existing VWAP pullback logic.
+        [Browsable(false)]
+        public bool TrendTradingAllowed
+        {
+            get
+            {
+                Update();
+                return IsTrendRegime(_currentRegime);
+            }
+        }
+
+        [Browsable(false)]
+        public int PendingTrendBars
+        {
+            get
+            {
+                Update();
+                return _pendingTrendBars;
             }
         }
         #endregion
@@ -76,7 +128,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
                 LookbackDays = 3;   // 3-day rolling window
                 MaxSlopeTicks = 8.0; // VWAP slope within 8 ticks = Chop
+
                 _currentRegime = DA.NinjaTrader.Types.MarketRegime.Transitioning;
+                _rawRegime = DA.NinjaTrader.Types.MarketRegime.Transitioning;
+                _pendingTrendRegime = DA.NinjaTrader.Types.MarketRegime.Transitioning;
+                _pendingTrendBars = 0;
             }
             else if (State == State.Configure)
             {
@@ -96,7 +152,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 
             if (CurrentBar < 20 || CurrentBars[1] < LookbackDays)
             {
+                _rawRegime = MarketRegime.Transitioning;
                 _currentRegime = MarketRegime.Transitioning;
+                ResetPendingTrend();
                 regimeHistory[0] = (int)_currentRegime;
                 return;
             }
@@ -126,36 +184,128 @@ namespace NinjaTrader.NinjaScript.Indicators
             // while [0] is the current daily bar.
             double currentDayOpen = Opens[1][0];
             bool openInsideMultiDayRange = currentDayOpen < multiDayHigh && currentDayOpen > multiDayLow;
+            bool priceInsideMultiDayRange = Close[0] < multiDayHigh && Close[0] > multiDayLow;
             bool priceAboveVWAP = Close[0] > currentVWAP;
             bool priceBelowVWAP = Close[0] < currentVWAP;
 
+            // When price is still inside the prior multi-day bracket, require a
+            // materially steeper VWAP slope before calling the environment a trend.
+            // This creates a dead-band:
+            //     <= MaxSlopeTicks                      -> chop candidate
+            //     MaxSlopeTicks .. strict threshold    -> transitioning
+            //     > strict threshold                   -> trend candidate
+            //
+            // Once price actually leaves the bracket, return to the normal threshold.
+            double trendSlopeThresholdTicks =
+                priceInsideMultiDayRange
+                    ? MaxSlopeTicks * InRangeTrendSlopeMultiplier
+                    : MaxSlopeTicks;
+
             // -------------------------------------------------------------
-            // STEP 3: REGIME EVALUATION LOGIC
+            // STEP 3: RAW REGIME CLASSIFICATION
             // -------------------------------------------------------------
 
-            // CHOP CONDITION: Opened inside prior value AND VWAP is flat
-            if (openInsideMultiDayRange && vwapSlopeTicks <= MaxSlopeTicks)
+            MarketRegime rawRegime;
+
+            // Preserve the original structural idea: an open inside the prior
+            // multi-day bracket plus a flat VWAP is rotational/chop.
+            if (openInsideMultiDayRange &&
+                priceInsideMultiDayRange &&
+                vwapSlopeTicks <= MaxSlopeTicks)
             {
-                _currentRegime = DA.NinjaTrader.Types.MarketRegime.RotationalChop;
+                rawRegime = MarketRegime.RotationalChop;
             }
-            // BULLISH TREND CONDITION: Price trading above VWAP with steep positive slope
-            else if (priceAboveVWAP && (currentVWAP > SessionVWAP.VWAP[10]) && vwapSlopeTicks > MaxSlopeTicks)
+            // Trend candidates must clear the stricter threshold while price
+            // remains inside the multi-day bracket.
+            else if (priceAboveVWAP &&
+                     currentVWAP > SessionVWAP.VWAP[10] &&
+                     vwapSlopeTicks > trendSlopeThresholdTicks)
             {
-                _currentRegime = DA.NinjaTrader.Types.MarketRegime.BullishTrend;
+                rawRegime = MarketRegime.BullishTrend;
             }
-            // BEARISH TREND CONDITION: Price trading below VWAP with steep negative slope
-            else if (priceBelowVWAP && (currentVWAP < SessionVWAP.VWAP[10]) && vwapSlopeTicks > MaxSlopeTicks)
+            else if (priceBelowVWAP &&
+                     currentVWAP < SessionVWAP.VWAP[10] &&
+                     vwapSlopeTicks > trendSlopeThresholdTicks)
             {
-                _currentRegime = DA.NinjaTrader.Types.MarketRegime.BearishTrend;
+                rawRegime = MarketRegime.BearishTrend;
             }
             else
             {
-                _currentRegime = DA.NinjaTrader.Types.MarketRegime.Transitioning;
+                rawRegime = MarketRegime.Transitioning;
             }
 
-            // Store the regime for this 1-minute bar so OnRender() can draw
-            // the historical regime ribbon for all visible bars.
+            // -------------------------------------------------------------
+            // STEP 4: APPLY ASYMMETRIC HYSTERESIS / PERSISTENCE
+            // -------------------------------------------------------------
+            //
+            // Non-trend states disable trend trading immediately.
+            // A trend must persist for TrendEntryConfirmationBars consecutive
+            // 1-minute bars before CurrentRegime becomes Bullish/Bearish.
+            //
+            // This directly addresses the failure mode where a short-lived VWAP
+            // slope burst inside a rotational day temporarily enabled VWAPPB.
+            ApplyRegimeHysteresis(rawRegime);
+
+            // Store the stable regime for this 1-minute bar so OnRender() can draw
+            // exactly the regime that the strategy was allowed to act on.
             regimeHistory[0] = (int)_currentRegime;
+        }
+
+
+        private void ApplyRegimeHysteresis(MarketRegime rawRegime)
+        {
+            _rawRegime = rawRegime;
+
+            // Any loss of a trend condition shuts trend trading off immediately.
+            // Re-entry into a trend state must earn its way back in.
+            if (!IsTrendRegime(rawRegime))
+            {
+                _currentRegime = rawRegime;
+                ResetPendingTrend();
+                return;
+            }
+
+            // Already in this confirmed trend -- nothing more to prove.
+            if (_currentRegime == rawRegime)
+            {
+                ResetPendingTrend();
+                return;
+            }
+
+            // If a confirmed trend attempts to reverse direction, stop trading
+            // immediately while the opposite direction earns confirmation.
+            if (IsTrendRegime(_currentRegime) && _currentRegime != rawRegime)
+                _currentRegime = MarketRegime.Transitioning;
+
+            if (_pendingTrendRegime == rawRegime)
+            {
+                _pendingTrendBars++;
+            }
+            else
+            {
+                _pendingTrendRegime = rawRegime;
+                _pendingTrendBars = 1;
+            }
+
+            if (_pendingTrendBars >= TrendEntryConfirmationBars)
+            {
+                _currentRegime = rawRegime;
+                ResetPendingTrend();
+            }
+        }
+
+
+        private void ResetPendingTrend()
+        {
+            _pendingTrendRegime = MarketRegime.Transitioning;
+            _pendingTrendBars = 0;
+        }
+
+
+        private bool IsTrendRegime(MarketRegime regime)
+        {
+            return regime == MarketRegime.BullishTrend ||
+                   regime == MarketRegime.BearishTrend;
         }
 
 
@@ -334,39 +484,6 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
         }
 
-        private void UpdateHUD()
-        {
-            string labelText = string.Format("REGIME: {0}", _currentRegime.ToString().ToUpper());
-            Brush bgBrush = Brushes.DimGray;
-
-            switch (_currentRegime)
-            {
-                case DA.NinjaTrader.Types.MarketRegime.BullishTrend:
-                    bgBrush = Brushes.DarkGreen;
-                    break;
-                case DA.NinjaTrader.Types.MarketRegime.BearishTrend:
-                    bgBrush = Brushes.DarkRed;
-                    break;
-                case DA.NinjaTrader.Types.MarketRegime.RotationalChop:
-                    bgBrush = Brushes.DarkGoldenrod;
-                    break;
-                case DA.NinjaTrader.Types.MarketRegime.Transitioning:
-                    bgBrush = Brushes.SlateGray;
-                    break;
-            }
-
-            Draw.TextFixed(
-                owner: this,
-                tag: "RegimeHUD",
-                text: labelText,
-                textPosition: TextPosition.TopRight,
-                textBrush: Brushes.White,
-                font: new Gui.Tools.SimpleFont("Consolas", 12),
-                outlineBrush: Brushes.Transparent,
-                areaBrush: bgBrush,
-                areaOpacity: 85
-            );
-        }
     }
 }
 

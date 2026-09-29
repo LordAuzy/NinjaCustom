@@ -130,6 +130,26 @@ namespace NinjaTrader.NinjaScript.Strategies
                     Order = 3,
                     GroupName = StratPropertyGroups.OrderFlowRegimeFilter)]
         public double OFRF_MaxSlopeTicks { get; set; }
+
+        [NinjaScriptProperty]
+        [Range(1, 6)]
+        [Display(   Name = "Trend Entry Confirmation Bars",
+                    Description = "Number of bars to confirm trend entry",
+                    Order = 4,
+                    GroupName = StratPropertyGroups.OrderFlowRegimeFilter)]
+        public int OFRF_TrendEntryConfirmationBars { get; set; }
+
+        [NinjaScriptProperty]
+        [Range(1.0, 3.0)]
+        [Display(   Name = "In Range Trend Slope Multiplier",
+                    Description = "Multiplier for in-range trend slope",
+                    Order = 5,
+                    GroupName = StratPropertyGroups.OrderFlowRegimeFilter)]
+        public double OFRF_InRangeTrendSlopeMultiplier { get; set; }
+
+
+
+
         #endregion
 
         #region TradingTimeWindow[NinjaScriptProperty]

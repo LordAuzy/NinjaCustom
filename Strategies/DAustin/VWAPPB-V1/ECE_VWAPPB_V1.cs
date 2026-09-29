@@ -84,19 +84,23 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
             double VWAPValue = VWAP[0];
             double atrValue = Indicators.Entry.ATR[0];
             BiasFilter biasFilter = Indicators.BiasFilter;
-            DA.NinjaTrader.Types.MarketRegime currentRegime =  DA.NinjaTrader.Types.MarketRegime.Transitioning;
+            DA.NinjaTrader.Types.MarketRegime currentRegime = DA.NinjaTrader.Types.MarketRegime.Transitioning;
 
             if (OptParamsVWAPPB.OFRF_Enabled == true)
-            {   // OrderFlowRegimeFilter is enabled, check if current regime allows entries
-                currentRegime = Indicators.RegimeFilter.CurrentRegime;
-
-                if (currentRegime != DA.NinjaTrader.Types.MarketRegime.BullishTrend &&
-                    currentRegime != DA.NinjaTrader.Types.MarketRegime.BearishTrend)
+            {
+                if (!Indicators.RegimeFilter.TrendTradingAllowed)
                 {
-                    Logs.Trace("Current regime does not allow entries (Regime={0}).", currentRegime);
+                    Logs.Trace(
+                        "OFRF blocks entry. Stable={0}, Raw={1}, PendingTrendBars={2}",
+                        Indicators.RegimeFilter.CurrentRegime,
+                        Indicators.RegimeFilter.RawRegime,
+                        Indicators.RegimeFilter.PendingTrendBars);
+
                     return null;
                 }
             }
+
+            currentRegime = Indicators.RegimeFilter.CurrentRegime; // needed for telemetry and data collection
 
             if (Strategy.SessionInfo.IsInFlattenTimeWindow(Strategy.Time[0]))
             {

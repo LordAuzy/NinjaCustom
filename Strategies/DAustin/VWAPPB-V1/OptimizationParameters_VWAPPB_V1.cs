@@ -53,6 +53,8 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
         public bool OFRF_Enabled { get; set; }
         public int OFRF_LookbackDays { get; set; }
         public double OFRF_MaxSlopeTicks { get; set; }
+        public int OFRF_TrendEntryConfirmationBars { get; set; }
+        public double OFRF_InRangeTrendSlopeMultiplier { get; set; }
         #endregion
 
         #region constructors
@@ -89,7 +91,9 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
             // OrderFlowRegimeFilter Parameters
             OFRF_Enabled = true;
             OFRF_LookbackDays = 3;
-            OFRF_MaxSlopeTicks = 3.0;
+            OFRF_MaxSlopeTicks = 7.0;
+            OFRF_TrendEntryConfirmationBars = 2;
+            OFRF_InRangeTrendSlopeMultiplier = 1.50;
 
             // General Parameters
             General.EquityRiskPercent = 2.0;
@@ -207,6 +211,8 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
             strat.OFRF_Enabled = OFRF_Enabled;
             strat.OFRF_LookbackDays = OFRF_LookbackDays;
             strat.OFRF_MaxSlopeTicks = OFRF_MaxSlopeTicks;
+            strat.OFRF_TrendEntryConfirmationBars = OFRF_TrendEntryConfirmationBars;
+            strat.OFRF_InRangeTrendSlopeMultiplier = OFRF_InRangeTrendSlopeMultiplier;
 
             strat.GEN_EquityRiskPct = General.EquityRiskPercent;
             strat.GEN_SLTrailingMode = General.SLTrailingMode;
@@ -305,6 +311,8 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
             OFRF_Enabled = strat.OFRF_Enabled;
             OFRF_LookbackDays = strat.OFRF_LookbackDays;
             OFRF_MaxSlopeTicks = strat.OFRF_MaxSlopeTicks;
+            OFRF_TrendEntryConfirmationBars = strat.OFRF_TrendEntryConfirmationBars;
+            OFRF_InRangeTrendSlopeMultiplier = strat.OFRF_InRangeTrendSlopeMultiplier;
 
             General.EquityRiskPercent = strat.GEN_EquityRiskPct;
             General.SLTrailingMode = strat.GEN_SLTrailingMode;
