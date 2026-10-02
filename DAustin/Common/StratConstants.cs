@@ -45,13 +45,14 @@ namespace NinjaTrader.Custom.DAustin.Common
 
     public static class StratIdentifiers
     {
-        public const string ORB         = "ORB";
-        public const string VWAPPB      = "VWAPPB";
-        public const string VWAPPB_V1   = "VWAPPB_V1";
-        public const string VWAPMR      = "VWAPMR";
-        public const string TRENCLAUD   = "TRENCLAUD";
-        public const string TREND       = "TREND";
-        public const string TRENDCL     = "TRENDCL";
-        public const string OPNDRV      = "OPNDRV";
+        public const string ORB             = "ORB";
+        public const string VWAPPB          = "VWAPPB";
+        public const string VWAPPB_V1       = "VWAPPB_V1";
+        public const string VWAPMR          = "VWAPMR";
+        public const string TRENCLAUD       = "TRENCLAUD";
+        public const string TREND           = "TREND";
+        public const string TRENDCL         = "TRENDCL";
+        public const string OPNDRV          = "OPNDRV";
+        public const string OFVALUEREV_V1   = "OFVALUEREV_V1";
     }
 }

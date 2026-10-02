@@ -92,8 +92,8 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
             OFRF_Enabled = true;
             OFRF_LookbackDays = 3;
             OFRF_MaxSlopeTicks = 7.0;
-            OFRF_TrendEntryConfirmationBars = 2;
-            OFRF_InRangeTrendSlopeMultiplier = 1.50;
+            OFRF_TrendEntryConfirmationBars = 3;
+            OFRF_InRangeTrendSlopeMultiplier = 2.0;
 
             // General Parameters
             General.EquityRiskPercent = 2.0;

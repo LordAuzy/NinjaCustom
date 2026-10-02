@@ -87,7 +87,11 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
                 VWAPResolution.Standard,
                 TradingHours.String2TradingHours("CME US Index Futures RTH"),
                 VWAPStandardDeviations.Three, 1.0, 2.0, 3.0);
-            RegimeFilter = Strategy.DAMNQRegimeFilter(OptParamsVWAPPB.OFRF_LookbackDays, OptParamsVWAPPB.OFRF_MaxSlopeTicks);
+            RegimeFilter = Strategy.DAMNQRegimeFilter(
+                OptParamsVWAPPB.OFRF_LookbackDays, 
+                OptParamsVWAPPB.OFRF_MaxSlopeTicks,
+                OptParamsVWAPPB.OFRF_TrendEntryConfirmationBars,
+                OptParamsVWAPPB.OFRF_InRangeTrendSlopeMultiplier);
             RegimeFilter.SessionVWAP = SessionVWAP;
         }
 

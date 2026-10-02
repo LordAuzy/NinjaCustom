@@ -1,6 +1,7 @@
 #region Namespaces
 using DA.NinjaTrader.Types;
 using NinjaTrader.Cbi;
+using NinjaTrader.Custom.DAustin.Common;
 using NinjaTrader.Data;
 using NinjaTrader.Gui;
 using NinjaTrader.Gui.Chart;
@@ -11,6 +12,7 @@ using NinjaTrader.NinjaScript.Indicators;
 using System;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Security.Cryptography;
 using System.Windows.Media;
 #endregion
 
@@ -49,13 +51,6 @@ namespace NinjaTrader.NinjaScript.Indicators
         // immediately. This is intentionally asymmetric: it is easy to turn the
         // strategy OFF in uncertain conditions and harder to turn it back ON.
         //
-        // Keep these as constants for the first validation pass so NinjaTrader's
-        // generated indicator factory signature does not change. If the idea proves
-        // useful, promote them to optimization parameters later.
-//        private const int TrendEntryConfirmationBars = 5;
-        private const int TrendEntryConfirmationBars = 3;
-        private const double InRangeTrendSlopeMultiplier = 1.50;
-
         private DA.NinjaTrader.Types.MarketRegime _currentRegime;
         private DA.NinjaTrader.Types.MarketRegime _rawRegime;
         private DA.NinjaTrader.Types.MarketRegime _pendingTrendRegime;
@@ -108,13 +103,31 @@ namespace NinjaTrader.NinjaScript.Indicators
         #region Ninjascript Properties
         [NinjaScriptProperty]
         [Range(1, 10)]
-        [Display(Name = "Multi-Day Lookback (Days)", GroupName = "Parameters", Order = 1)]
+        [Display(   Name = "Multi-Day Lookback (Days)", 
+                    GroupName = "Parameters", 
+                    Order = 1)]
         public int LookbackDays { get; set; }
 
         [NinjaScriptProperty]
         [Range(1.0, 20.0)]
-        [Display(Name = "Max Slope Ticks (Chop Threshold)", GroupName = "Parameters", Order = 2)]
+        [Display(   Name = "Max Slope Ticks (Chop Threshold)", 
+                    GroupName = "Parameters", 
+                    Order = 2)]
         public double MaxSlopeTicks { get; set; }
+
+        [NinjaScriptProperty]
+        [Range(1, 6)]
+        [Display(   Name = "Trend Entry Confirmation Bars",
+                    GroupName = "Parameters",
+                    Order = 4)]
+        public int TrendEntryConfirmationBars { get; set; }
+
+        [NinjaScriptProperty]
+        [Range(1.0, 3.0)]
+        [Display(   Name = "In Range Trend Slope Multiplier",
+                    GroupName = "Parameters",
+                    Order = 5)]
+        public double InRangeTrendSlopeMultiplier { get; set; }
         #endregion
 
         protected override void OnStateChange()
@@ -128,6 +141,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 
                 LookbackDays = 3;   // 3-day rolling window
                 MaxSlopeTicks = 8.0; // VWAP slope within 8 ticks = Chop
+                TrendEntryConfirmationBars = 3;
+                InRangeTrendSlopeMultiplier = 1.50;
 
                 _currentRegime = DA.NinjaTrader.Types.MarketRegime.Transitioning;
                 _rawRegime = DA.NinjaTrader.Types.MarketRegime.Transitioning;
@@ -494,18 +509,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
 		private DAMNQRegimeFilter[] cacheDAMNQRegimeFilter;
-		public DAMNQRegimeFilter DAMNQRegimeFilter(int lookbackDays, double maxSlopeTicks)
+        public DAMNQRegimeFilter DAMNQRegimeFilter(int lookbackDays, double maxSlopeTicks, int trendEntryConfirmationBars, double inRangeTrendSlopeMultiplier)
 		{
-			return DAMNQRegimeFilter(Input, lookbackDays, maxSlopeTicks);
+            return DAMNQRegimeFilter(Input, lookbackDays, maxSlopeTicks, trendEntryConfirmationBars, inRangeTrendSlopeMultiplier);
 		}
 
-		public DAMNQRegimeFilter DAMNQRegimeFilter(ISeries<double> input, int lookbackDays, double maxSlopeTicks)
+        public DAMNQRegimeFilter DAMNQRegimeFilter(ISeries<double> input, int lookbackDays, double maxSlopeTicks, int trendEntryConfirmationBars, double inRangeTrendSlopeMultiplier)
 		{
 			if (cacheDAMNQRegimeFilter != null)
 				for (int idx = 0; idx < cacheDAMNQRegimeFilter.Length; idx++)
-					if (cacheDAMNQRegimeFilter[idx] != null && cacheDAMNQRegimeFilter[idx].LookbackDays == lookbackDays && cacheDAMNQRegimeFilter[idx].MaxSlopeTicks == maxSlopeTicks && cacheDAMNQRegimeFilter[idx].EqualsInput(input))
+                    if (cacheDAMNQRegimeFilter[idx] != null && cacheDAMNQRegimeFilter[idx].LookbackDays == lookbackDays && cacheDAMNQRegimeFilter[idx].MaxSlopeTicks == maxSlopeTicks && cacheDAMNQRegimeFilter[idx].TrendEntryConfirmationBars == trendEntryConfirmationBars && cacheDAMNQRegimeFilter[idx].InRangeTrendSlopeMultiplier == inRangeTrendSlopeMultiplier && cacheDAMNQRegimeFilter[idx].EqualsInput(input))
 						return cacheDAMNQRegimeFilter[idx];
-			return CacheIndicator<DAMNQRegimeFilter>(new DAMNQRegimeFilter(){ LookbackDays = lookbackDays, MaxSlopeTicks = maxSlopeTicks }, input, ref cacheDAMNQRegimeFilter);
+            return CacheIndicator<DAMNQRegimeFilter>(new DAMNQRegimeFilter(){ LookbackDays = lookbackDays, MaxSlopeTicks = maxSlopeTicks, TrendEntryConfirmationBars = trendEntryConfirmationBars, InRangeTrendSlopeMultiplier = inRangeTrendSlopeMultiplier }, input, ref cacheDAMNQRegimeFilter);
 		}
 	}
 }
@@ -514,14 +529,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.DAMNQRegimeFilter DAMNQRegimeFilter(int lookbackDays, double maxSlopeTicks)
+        public Indicators.DAMNQRegimeFilter DAMNQRegimeFilter(int lookbackDays, double maxSlopeTicks, int trendEntryConfirmationBars, double inRangeTrendSlopeMultiplier)
 		{
-			return indicator.DAMNQRegimeFilter(Input, lookbackDays, maxSlopeTicks);
+            return indicator.DAMNQRegimeFilter(Input, lookbackDays, maxSlopeTicks, trendEntryConfirmationBars, inRangeTrendSlopeMultiplier);
 		}
 
-		public Indicators.DAMNQRegimeFilter DAMNQRegimeFilter(ISeries<double> input , int lookbackDays, double maxSlopeTicks)
+        public Indicators.DAMNQRegimeFilter DAMNQRegimeFilter(ISeries<double> input , int lookbackDays, double maxSlopeTicks, int trendEntryConfirmationBars, double inRangeTrendSlopeMultiplier)
 		{
-			return indicator.DAMNQRegimeFilter(input, lookbackDays, maxSlopeTicks);
+            return indicator.DAMNQRegimeFilter(input, lookbackDays, maxSlopeTicks, trendEntryConfirmationBars, inRangeTrendSlopeMultiplier);
 		}
 	}
 }
@@ -530,14 +545,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.DAMNQRegimeFilter DAMNQRegimeFilter(int lookbackDays, double maxSlopeTicks)
+        public Indicators.DAMNQRegimeFilter DAMNQRegimeFilter(int lookbackDays, double maxSlopeTicks, int trendEntryConfirmationBars, double inRangeTrendSlopeMultiplier)
 		{
-			return indicator.DAMNQRegimeFilter(Input, lookbackDays, maxSlopeTicks);
+            return indicator.DAMNQRegimeFilter(Input, lookbackDays, maxSlopeTicks, trendEntryConfirmationBars, inRangeTrendSlopeMultiplier);
 		}
 
-		public Indicators.DAMNQRegimeFilter DAMNQRegimeFilter(ISeries<double> input , int lookbackDays, double maxSlopeTicks)
+        public Indicators.DAMNQRegimeFilter DAMNQRegimeFilter(ISeries<double> input , int lookbackDays, double maxSlopeTicks, int trendEntryConfirmationBars, double inRangeTrendSlopeMultiplier)
 		{
-			return indicator.DAMNQRegimeFilter(input, lookbackDays, maxSlopeTicks);
+            return indicator.DAMNQRegimeFilter(input, lookbackDays, maxSlopeTicks, trendEntryConfirmationBars, inRangeTrendSlopeMultiplier);
 		}
 	}
 }
