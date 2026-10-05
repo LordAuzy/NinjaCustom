@@ -1,4 +1,4 @@
-﻿#region Using declarations
+#region Using declarations
 using System;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -11,9 +11,9 @@ using NinjaTrader.Gui;
 #endregion
 
 namespace NinjaTrader.NinjaScript.Indicators
-{
+{	
     public class DAPriorSessionValueArea : Indicator
-    {
+    {				
         // ------------------------------------------------------------
         // Runtime dependency
         // ------------------------------------------------------------
@@ -461,3 +461,60 @@ namespace NinjaTrader.NinjaScript.Indicators
         public Series<double> PriorProfileLowPlot { get { return Values[4]; } }
     }
 }
+
+#region NinjaScript generated code. Neither change nor remove.
+
+namespace NinjaTrader.NinjaScript.Indicators
+{
+	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
+	{
+		private DAPriorSessionValueArea[] cacheDAPriorSessionValueArea;
+		public DAPriorSessionValueArea DAPriorSessionValueArea()
+		{
+			return DAPriorSessionValueArea(Input);
+		}
+
+		public DAPriorSessionValueArea DAPriorSessionValueArea(ISeries<double> input)
+		{
+			if (cacheDAPriorSessionValueArea != null)
+				for (int idx = 0; idx < cacheDAPriorSessionValueArea.Length; idx++)
+					if (cacheDAPriorSessionValueArea[idx] != null &&  cacheDAPriorSessionValueArea[idx].EqualsInput(input))
+						return cacheDAPriorSessionValueArea[idx];
+			return CacheIndicator<DAPriorSessionValueArea>(new DAPriorSessionValueArea(), input, ref cacheDAPriorSessionValueArea);
+		}
+	}
+}
+
+namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
+{
+	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
+	{
+		public Indicators.DAPriorSessionValueArea DAPriorSessionValueArea()
+		{
+			return indicator.DAPriorSessionValueArea(Input);
+		}
+
+		public Indicators.DAPriorSessionValueArea DAPriorSessionValueArea(ISeries<double> input )
+		{
+			return indicator.DAPriorSessionValueArea(input);
+		}
+	}
+}
+
+namespace NinjaTrader.NinjaScript.Strategies
+{
+	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
+	{
+		public Indicators.DAPriorSessionValueArea DAPriorSessionValueArea()
+		{
+			return indicator.DAPriorSessionValueArea(Input);
+		}
+
+		public Indicators.DAPriorSessionValueArea DAPriorSessionValueArea(ISeries<double> input )
+		{
+			return indicator.DAPriorSessionValueArea(input);
+		}
+	}
+}
+
+#endregion
