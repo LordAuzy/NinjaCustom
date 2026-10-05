@@ -1,0 +1,393 @@
+﻿using ActiproSoftware.Text.Languages.DotNet.Ast.Implementation;
+using ActiproSoftware.Windows;
+using ActiproSoftware.Windows.Controls;
+using DA.NinjaTrader.Types;
+using Infragistics.Windows.DataPresenter;
+using NinjaTrader.Cbi;
+using NinjaTrader.CQG.ProtoBuf;
+using NinjaTrader.Custom.DAustin.Common;
+using NinjaTrader.Custom.DAustin.Common.Calendars;
+using NinjaTrader.Custom.DAustin.Common.Orders;
+using NinjaTrader.Custom.DAustin.Common.ScheduleFilter;
+using NinjaTrader.Custom.DAustin.Interfaces;
+using NinjaTrader.Custom.Strategies.DAustin.Common;
+using NinjaTrader.Custom.Strategies.DAustin.OPNDRV;
+using NinjaTrader.Gui.PropertiesTest;
+using NinjaTrader.Gui.Tools;
+using NinjaTrader.NinjaScript.DrawingTools;
+using NinjaTrader.NinjaScript.Indicators;
+using NinjaTrader.NinjaScript.Indicators;
+using NinjaTrader.NinjaScript.MarketAnalyzerColumns;
+using NinjaTrader.NinjaScript.SuperDomColumns;
+using NLog;
+using NTRes.NinjaTrader.Gui.Tools.Account;
+using Rules1;
+using SharpDX.Direct2D1;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Runtime.Remoting.Contexts;
+using System.Security.Cryptography;
+using System.Security.Policy;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using static NinjaTrader.CQG.ProtoBuf.MarketDataSubscription.Types;
+using static NinjaTrader.CQG.ProtoBuf.Quote.Types;
+using static NinjaTrader.Custom.DAustin.Common.OptimizationParametersBase;
+using static System.Windows.Forms.AxHost;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrackBar;
+
+namespace NinjaTrader.Custom.Strategies.DAustin.OFVALUEREV_V1
+{
+    [StrategyComponentId("ECE-OFVALUEREV_V1")]
+    public class ECE_OFVALUEREV_V1 : EntryConditionsEvaluatorBase
+    {
+        #region Properties
+        public Indicators_OFVALUEREV_V1 IndicatorsOFVALUEREV { get { return Indicators as Indicators_OFVALUEREV_V1; } }
+        public OptimizationParameters_OFVALUEREV_V1 OptParamsOFVALUEREV { get { return OptParams as OptimizationParameters_OFVALUEREV_V1; } }
+        public ECE_OFVALUEREV_V1_DataCollector DataCollector { get; private set; } = null;
+
+        // Break-and-retest state (reset each session)
+        private bool _breakoutLongOccurred = false;
+        private bool _breakoutShortOccurred = false;
+        private bool _retestLongOccurred = false;
+        private bool _retestShortOccurred = false;
+        private DateTime _breakRetestDate = DateTime.MinValue;
+        #endregion
+
+        #region constructors
+        public ECE_OFVALUEREV_V1(StratBase strat)
+        {
+            Strategy = strat;
+            DataCollector = Strategy.GetDataCollector("DC-" + Strategy.StratIdentifier) as ECE_OFVALUEREV_V1_DataCollector;
+            Initialize();
+        }
+        #endregion
+
+        #region Overrides
+        public override OrderTicket Evaluate(TradeContext tradeContext)
+        {
+            OrderTicket orderTicket = null;
+            OFVALUEREV_V1_EntryParameters EntryOptParams = OptParamsOFVALUEREV.Entry;
+            GeneralParameters GenOptParams = OptParamsOFVALUEREV.General;
+            Indicators_OFVALUEREV_V1 Indicators = IndicatorsOFVALUEREV;
+            EMA fastEMA = Indicators.Entry.FastEMA;
+            EMA slowEMA = Indicators.Entry.SlowEMA;
+            DAVWAPIndicator VWAP = Indicators.Entry.AnchoredVWAP;
+            double VWAPValue = VWAP[0];
+            double atrValue = Indicators.Entry.ATR[0];
+            BiasFilter biasFilter = Indicators.BiasFilter;
+            DA.NinjaTrader.Types.MarketRegime currentRegime = DA.NinjaTrader.Types.MarketRegime.Transitioning;
+
+            if (OptParamsOFVALUEREV.OFRF_Enabled == true)
+            {
+                if (!Indicators.RegimeFilter.TrendTradingAllowed)
+                {
+                    Logs.Trace(
+                        "OFRF blocks entry. Stable={0}, Raw={1}, PendingTrendBars={2}",
+                        Indicators.RegimeFilter.CurrentRegime,
+                        Indicators.RegimeFilter.RawRegime,
+                        Indicators.RegimeFilter.PendingTrendBars);
+
+                    return null;
+                }
+            }
+
+            currentRegime = Indicators.RegimeFilter.CurrentRegime; // needed for telemetry and data collection
+
+            if (Strategy.SessionInfo.IsInFlattenTimeWindow(Strategy.Time[0]))
+            {
+                Logs.Trace("In flatten time window. New entries not allowed.");
+                return null;
+            }
+
+            if (FOMCCalendar.IsFOMCDay(Strategy.Time[0]))
+            {
+                Logs.Trace("Is FOMC Day");
+                return null;
+            }
+
+            // for this strategy, we want to be especially strict about avoiding entries on NFP days
+            // due to the high volatility and potential for slippage. Even if the entry conditions are met,
+            // the risk of adverse price movements around the NFP release is significant. Therefore,
+            // we will skip all entries on NFP days to protect the account from unexpected losses.
+            if (NFPCalendar.IsNFPDay(Strategy.Time[0]))
+            {
+                Logs.Trace("Is NFP Day");
+                return null;
+            }
+
+            if (tradeContext.TradesTakenThisSession >= GenOptParams.MaxTradesPerSession)
+            {   // max trades per session reached
+                Logs.Info($"Max trades per session reached: {tradeContext.TradesTakenThisSession}/{GenOptParams.MaxTradesPerSession}");
+                return null;
+            }
+
+
+            if (Indicators.EntryTimeWindows != null && !Indicators.EntryTimeWindows.IsInTimeWindow())
+            {   // not in an entry time window
+                Logs.Trace("Not in entry time window");
+                return null;
+            }
+
+            if (Strategy.CurrentBars[0] < Strategy.BarsRequiredToTrade)
+            {   // in preload phase
+                Logs.Trace("In preload phase");
+                return null;
+            }
+
+            TradingStance ts = biasFilter.GetCurrentTradingStance(Strategy.Time[0]);
+
+            if (ts == TradingStance.None)
+            {   // no trades allowed per bias filter
+                Logs.Trace("Trading stance is TradingStance.None");
+                return null;
+            }
+
+            if (Strategy.CurrentBars[0] < Math.Max(EntryOptParams.ATRPeriod, EntryOptParams.SlowEMAPeriod))
+            {   // not enough bars to calculate indicators
+                Logs.Trace("Not enough bars to calculate indicators");
+                return null;
+            }
+
+            // put new code here for chatgpt No-Chop entry conditions . . .
+            double currentPrice = Strategy.Close[0];
+
+            // --- Basic indicators ---
+            double emaSpread = Math.Abs(fastEMA[0] - slowEMA[0]);
+            double vwapDistance = Math.Abs(currentPrice - VWAPValue);
+
+            int confirmBars = Math.Max(1, EntryOptParams.VWAPConfirmationBars);
+            double vwapSlope = VWAPValue - VWAP[Math.Min(confirmBars, Math.Max(1, Strategy.CurrentBars[0]))];
+
+            // =========================
+            // 🚫 CHOP FILTER (CRITICAL)
+            // =========================
+            bool chopZone =
+                vwapDistance < (EntryOptParams.MinVWAPDistanceATR * atrValue) ||
+                Math.Abs(vwapSlope) < (EntryOptParams.MinVWAPSlopeATR * atrValue) ||
+                emaSpread < (EntryOptParams.MinEMASpreadATR * atrValue);
+
+            bool aboveVWAP = true;
+            bool belowVWAP = true;
+            for (int i = 0; i < confirmBars; i++)
+            {
+                if (Strategy.Close[i] <= VWAP[i]) aboveVWAP = false;
+                if (Strategy.Close[i] >= VWAP[i]) belowVWAP = false;
+            }
+
+            if (aboveVWAP && (ts == TradingStance.LongOnly || ts == TradingStance.All))
+            {
+                // =========================
+                // LONG SETUP
+                // =========================
+                DataCollector.AboveVWAPCount++;
+
+                bool upTrend = aboveVWAP && fastEMA[0] > slowEMA[0];
+                if (upTrend)
+                {
+                    DataCollector.UpTrendCount++;
+                    if (chopZone)
+                    {
+                        DataCollector.UpTrendChopZoneCount++;
+                    }
+                }
+
+                if (upTrend && !chopZone)
+                {
+                    int pbLookback = Math.Max(1, EntryOptParams.PullbackLookbackBars);
+                    double recentPullbackLow = Strategy.MIN(Strategy.Low, pbLookback)[0];
+                    double pullbackDistance = recentPullbackLow - VWAPValue;
+
+                    bool validPullback =
+                        pullbackDistance >= (-0.1 * atrValue) &&
+                        pullbackDistance <= (EntryOptParams.MaxPullbackATR * atrValue);
+
+                    bool bullishTrigger = Strategy.Close[0] > Strategy.Open[0];
+
+                    if (validPullback)
+                    {
+                        DataCollector.ValidPullbackLongCount++;
+                    }
+
+                    if (bullishTrigger)
+                    {
+                        DataCollector.BullishTriggerCount++;
+                    }
+
+
+                    if (validPullback && bullishTrigger)
+                    {
+                        double swingLow = Strategy.MIN(Strategy.Low, pbLookback)[0];
+                        double initialStop = swingLow - (EntryOptParams.InitialStopATRBuffer * atrValue);
+
+                        if (currentRegime == MarketRegime.BullishTrend)
+                            DataCollector.BullishTriggerBullishRegimeCount++;
+                        else if (currentRegime == MarketRegime.BearishTrend)
+                            DataCollector.BullishTriggerBearishRegimeCount++;
+
+                        DataCollector.LongEntryTriggeredCount++;
+                        // =========================
+                        // ENTRY TYPE
+                        // =========================
+                        if (EntryOptParams.OrderType == EntryOrderType.StopMarket)
+                        {
+                            double entryPrice = Strategy.High[1] + Strategy.TickSize;
+
+                            // 🚫 Skip if already triggered (avoid chasing)
+                            if (currentPrice >= entryPrice)
+                                return null;
+
+                            // Ensure valid stop placement
+                            double ask = Strategy.GetCurrentAsk();
+                            if (entryPrice <= ask)
+                                entryPrice = ask + Strategy.TickSize;
+
+                            double risk = entryPrice - initialStop;
+                            if (risk <= 0)
+                                return null;
+
+                            orderTicket = new OrderTicket(Strategy, OrderIdPrefix);
+                            orderTicket.Type = DAOrderType.LongStopMarket;
+                            orderTicket.Price = entryPrice;
+                            orderTicket.Risk = FlexibleValue.FromPoints(risk, Strategy);
+
+                            if (EntryOptParams.OrderExpiryBars > 0)
+                                orderTicket.StopExpiryBars = EntryOptParams.OrderExpiryBars;
+                        }
+                        else if (EntryOptParams.OrderType == EntryOrderType.Market)
+                        {
+                            // Optional: disable if you want pure stop-entry testing
+                            orderTicket = new OrderTicket(Strategy, OrderIdPrefix);
+                            orderTicket.Type = DAOrderType.Long;
+                            orderTicket.Risk = FlexibleValue.FromPoints(currentPrice - initialStop, Strategy);
+                        }
+                    }
+                }
+            }
+            else if (belowVWAP && (ts == TradingStance.ShortOnly || ts == TradingStance.All))
+            {
+                // =========================
+                // SHORT SETUP
+                // =========================
+                DataCollector.BelowVWAPCount++;
+
+                bool downTrend = belowVWAP && fastEMA[0] < slowEMA[0];
+                if (downTrend)
+                {
+                    DataCollector.DownTrendCount++;
+                    if (chopZone)
+                    {
+                        DataCollector.DownTrendChopZoneCount++;
+                    }
+                }
+
+                if (downTrend && !chopZone)
+                {
+                    int pbLookback = Math.Max(1, EntryOptParams.PullbackLookbackBars);
+                    double recentPullbackHigh = Strategy.MAX(Strategy.High, pbLookback)[0];
+                    double pullbackDistance = VWAPValue - recentPullbackHigh;
+
+                    bool validPullback =
+                        pullbackDistance >= (-0.1 * atrValue) &&
+                        pullbackDistance <= (EntryOptParams.MaxPullbackATR * atrValue);
+
+                    bool bearishTrigger = Strategy.Close[0] < Strategy.Open[0];
+
+                    if (validPullback)
+                    {
+                        DataCollector.ValidPullShortCount++;
+                    }
+
+                    if (bearishTrigger)
+                    {
+                        DataCollector.BearishTriggerCount++;
+                    }
+
+
+                    if (validPullback && bearishTrigger)
+                    {
+                        double swingHigh = Strategy.MAX(Strategy.High, pbLookback)[0];
+                        double initialStop = swingHigh + (EntryOptParams.InitialStopATRBuffer * atrValue);
+
+                        if (currentRegime == MarketRegime.BullishTrend)
+                            DataCollector.BearishTriggerBullishRegimeCount++;
+                        else if (currentRegime == MarketRegime.BearishTrend)
+                            DataCollector.BearishTriggerBearishRegimeCount++;
+
+                        DataCollector.ShortEntryTriggeredCount++;
+
+                        if (EntryOptParams.OrderType == EntryOrderType.StopMarket)
+                        {
+                            double entryPrice = Strategy.Low[1] - Strategy.TickSize;
+
+                            // 🚫 Skip if already triggered
+                            if (currentPrice <= entryPrice)
+                                return null;
+
+                            // Ensure valid stop placement
+                            double bid = Strategy.GetCurrentBid();
+                            if (entryPrice >= bid)
+                                entryPrice = bid - Strategy.TickSize;
+
+                            double risk = initialStop - entryPrice;
+                            if (risk <= 0)
+                                return null;
+
+                            orderTicket = new OrderTicket(Strategy, OrderIdPrefix);
+                            orderTicket.Type = DAOrderType.ShortStopMarket;
+                            orderTicket.Price = entryPrice;
+                            orderTicket.Risk = FlexibleValue.FromPoints(risk, Strategy);
+
+                            if (EntryOptParams.OrderExpiryBars > 0)
+                                orderTicket.StopExpiryBars = EntryOptParams.OrderExpiryBars;
+                        }
+                        else if (EntryOptParams.OrderType == EntryOrderType.Market)
+                        {
+                            orderTicket = new OrderTicket(Strategy, OrderIdPrefix);
+                            orderTicket.Type = DAOrderType.Short;
+                            orderTicket.Risk = FlexibleValue.FromPoints(initialStop - currentPrice, Strategy);
+                        }
+                    }
+                }
+            }
+
+            if (orderTicket != null)
+            {
+                double riskMultiplier = Indicators.SizingFilter.GetCurrentSizingMultiplier(Strategy.Time[0]);
+                //double riskMultiplier = 1;
+                double riskPct = OptParamsOFVALUEREV.General.EquityRiskPercent;
+
+                orderTicket.AllowedRiskPercentOfAccount = riskPct * riskMultiplier;
+            }
+            return orderTicket;
+        }
+        #endregion
+
+        #region PublicMethods
+        public void Reset()
+        {
+            Initialize();
+        }
+
+        public void Initialize()
+        {
+            _breakoutLongOccurred = false;
+            _breakoutShortOccurred = false;
+            _retestLongOccurred = false;
+            _retestShortOccurred = false;
+            _breakRetestDate = DateTime.MinValue;
+        }
+        #endregion
+
+        #region VirtualMethods
+        #endregion
+    }
+}

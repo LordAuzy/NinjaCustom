@@ -95,6 +95,7 @@
     <Compile Include="DAustin\Logging\StrategyLoggingOptions.cs" />
     <Compile Include="DAustin\Logging\StrategyLogIdentity.cs" />
     <Compile Include="Indicators\DAustin\DAMNQRegimeFilter.cs" />
+    <Compile Include="Indicators\DAustin\DAPriorSessionValueArea.cs" />
     <Compile Include="Indicators\DAustin\DAVWAPIndicator.cs" />
     <Compile Include="Resource.Designer.cs">
       <DesignTime>True</DesignTime>
@@ -400,6 +401,12 @@
     <Compile Include="DAustin\Common\ScheduleFilter\ScheduleFilterBase.cs" />
     <Compile Include="DAustin\Common\ScheduleFilter\SizingFilter.cs" />
     <Compile Include="Strategies\DAustin\Common\SessionInfo.cs" />
+    <Compile Include="Strategies\DAustin\OFVALUEREV_V1\ECE_OFVALUEREV_V1.cs" />
+    <Compile Include="Strategies\DAustin\OFVALUEREV_V1\ECE_OFVALUEREV_V1_DataCollector.cs" />
+    <Compile Include="Strategies\DAustin\OFVALUEREV_V1\Indicators_OFVALUEREV_V1.cs" />
+    <Compile Include="Strategies\DAustin\OFVALUEREV_V1\OptimizationParameters_OFVALUEREV_V1.cs" />
+    <Compile Include="Strategies\DAustin\OFVALUEREV_V1\Strat_OFVALUEREV_V1.cs" />
+    <Compile Include="Strategies\DAustin\OFVALUEREV_V1\TelemetryBar_OFVALUEREV_V1.cs" />
     <Compile Include="Strategies\DAustin\OPNDRV\DriveSetup.cs" />
     <Compile Include="Strategies\DAustin\OPNDRV\DriveState.cs" />
     <Compile Include="Strategies\DAustin\Common\StopLossIndicators.cs" />
