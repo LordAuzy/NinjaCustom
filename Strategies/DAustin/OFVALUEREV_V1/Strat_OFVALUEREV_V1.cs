@@ -834,9 +834,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // This is done here so that the indicators are only added once.
                     Indicators_OFVALUEREV_V1.EntryIndicators entryIndicators = indicators.Entry;
 
-                    AddChartIndicator(entryIndicators.AnchoredVWAP);
-                    AddChartIndicator(entryIndicators.SlowEMA);
-                    AddChartIndicator(entryIndicators.FastEMA);
+//                    AddChartIndicator(entryIndicators.AnchoredVWAP);
+//                    AddChartIndicator(entryIndicators.SlowEMA);
+//                    AddChartIndicator(entryIndicators.FastEMA);
 
                     if (indicators.RegimeFilter == null)
                         throw new Exception("RegimeFilter was not initialized.");
@@ -846,16 +846,18 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     AddChartIndicator(indicators.RegimeFilter);
                     AddChartIndicator(indicators.SessionVWAP);
+                    AddChartIndicator(indicators.SessionVolumeProfile);
+                    AddChartIndicator(indicators.PriorValue);
 
                     // customizse the chart indicators for this strategy
-                    entryIndicators.FastEMA.Plots[0].Brush = System.Windows.Media.Brushes.LimeGreen;
-                    entryIndicators.FastEMA.Plots[0].Width = 1;
+                    //                    entryIndicators.FastEMA.Plots[0].Brush = System.Windows.Media.Brushes.LimeGreen;
+                    //                    entryIndicators.FastEMA.Plots[0].Width = 1;
 
-                    entryIndicators.SlowEMA.Plots[0].Brush = System.Windows.Media.Brushes.OrangeRed;
-                    entryIndicators.SlowEMA.Plots[0].Width = 1;
+                    //                    entryIndicators.SlowEMA.Plots[0].Brush = System.Windows.Media.Brushes.OrangeRed;
+                    //                    entryIndicators.SlowEMA.Plots[0].Width = 1;
 
-                    entryIndicators.AnchoredVWAP.Plots[0].Brush = System.Windows.Media.Brushes.Cyan;
-                    entryIndicators.AnchoredVWAP.Plots[0].Width = 2;
+                    //                    entryIndicators.AnchoredVWAP.Plots[0].Brush = System.Windows.Media.Brushes.Cyan;
+                    //                    entryIndicators.AnchoredVWAP.Plots[0].Width = 2;
 
                     TradeManager.OnDataLoaded();
                 }

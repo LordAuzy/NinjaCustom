@@ -85,7 +85,6 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OFVALUEREV_V1
                 OptParamsOFVALUEREV.ScheduleSizingFilters
             );
 
-
             SessionVWAP = Strategy.OrderFlowVWAP(
                 VWAPResolution.Standard,
                 TradingHours.String2TradingHours("CME US Index Futures RTH"),

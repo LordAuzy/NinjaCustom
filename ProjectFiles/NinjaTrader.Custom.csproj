@@ -401,6 +401,7 @@
     <Compile Include="DAustin\Common\ScheduleFilter\ScheduleFilterBase.cs" />
     <Compile Include="DAustin\Common\ScheduleFilter\SizingFilter.cs" />
     <Compile Include="Strategies\DAustin\Common\SessionInfo.cs" />
+    <Compile Include="Strategies\DAustin\OFVALUEREV_V1\DataSeries_OFVALUEREV_V1.cs" />
     <Compile Include="Strategies\DAustin\OFVALUEREV_V1\ECE_OFVALUEREV_V1.cs" />
     <Compile Include="Strategies\DAustin\OFVALUEREV_V1\ECE_OFVALUEREV_V1_DataCollector.cs" />
     <Compile Include="Strategies\DAustin\OFVALUEREV_V1\Indicators_OFVALUEREV_V1.cs" />
