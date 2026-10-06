@@ -3,12 +3,14 @@ using NinjaTrader.Custom.DAustin.Common.ScheduleFilter;
 using NinjaTrader.Custom.Strategies.DAustin.Common;
 using NinjaTrader.Data;
 using NinjaTrader.NinjaScript.Indicators;
+using NinjaTrader.NinjaScript.MarketAnalyzerColumns;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Media;
 using static NinjaTrader.Custom.DAustin.Common.OptimizationParametersBase;
 
 namespace NinjaTrader.Custom.Strategies.DAustin.OFVALUEREV_V1
@@ -38,6 +40,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OFVALUEREV_V1
         public SizingFilter SizingFilter { get; set; }
         public OrderFlowVWAP SessionVWAP { get; set; }
         public OrderFlowVolumeProfile SessionVolumeProfile { get; set; }
+        public OrderFlowVolumeProfile SessionVolumeProfileDisplay { get; set; }
         public DAMNQRegimeFilter RegimeFilter { get; set; }
         public DAPriorSessionValueArea PriorValue { get; set; }
         public DataSeries_OFVALUEREV_V1 DataSeriesIndicies { get; set; }
@@ -88,7 +91,12 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OFVALUEREV_V1
             SessionVWAP = Strategy.OrderFlowVWAP(
                 VWAPResolution.Standard,
                 TradingHours.String2TradingHours("CME US Index Futures RTH"),
-                VWAPStandardDeviations.Three, 1.0, 2.0, 3.0);
+                VWAPStandardDeviations.Two, 1.0, 2.0, 3.0);
+
+            // Clear out the 3rd deviation outer outline lines
+            SessionVWAP.Plots[5].Brush = Brushes.Transparent; // StdDev3Upper
+            SessionVWAP.Plots[6].Brush = Brushes.Transparent; // StdDev3Lower
+
             RegimeFilter = Strategy.DAMNQRegimeFilter(
                 OptParamsOFVALUEREV.OFRF_LookbackDays, 
                 OptParamsOFVALUEREV.OFRF_MaxSlopeTicks,
@@ -111,7 +119,21 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OFVALUEREV_V1
             SessionVolumeProfile.TicksPerLevel = 1;
 
             PriorValue = Strategy.DAPriorSessionValueArea(Strategy.Closes[rthPrimaryIndex]);
-            PriorValue.SessionVolumeProfile = SessionVolumeProfile; 
+            PriorValue.SessionVolumeProfile = SessionVolumeProfile;
+
+            // This is a separate volume profile that is used for display purposes only.
+            // if it's being displayed on the chart, it will need to use the primary series
+            SessionVolumeProfileDisplay =
+                Strategy.OrderFlowVolumeProfile(
+                    MarketProfileType.Volume,
+                    MarketProfilePeriod.Sessions,
+                    1,
+                    rth,
+                    MarketProfileResolution.Minute,
+                    68,
+                    0);
+
+            SessionVolumeProfileDisplay.TicksPerLevel = 1;
         }
 
         public override ChandelierGuardIndicators GetChandelierGuardIndicators() { return ChandelierGuard; }

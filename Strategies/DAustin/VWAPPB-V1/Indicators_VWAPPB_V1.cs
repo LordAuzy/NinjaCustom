@@ -9,6 +9,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Media;
 using static NinjaTrader.Custom.DAustin.Common.OptimizationParametersBase;
 
 namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
@@ -82,11 +83,14 @@ namespace NinjaTrader.Custom.Strategies.DAustin.VWAPPB_V1
                 OptParamsVWAPPB.ScheduleSizingFilters
             );
 
-
+            // we don't want the 3rd standard deviation bands to be plotted on the chart
             SessionVWAP = Strategy.OrderFlowVWAP(
                 VWAPResolution.Standard,
                 TradingHours.String2TradingHours("CME US Index Futures RTH"),
                 VWAPStandardDeviations.Two, 1.0, 2.0, 3.0);
+            SessionVWAP.Plots[5].Brush = Brushes.Transparent; // StdDev3Upper
+            SessionVWAP.Plots[6].Brush = Brushes.Transparent; // StdDev3Lower
+
             RegimeFilter = Strategy.DAMNQRegimeFilter(
                 OptParamsVWAPPB.OFRF_LookbackDays, 
                 OptParamsVWAPPB.OFRF_MaxSlopeTicks,

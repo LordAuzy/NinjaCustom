@@ -846,7 +846,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     AddChartIndicator(indicators.RegimeFilter);
                     AddChartIndicator(indicators.SessionVWAP);
-                    AddChartIndicator(indicators.SessionVolumeProfile);
+                    AddChartIndicator(indicators.SessionVolumeProfileDisplay);
                     AddChartIndicator(indicators.PriorValue);
 
                     // customizse the chart indicators for this strategy
