@@ -1,5 +1,6 @@
 ﻿#region Using declarations
 using ActiproSoftware.Windows.Media.Animation;
+using DA.NinjaTrader.Types;
 using NinjaTrader.Cbi;
 using NinjaTrader.Core.FloatingPoint;
 using NinjaTrader.Custom.DAustin.Common;
@@ -7,8 +8,8 @@ using NinjaTrader.Custom.DAustin.Common.Reporting;
 using NinjaTrader.Custom.DAustin.Interfaces;
 using NinjaTrader.Custom.DAustin.Logging;
 using NinjaTrader.Custom.Strategies.DAustin.Common;
-using NinjaTrader.Custom.Strategies.DAustin.TradeManagers;
 using NinjaTrader.Custom.Strategies.DAustin.OFVALUEREV_V1;
+using NinjaTrader.Custom.Strategies.DAustin.TradeManagers;
 using NinjaTrader.Data;
 using NinjaTrader.Gui;
 using NinjaTrader.Gui.AccountData;
@@ -888,26 +889,105 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void OnBarUpdate()
         {
-            Logs.Trace(">");
+            int primaryIndex = DataSeriesIndicies.GetSeriesIndex(DataSeries_OFVALUEREV_V1.Name.Primary);
+            int dailyIndex = DataSeriesIndicies.GetSeriesIndex(DataSeries_OFVALUEREV_V1.Name.Daily);
+            int rthTickIndex = DataSeriesIndicies.GetSeriesIndex(DataSeries_OFVALUEREV_V1.Name.RthTick);
+            int rthPrimaryIndex = DataSeriesIndicies.GetSeriesIndex(DataSeries_OFVALUEREV_V1.Name.RthPrimary);
 
-            // This strategy's trading logic only runs from the primary series.
-            if (BarsInProgress != 0)
+            Indicators_OFVALUEREV_V1 indicators = GetIndicators("IDC-" + StratIdentifier) as Indicators_OFVALUEREV_V1;
+
+            // ---------------------------------------------------------
+            // Keep OrderFlowVolumeProfile's internal tick series current.
+            // Do this FIRST when the RTH tick series advances.
+            // ---------------------------------------------------------
+            if (BarsInProgress == rthTickIndex)
+            {
+                if (indicators.SessionVolumeProfile != null &&
+                    indicators.SessionVolumeProfile.BarsArray.Length > 1 &&
+                    indicators.SessionVolumeProfile.BarsArray[1].Count > 0)
+                {
+                    indicators.SessionVolumeProfile.Update(indicators.SessionVolumeProfile.BarsArray[1].Count - 1, 1);
+                }
+                return;
+            }
+
+            // ---------------------------------------------------------
+            // Drive PriorValue from the same RTH primary series
+            // that it was constructed from.
+            // ---------------------------------------------------------
+            bool priorValueReady = false;
+
+            if (BarsInProgress == rthPrimaryIndex)
+            {
+                priorValueReady = indicators.PriorValue.IsReady;
+                return;
+            }
+
+            // ---------------------------------------------------------
+            // Trading logic only runs on primary series.
+            // ---------------------------------------------------------
+            if (BarsInProgress != primaryIndex)
                 return;
 
+            Logs.Trace(">");
+
+            // Primary series must be available.
+            if (CurrentBars[primaryIndex] < 0)
+                return;
+
+
+            // Daily series required by RegimeFilter.
+            if (dailyIndex < 0 || dailyIndex >= CurrentBars.Length || CurrentBars[dailyIndex] < 0)
+            {
+                return;
+            }
+
+            // ---------------------------------------------------------
+            // Force hosted indicators current before using them.
+            // ---------------------------------------------------------
+            DA.NinjaTrader.Types.MarketRegime currentRegime = indicators.RegimeFilter.CurrentRegime;
+            double currentPOC = indicators.SessionVolumeProfile.Poc;
+            priorValueReady = indicators.PriorValue.IsReady;
+
+            base.OnBarUpdate();
+            Logs.Trace("<");
+        }
+
+        public void xxOnBarUpdate()
+        {
+            Logs.Trace(">");
+            int primaryIndex = DataSeriesIndicies.GetSeriesIndex(DataSeries_OFVALUEREV_V1.Name.Primary);
+            int dailyIndex = DataSeriesIndicies.GetSeriesIndex(DataSeries_OFVALUEREV_V1.Name.Daily);
+            int tickIndex = DataSeriesIndicies.GetSeriesIndex(DataSeries_OFVALUEREV_V1.Name.Tick);
+
             // Primary series must exist before touching any primary-series values.
-            if (CurrentBars[0] < 0)
+            if (CurrentBars[primaryIndex] < 0)
                 return;
 
             // Secondary daily series required by regime filter must exist.
-            if (CurrentBars.Length < 2 || CurrentBars[1] < 0)
+            if (CurrentBars.Length < 2 || CurrentBars[dailyIndex] < 0)
                 return;
 
             // ---------------------------------------------------------
-            // ALWAYS UPDATE MARKET REGIME FIRST SO The regimefilter state
-            // will be rendered on the chart.
+            // We need to make a call to these indicators to get them to update
+            // since their primary series is not the same as the chart
             // ---------------------------------------------------------
             Indicators_OFVALUEREV_V1 indicators = GetIndicators("IDC-" + StratIdentifier) as Indicators_OFVALUEREV_V1;
+            // Force update Regime filter
             DA.NinjaTrader.Types.MarketRegime currentRegime = indicators.RegimeFilter.CurrentRegime;
+            // Force update volume profile
+            double currentPOC = indicators.SessionVolumeProfile.Poc;
+            // Force update PriorValue
+            bool priorValueReady = indicators.PriorValue.IsReady;
+
+            if (BarsInProgress == tickIndex)
+            {
+                indicators.SessionVolumeProfile.Update(indicators.SessionVolumeProfile.BarsArray[1].Count - 1, 1);
+            }
+
+            // This strategy's trading logic only runs from the primary series.
+            if (BarsInProgress != primaryIndex)
+                return;
 
             base.OnBarUpdate();
             Logs.Trace("<");
