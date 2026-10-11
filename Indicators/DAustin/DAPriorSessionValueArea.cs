@@ -8,12 +8,156 @@ using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.ChartStyles;
 using NinjaTrader.Gui;
+using NinjaTrader.Gui.Chart;
+using NinjaTrader.Data;
+using System.Runtime.InteropServices.WindowsRuntime;
 #endregion
 
 namespace NinjaTrader.NinjaScript.Indicators
 {	
     public class DAPriorSessionValueArea : Indicator
-    {				
+    {
+        private class ProfileSnapshot
+        {
+            private bool _completed = false;
+            public bool Completed { get { return _completed; } }
+            public DateTime SessionDate { get; set; }
+            public double VAH { get; set; }
+            public double VAL { get; set; }
+            public double POC { get; set; }
+            public double High { get; set; }
+            public double Low { get; set; }
+
+            #region Constructors
+            public ProfileSnapshot() 
+            {
+                Reset();                   
+            }
+            #endregion
+
+            public void Reset()
+            {
+                _completed = false;
+                SessionDate = DateTime.MinValue;
+                VAH = double.NaN;
+                VAL = double.NaN;
+                POC = double.NaN;
+                High = double.NaN;
+                Low = double.NaN;
+            }
+
+            public bool Complete(
+                double vah,
+                double val,
+                double poc)
+            {
+                if (!IsFinite(vah) ||
+                    !IsFinite(val) ||
+                    !IsFinite(poc) ||
+                    !IsFinite(High) ||
+                    !IsFinite(Low))
+                {
+                    return false;
+                }
+
+                if (vah < val ||
+                    poc < val ||
+                    poc > vah ||
+                    High < vah ||
+                    Low > val)
+                {
+                    return false;
+                }
+
+                VAH = vah;
+                VAL = val;
+                POC = poc;
+
+                _completed = true;
+                return _completed;
+            }
+
+            public void UpdateHighLow(double high, double low)
+            {
+                if (double.IsNaN(High) || high > High)
+                {
+                    High = high;
+                }
+
+                if (double.IsNaN(Low) || low < Low)
+                {
+                    Low = low;
+                }
+            }
+
+            public double ValueAreaWidth
+            {
+                get
+                {
+                    double width = double.NaN;
+                    if (Completed)
+                    {
+                        width = VAH - VAL;
+                    }
+                    return width;
+                }
+            }
+
+            public double ValueAreaMidpoint
+            {
+                get
+                {
+                    double midpoint = double.NaN;
+                    if (Completed)
+                    { 
+                        midpoint = (VAH + VAL) / 2.0;
+                    }
+                    return midpoint;
+                }
+            }
+
+            public double Range
+            {
+                get
+                {
+                    double range = double.NaN;
+                    if (Completed)
+                    {
+                        range = High - Low;
+                    }
+                    return range;
+                }
+            }
+
+            public double POCPositionPct
+            {
+                get
+                {
+                    double pct = double.NaN;
+                    if (Completed)
+                    {
+                        double width = VAH - VAL;
+
+                        if (width > 0)
+                        {
+                            pct = (POC - VAL) / width;
+                        }
+                    }
+                    return pct;
+                }
+            }
+        }
+
+        private ProfileSnapshot SessionSnapshot = new ProfileSnapshot();
+        private ProfileSnapshot PriorSessionSnapshot = null;
+        private SessionIterator rthSessionIterator = null;
+
+        // Exposed user property for session template selection
+        [NinjaScriptProperty]
+        [Display(Name = "RTH Trading Hours Template", Description = "Select the RTH session template used to identify session boundaries.", Order = 1, GroupName = "Parameters")]
+        [TypeConverter(typeof(TradingHoursDataConverter))]
+        public string RTHTradingHoursName { get; set; }
+
         // ------------------------------------------------------------
         // Runtime dependency
         // ------------------------------------------------------------
@@ -33,24 +177,9 @@ namespace NinjaTrader.NinjaScript.Indicators
         private bool haveActiveSession;
         private DateTime activeSessionDate;
 
-        private double currentSessionHigh;
-        private double currentSessionLow;
-
-
         // ------------------------------------------------------------
         // Completed prior-session snapshot
         // ------------------------------------------------------------
-
-        private bool isReady;
-        private DateTime profileSessionDate;
-
-        private double priorVAH;
-        private double priorVAL;
-        private double priorPOC;
-
-        private double priorProfileHigh;
-        private double priorProfileLow;
-
 
         protected override void OnStateChange()
         {
@@ -69,23 +198,23 @@ namespace NinjaTrader.NinjaScript.Indicators
                 DisplayInDataBox = true;
                 PaintPriceMarkers = true;
                 IsSuspendedWhileInactive = true;
-
                 BarsRequiredToPlot = 1;
 
+                RTHTradingHoursName = "CME US Index Futures RTH";
 
                 // Stable prior-session levels.
                 AddPlot(
-                    new Stroke(Brushes.DodgerBlue, 1),
+                    new Stroke(Brushes.LimeGreen, 1),
                     PlotStyle.Line,
                     "PriorVAHPlot");
 
                 AddPlot(
-                    new Stroke(Brushes.Goldenrod, 1),
+                    new Stroke(Brushes.LimeGreen, 1),
                     PlotStyle.Line,
                     "PriorPOCPlot");
 
                 AddPlot(
-                    new Stroke(Brushes.DodgerBlue, 1),
+                    new Stroke(Brushes.LimeGreen, 1),
                     PlotStyle.Line,
                     "PriorVALPlot");
 
@@ -93,60 +222,95 @@ namespace NinjaTrader.NinjaScript.Indicators
                 // Full prior-session RTH range.
 
                 AddPlot(
-                    new Stroke(Brushes.Gray, 1),
+                    new Stroke(Brushes.LimeGreen, 1),
                     PlotStyle.Line,
                     "PriorProfileHighPlot");
 
                 AddPlot(
-                    new Stroke(Brushes.Gray, 1),
+                    new Stroke(Brushes.LimeGreen, 1),
                     PlotStyle.Line,
                     "PriorProfileLowPlot");
             }
             else if (State == State.DataLoaded)
             {
-                ResetState();
+                if (!string.IsNullOrEmpty(RTHTradingHoursName))
+                {
+                    TradingHours rthHours = TradingHours.Get(RTHTradingHoursName);
+                    if (rthHours != null)
+                        rthSessionIterator = new SessionIterator(rthHours);
+                }
+                SessionSnapshot.Reset();
             }
         }
-
 
         protected override void OnBarUpdate()
         {
-            // This indicator should be instantiated using the same
-            // RTH bars series used as the input for SessionVolumeProfile.
-
-            if (CurrentBar < 0)
+            if (CurrentBar < 0 || BarsInProgress != 0)
                 return;
 
-
-            // First RTH session encountered.
-
+            bool inRTH = IsInRTHSession(Time[0]);
             if (!haveActiveSession)
             {
-                BeginSession();
-                PublishPlots();
-                return;
-            }
-
-
-            // First bar of a new RTH session means the previous
-            // RTH profile is now complete.
-
-            if (Bars.IsFirstBarOfSession)
-            {
-                if (CurrentBar > 0)
-                    CaptureCompletedSession();
-
-                BeginSession();
+                if (inRTH)
+                    BeginSession();
             }
             else
             {
-                UpdateSessionRange();
+                if (inRTH)
+                {
+                    // Safety: never allow two RTH dates to merge.
+                    if (Time[0].Date != SessionSnapshot.SessionDate)
+                    {
+                        // Previous session failed to complete.
+                        // Drop it rather than contaminate the next one.
+                        BeginSession();
+                    }
+                    else
+                    {
+                        SessionSnapshot.UpdateHighLow(High[0], Low[0]);
+                    }
+                }
+                else
+                {
+                    CompleteSession();
+                }
             }
 
-
-            PublishPlots();
+            PublishPlots(inRTH);
         }
 
+        //protected override void OnBarUpdate()
+        //{
+        //    if (CurrentBar < 0)
+        //        return;
+
+        //    if (BarsInProgress != 0)
+        //        return;
+
+        //    var (inRTH, isLastRTHBar) = GetRTHSessionState(Time[0]);
+        //    if (!haveActiveSession && inRTH)
+        //    {   // transitioning into session
+        //        BeginSession();
+        //        PublishPlots();
+        //        return;
+        //    }
+        //    else if (haveActiveSession && isLastRTHBar)
+        //    {   // transitioning out of session
+        //        SessionSnapshot.UpdateHighLow(High[0], Low[0]);
+        //        SessionSnapshot.VAH = _sessionVolumeProfile.DevelopingValueAreaHigh[0];
+        //        SessionSnapshot.VAL = _sessionVolumeProfile.DevelopingValueAreaLow[0];
+        //        SessionSnapshot.POC = _sessionVolumeProfile.DevelopingPoc[0];
+        //        SessionSnapshot.Completed = true;
+        //        PriorSessionSnapshot = SessionSnapshot;
+        //        SessionSnapshot = new ProfileSnapshot();
+        //        haveActiveSession = false;
+        //    }
+        //    else if (haveActiveSession)
+        //    {   
+        //        SessionSnapshot.UpdateHighLow(High[0], Low[0]);
+        //    }
+        //    PublishPlots();
+        //}
 
         // ============================================================
         // Session handling
@@ -155,80 +319,53 @@ namespace NinjaTrader.NinjaScript.Indicators
         private void BeginSession()
         {
             haveActiveSession = true;
-
-            activeSessionDate = Time[0].Date;
-
-            currentSessionHigh = High[0];
-            currentSessionLow = Low[0];
+            SessionSnapshot = new ProfileSnapshot();
+            SessionSnapshot.SessionDate = Time[0].Date;
+            SessionSnapshot.UpdateHighLow(High[0], Low[0]);
         }
 
-
-        private void UpdateSessionRange()
+        private void CompleteSession()
         {
-            if (High[0] > currentSessionHigh)
-                currentSessionHigh = High[0];
-
-            if (Low[0] < currentSessionLow)
-                currentSessionLow = Low[0];
-        }
-
-
-        private void CaptureCompletedSession()
-        {
-            // Never allow yesterday's stale profile to remain valid
-            // if today's rollover fails for some reason.
-
-            isReady = false;
-
             if (_sessionVolumeProfile == null)
                 return;
 
+            double vah = _sessionVolumeProfile.DevelopingValueAreaHigh[0];
+            double val = _sessionVolumeProfile.DevelopingValueAreaLow[0];
+            double poc = _sessionVolumeProfile.DevelopingPoc[0];
 
-            // [1] is intentional.
-            //
-            // We are currently on the first bar of the NEW RTH session.
-            // Therefore [1] represents the final bar of the completed
-            // prior RTH session.
-
-            double vah =
-                _sessionVolumeProfile.DevelopingValueAreaHigh[1];
-
-            double val =
-                _sessionVolumeProfile.DevelopingValueAreaLow[1];
-
-            double poc =
-                _sessionVolumeProfile.DevelopingPoc[1];
-
-
-            if (!IsFinite(vah) ||
-                !IsFinite(val) ||
-                !IsFinite(poc))
+            if (!SessionSnapshot.Complete(vah, val, poc))
             {
                 return;
             }
 
-
-            // Basic sanity checks.
-
-            if (vah < val)
-                return;
-
-            if (poc < val || poc > vah)
-                return;
-
-
-            priorVAH = vah;
-            priorVAL = val;
-            priorPOC = poc;
-
-            priorProfileHigh = currentSessionHigh;
-            priorProfileLow = currentSessionLow;
-
-            profileSessionDate = activeSessionDate;
-
-            isReady = true;
+            PriorSessionSnapshot = SessionSnapshot;
+            SessionSnapshot = new ProfileSnapshot();
+            haveActiveSession = false;
         }
 
+        private (bool inSession, bool isLastBar) GetRTHSessionState(DateTime barTime)
+        {
+            if (rthSessionIterator == null)
+                return (false, false);
+
+            // Advance iterator to the session matching or following barTime
+            rthSessionIterator.GetNextSession(barTime, true);
+
+            // Check if barTime falls within the active session boundaries
+            bool inSession = rthSessionIterator.IsInSession(barTime, true, true);
+
+            // Bar time equals ActualSessionEnd on the final bar of the session (e.g., 16:00:00 EST for 15:59-16:00 bar)
+            bool isLastBar = inSession && (barTime == rthSessionIterator.ActualSessionEnd);
+
+            return (inSession, isLastBar);
+        }
+
+        private bool IsInRTHSession(DateTime barTime)
+        {
+            var (inRTH, isLastRTHBar) = GetRTHSessionState(barTime);
+
+            return inRTH;
+        }
 
         private static bool IsFinite(double value)
         {
@@ -236,59 +373,32 @@ namespace NinjaTrader.NinjaScript.Indicators
                    !double.IsInfinity(value);
         }
 
-
-        private void ResetState()
-        {
-            haveActiveSession = false;
-            isReady = false;
-
-            activeSessionDate = DateTime.MinValue;
-            profileSessionDate = DateTime.MinValue;
-
-            currentSessionHigh = double.NaN;
-            currentSessionLow = double.NaN;
-
-            priorVAH = double.NaN;
-            priorVAL = double.NaN;
-            priorPOC = double.NaN;
-
-            priorProfileHigh = double.NaN;
-            priorProfileLow = double.NaN;
-        }
-
-
         // ============================================================
         // Plot publishing
         // ============================================================
-
-        private void PublishPlots()
+        private void PublishPlots(bool inRTH)
         {
-            if (!isReady)
+            if (PriorSessionSnapshot == null || !PriorSessionSnapshot.Completed || !inRTH)
             {
-                PriorVAHPlot[0] = double.NaN;
-                PriorPOCPlot[0] = double.NaN;
-                PriorVALPlot[0] = double.NaN;
-                PriorProfileHighPlot[0] = double.NaN;
-                PriorProfileLowPlot[0] = double.NaN;
-
+                ClearPlots();
                 return;
             }
 
-
-            PriorVAHPlot[0] = priorVAH;
-            PriorPOCPlot[0] = priorPOC;
-            PriorVALPlot[0] = priorVAL;
-
-            PriorProfileHighPlot[0] = priorProfileHigh;
-            PriorProfileLowPlot[0] = priorProfileLow;
+            PriorVAHPlot[0] = PriorSessionSnapshot.VAH;
+            PriorPOCPlot[0] = PriorSessionSnapshot.POC;
+            PriorVALPlot[0] = PriorSessionSnapshot.VAL;
+            PriorProfileHighPlot[0] = PriorSessionSnapshot.High;
+            PriorProfileLowPlot[0] = PriorSessionSnapshot.Low;
         }
 
-
-        // ============================================================
-        // Injected runtime object
-        // ============================================================
-
-
+        private void ClearPlots()
+        {
+            PriorVAHPlot[0] = double.NaN;
+            PriorPOCPlot[0] = double.NaN;
+            PriorVALPlot[0] = double.NaN;
+            PriorProfileHighPlot[0] = double.NaN;
+            PriorProfileLowPlot[0] = double.NaN;
+        }
 
         // ============================================================
         // Stable prior-session values
@@ -300,7 +410,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             get
             {
                 Update();
-                return isReady;
+                return PriorSessionSnapshot != null ? PriorSessionSnapshot.Completed : false;
             }
         }
 
@@ -311,7 +421,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             get
             {
                 Update();
-                return profileSessionDate;
+                return PriorSessionSnapshot != null ? PriorSessionSnapshot.SessionDate : DateTime.MinValue;
             }
         }
 
@@ -322,7 +432,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             get
             {
                 Update();
-                return priorVAH;
+                return PriorSessionSnapshot != null ? PriorSessionSnapshot.VAH : double.NaN;
             }
         }
 
@@ -333,7 +443,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             get
             {
                 Update();
-                return priorVAL;
+                return PriorSessionSnapshot != null ? PriorSessionSnapshot.VAL : double.NaN;
             }
         }
 
@@ -344,7 +454,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             get
             {
                 Update();
-                return priorPOC;
+                return PriorSessionSnapshot != null ? PriorSessionSnapshot.POC : double.NaN;
             }
         }
 
@@ -355,7 +465,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             get
             {
                 Update();
-                return priorProfileHigh;
+                return PriorSessionSnapshot != null ? PriorSessionSnapshot.High : double.NaN;
             }
         }
 
@@ -366,7 +476,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             get
             {
                 Update();
-                return priorProfileLow;
+                return PriorSessionSnapshot != null ? PriorSessionSnapshot.Low : double.NaN;
             }
         }
 
@@ -381,10 +491,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             get
             {
                 Update();
-
-                return isReady
-                    ? priorVAH - priorVAL
-                    : double.NaN;
+                return PriorSessionSnapshot != null ? PriorSessionSnapshot.ValueAreaWidth : double.NaN;
             }
         }
 
@@ -395,10 +502,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             get
             {
                 Update();
-
-                return isReady
-                    ? (priorVAH + priorVAL) / 2.0
-                    : double.NaN;
+                return PriorSessionSnapshot != null ? PriorSessionSnapshot.ValueAreaMidpoint : double.NaN;
             }
         }
 
@@ -409,10 +513,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             get
             {
                 Update();
-
-                return isReady
-                    ? priorProfileHigh - priorProfileLow
-                    : double.NaN;
+                return PriorSessionSnapshot != null ? PriorSessionSnapshot.Range : double.NaN;
             }
         }
 
@@ -423,16 +524,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             get
             {
                 Update();
-
-                if (!isReady)
-                    return double.NaN;
-
-                double width = priorVAH - priorVAL;
-
-                if (width <= 0)
-                    return double.NaN;
-
-                return (priorPOC - priorVAL) / width;
+                return PriorSessionSnapshot != null ? PriorSessionSnapshot.POCPositionPct : double.NaN;
             }
         }
 

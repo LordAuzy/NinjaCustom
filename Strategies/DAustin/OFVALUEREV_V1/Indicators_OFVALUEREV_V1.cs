@@ -106,6 +106,7 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OFVALUEREV_V1
 
             TradingHours rth = TradingHours.String2TradingHours("CME US Index Futures RTH");
             int rthPrimaryIndex = DataSeriesIndicies.GetSeriesIndex(DataSeries_OFVALUEREV_V1.Name.RthPrimary);
+            int primaryIndex = DataSeriesIndicies.GetSeriesIndex(DataSeries_OFVALUEREV_V1.Name.Primary);
             SessionVolumeProfile =
                 Strategy.OrderFlowVolumeProfile(
                     Strategy.Closes[rthPrimaryIndex],
@@ -118,7 +119,8 @@ namespace NinjaTrader.Custom.Strategies.DAustin.OFVALUEREV_V1
                     0);
             SessionVolumeProfile.TicksPerLevel = 1;
 
-            PriorValue = Strategy.DAPriorSessionValueArea(Strategy.Closes[rthPrimaryIndex]);
+            PriorValue = Strategy.DAPriorSessionValueArea(Strategy.Closes[primaryIndex]);
+            PriorValue.RTHTradingHoursName = "CME US Index Futures RTH";
             PriorValue.SessionVolumeProfile = SessionVolumeProfile;
 
             // This is a separate volume profile that is used for display purposes only.
