@@ -1,16 +1,19 @@
 #region Using declarations
+using NinjaTrader.Data;
+using NinjaTrader.Gui;
+using NinjaTrader.Gui.Chart;
+using NinjaTrader.Gui.Tools;
+using NinjaTrader.NinjaScript;
+using NinjaTrader.NinjaScript.ChartStyles;
+using NinjaTrader.NinjaScript.DrawingTools;
+using NinjaTrader.NinjaScript.Indicators;
 using System;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Runtime.InteropServices.WindowsRuntime;
+using System.Windows;
 using System.Windows.Media;
 using System.Xml.Serialization;
-using NinjaTrader.NinjaScript;
-using NinjaTrader.NinjaScript.Indicators;
-using NinjaTrader.NinjaScript.ChartStyles;
-using NinjaTrader.Gui;
-using NinjaTrader.Gui.Chart;
-using NinjaTrader.Data;
-using System.Runtime.InteropServices.WindowsRuntime;
 #endregion
 
 namespace NinjaTrader.NinjaScript.Indicators
@@ -151,6 +154,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         private ProfileSnapshot SessionSnapshot = new ProfileSnapshot();
         private ProfileSnapshot PriorSessionSnapshot = null;
         private SessionIterator rthSessionIterator = null;
+        private SimpleFont labelFont = new SimpleFont("Arial", 12);
 
         // Exposed user property for session template selection
         [NinjaScriptProperty]
@@ -222,13 +226,13 @@ namespace NinjaTrader.NinjaScript.Indicators
                 // Full prior-session RTH range.
 
                 AddPlot(
-                    new Stroke(Brushes.LimeGreen, 1),
-                    PlotStyle.Line,
+                    new Stroke(Brushes.LimeGreen, 2),
+                    PlotStyle.Dot,
                     "PriorProfileHighPlot");
 
                 AddPlot(
-                    new Stroke(Brushes.LimeGreen, 1),
-                    PlotStyle.Line,
+                    new Stroke(Brushes.LimeGreen, 2),
+                    PlotStyle.Dot,
                     "PriorProfileLowPlot");
             }
             else if (State == State.DataLoaded)
@@ -242,7 +246,6 @@ namespace NinjaTrader.NinjaScript.Indicators
                 SessionSnapshot.Reset();
             }
         }
-
         protected override void OnBarUpdate()
         {
             if (CurrentBar < 0 || BarsInProgress != 0)
@@ -279,39 +282,6 @@ namespace NinjaTrader.NinjaScript.Indicators
             PublishPlots(inRTH);
         }
 
-        //protected override void OnBarUpdate()
-        //{
-        //    if (CurrentBar < 0)
-        //        return;
-
-        //    if (BarsInProgress != 0)
-        //        return;
-
-        //    var (inRTH, isLastRTHBar) = GetRTHSessionState(Time[0]);
-        //    if (!haveActiveSession && inRTH)
-        //    {   // transitioning into session
-        //        BeginSession();
-        //        PublishPlots();
-        //        return;
-        //    }
-        //    else if (haveActiveSession && isLastRTHBar)
-        //    {   // transitioning out of session
-        //        SessionSnapshot.UpdateHighLow(High[0], Low[0]);
-        //        SessionSnapshot.VAH = _sessionVolumeProfile.DevelopingValueAreaHigh[0];
-        //        SessionSnapshot.VAL = _sessionVolumeProfile.DevelopingValueAreaLow[0];
-        //        SessionSnapshot.POC = _sessionVolumeProfile.DevelopingPoc[0];
-        //        SessionSnapshot.Completed = true;
-        //        PriorSessionSnapshot = SessionSnapshot;
-        //        SessionSnapshot = new ProfileSnapshot();
-        //        haveActiveSession = false;
-        //    }
-        //    else if (haveActiveSession)
-        //    {   
-        //        SessionSnapshot.UpdateHighLow(High[0], Low[0]);
-        //    }
-        //    PublishPlots();
-        //}
-
         // ============================================================
         // Session handling
         // ============================================================
@@ -339,6 +309,13 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
 
             PriorSessionSnapshot = SessionSnapshot;
+            Print("Completed prior session snapshot for " + PriorSessionSnapshot.SessionDate.ToShortDateString() +
+                ": VAH=" + PriorSessionSnapshot.VAH.ToString("F2") +
+                ", VAL=" + PriorSessionSnapshot.VAL.ToString("F2") +
+                ", POC=" + PriorSessionSnapshot.POC.ToString("F2") +
+                ", High=" + PriorSessionSnapshot.High.ToString("F2") +
+                ", Low=" + PriorSessionSnapshot.Low.ToString("F2"));
+
             SessionSnapshot = new ProfileSnapshot();
             haveActiveSession = false;
         }
@@ -381,6 +358,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             if (PriorSessionSnapshot == null || !PriorSessionSnapshot.Completed || !inRTH)
             {
                 ClearPlots();
+                RemovePriorValueLabels();
                 return;
             }
 
@@ -389,6 +367,47 @@ namespace NinjaTrader.NinjaScript.Indicators
             PriorVALPlot[0] = PriorSessionSnapshot.VAL;
             PriorProfileHighPlot[0] = PriorSessionSnapshot.High;
             PriorProfileLowPlot[0] = PriorSessionSnapshot.Low;
+            DrawPriorValueLabels();
+        }
+
+        private void DrawPriorValueLabels()
+        {
+            if (PriorSessionSnapshot == null || !PriorSessionSnapshot.Completed)
+            {
+                RemovePriorValueLabels();
+            }
+
+            DrawPriorLabel( "PriorVAHLabel",
+                $"Prior VAH {PriorSessionSnapshot.VAH:F2}", 
+                PriorSessionSnapshot.VAH);
+
+            DrawPriorLabel( "PriorPOCLabel",
+                $"Prior POC {PriorSessionSnapshot.POC:F2}", 
+                PriorSessionSnapshot.POC);
+
+            DrawPriorLabel( "PriorVALLabel",
+                $"Prior VAL {PriorSessionSnapshot.VAL:F2}", 
+                PriorSessionSnapshot.VAL);
+
+            DrawPriorLabel( "PriorProfileHighLabel",
+                $"Prior High {PriorSessionSnapshot.High:F2}", 
+                PriorSessionSnapshot.High);
+
+            DrawPriorLabel( "PriorProfileLowLabel", 
+                            $"Prior Low {PriorSessionSnapshot.Low:F2}", 
+                            PriorSessionSnapshot.Low);
+        }
+
+        private void DrawPriorLabel(
+            string tag, 
+            string text,
+            double yValue)
+        {
+            Draw.Text(this, tag, false,
+                text, 0,
+                yValue, 0,
+                Brushes.LimeGreen, labelFont, TextAlignment.Left,
+                Brushes.Transparent, Brushes.Transparent, 0);
         }
 
         private void ClearPlots()
@@ -398,6 +417,15 @@ namespace NinjaTrader.NinjaScript.Indicators
             PriorVALPlot[0] = double.NaN;
             PriorProfileHighPlot[0] = double.NaN;
             PriorProfileLowPlot[0] = double.NaN;
+        }
+
+        private void RemovePriorValueLabels()
+        {
+            RemoveDrawObject("PriorVAHLabel");
+            RemoveDrawObject("PriorPOCLabel");
+            RemoveDrawObject("PriorVALLabel");
+            RemoveDrawObject("PriorProfileHighLabel");
+            RemoveDrawObject("PriorProfileLowLabel");
         }
 
         // ============================================================
